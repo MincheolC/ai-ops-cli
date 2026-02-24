@@ -1,0 +1,10 @@
+id: naming-convention
+category: convention
+tags:
+  - general
+  - naming
+priority: 75
+content:
+  constraints: []
+  guidelines:
+    - 'Use kebab-case for directory names.'

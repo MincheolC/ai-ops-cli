@@ -1,0 +1,11 @@
+id: react-typescript
+category: framework
+tags:
+  - typescript
+  - react
+priority: 60
+content:
+  constraints:
+    - 'DO NOT use React.FC or FC. Type props directly and destructure them.'
+  guidelines:
+    - 'Use readonly for array and object props.'

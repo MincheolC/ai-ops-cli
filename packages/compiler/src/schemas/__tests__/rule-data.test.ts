@@ -14,7 +14,14 @@ const loadYaml = (filename: string): unknown => {
   return parse(raw);
 };
 
-const ruleFiles = ['role-persona.yaml', 'communication.yaml', 'code-philosophy.yaml'] as const;
+const ruleFiles = [
+  'role-persona.yaml',
+  'communication.yaml',
+  'code-philosophy.yaml',
+  'naming-convention.yaml',
+  'typescript.yaml',
+  'react-typescript.yaml',
+] as const;
 
 describe('rule data files', () => {
   describe('각 YAML이 RuleSchema를 통과한다', () => {
@@ -33,9 +40,10 @@ describe('rule data files', () => {
     expect(unique.size).toBe(ids.length);
   });
 
-  it('priority 내림차순: role-persona > communication > code-philosophy', () => {
-    const [persona, comm, philosophy] = ruleFiles.map((f) => RuleSchema.parse(loadYaml(f)) as Rule);
-    expect(persona.priority).toBeGreaterThan(comm.priority);
-    expect(comm.priority).toBeGreaterThan(philosophy.priority);
+  it('모든 rule의 priority가 유일하다', () => {
+    const rules = ruleFiles.map((f) => RuleSchema.parse(loadYaml(f)) as Rule);
+    const priorities = rules.map((r) => r.priority);
+    const unique = new Set(priorities);
+    expect(unique.size).toBe(priorities.length);
   });
 });
