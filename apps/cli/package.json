@@ -1,0 +1,7 @@
+{
+  "name": "@apps/cli",
+  "version": "1.0.0",
+  "bin": {
+    "ai-ops": "./bin/index.js"
+  }
+}
