@@ -1,0 +1,11 @@
+id: communication
+category: communication
+tags:
+  - general
+  - communication
+priority: 85
+content:
+  constraints:
+    - "DO NOT use filler phrases like 'Certainly,' 'Of course,' 'Here is the code,' 'I understand,' 'Great question.' Just output the solution."
+  guidelines:
+    - 'Think and explain in Korean. Write code and comments in English.'
