@@ -1,0 +1,34 @@
+id: graphql
+category: api
+tags:
+  - graphql
+  - api
+  - schema-design
+priority: 48
+content:
+  constraints:
+    - 'DO NOT rely on implicit nullability defaults. Every field MUST declare nullability explicitly — non-null (!) is the default intent; nullable fields are intentional design decisions (e.g., optional profile picture). Implicit nullability causes mismatches between schema and client expectations.'
+    - 'DO NOT perform side effects (data mutations) in Query resolvers. Reads belong in Query, writes belong in Mutation — strict separation ensures idempotent caching, safe retry behavior, and predictable client behavior.'
+    - 'DO NOT use a generic `Error` type as a return value. Define domain-specific union error types per operation (e.g., `union CreateUserResult = User | EmailTakenError | ValidationError`). Generic errors give clients no actionable structure for error handling.'
+    - 'DO NOT return unbounded lists. Every collection field MUST apply pagination (`first`/`after` for cursor-based or `limit`/`offset` for offset-based). Unbounded lists are a DoS vector and cause memory exhaustion at scale.'
+    - 'DO NOT expose internal implementation details in enum value names. Use SCREAMING_SNAKE_CASE semantic names (e.g., `PENDING`, `IN_PROGRESS`) — never leak DB column names, internal state machine names, or numeric codes that require server-side knowledge to interpret.'
+  guidelines:
+    - 'Prefer cursor-based pagination (`first`/`after`) using UUID v7 PKs as the cursor — eliminates offset drift on live data and supports infinite scroll reliably. A minimal connection shape `{ nodes: [T!]!, pageInfo: { hasNextPage: Boolean!, endCursor: String } }` is sufficient; full Relay Connection spec (`edges/node`) is optional.'
+    - 'Design mutation arguments as a single `input` object: `mutation CreateUser($input: CreateUserInput!) { createUser(input: $input) { ... } }`. Never spread individual scalars as top-level arguments — a single input type is versionable and tooling-friendly.'
+    - 'Return a Payload type from every mutation: `type CreateUserPayload { user: User, userErrors: [UserError!]! }`. Return HTTP 200 with application-level errors in `userErrors` rather than using top-level GraphQL errors, which are harder for clients to branch on.'
+    - 'Solve N+1 with DataLoader. Resolvers MUST NOT issue DB queries directly — delegate to a batch loader keyed by parent IDs. This is mandatory for any `@ResolveField`-equivalent that loads related data.'
+    - 'Follow schema naming conventions: `PascalCase` for types and enums, `camelCase` for fields and arguments, `SCREAMING_SNAKE_CASE` for enum values. Deviations break code generation tools (`@graphql-codegen`).'
+    - 'Mark deprecated fields with `@deprecated(reason: "Use newField instead. Removal planned in v3.")` rather than deleting them immediately. Verify client migration before removing in the next major version.'
+  decision_table:
+    - when: 'A field returns a collection'
+      then: 'Use cursor-based pagination (`first`/`after`, UUID v7 PK as cursor) — stable under concurrent writes, safe for infinite scroll. Offset pagination (`limit`/`offset`) is acceptable for admin tables with bounded, slow-changing data.'
+      avoid: 'Unbounded `[Node!]!` return — no limit means memory exhaustion and DoS risk at scale'
+    - when: 'A mutation needs to communicate failure to the client'
+      then: 'Return a Payload union type (`User | ValidationError`) and populate `userErrors: [UserError!]!` — clients can switch on `__typename` and handle errors as data'
+      avoid: 'Throwing top-level GraphQL errors for expected business failures — clients must catch exceptions instead of branching on typed data'
+    - when: 'A schema field needs to be removed or renamed'
+      then: 'Add `@deprecated(reason: "...")` first, confirm all clients have migrated, then remove in the next major schema version'
+      avoid: 'Removing a field immediately without deprecation — causes runtime errors in deployed clients that have not yet updated their queries'
+    - when: 'A query needs complex filtering or sorting'
+      then: 'Define dedicated `FilterInput` / `OrderByInput` input types with typed fields for each filter criterion'
+      avoid: 'Accepting a JSON string or raw scalar as a filter parameter — loses type safety, IDE auto-complete, and validation at the schema level'
