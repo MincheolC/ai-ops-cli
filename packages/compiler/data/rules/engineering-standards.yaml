@@ -1,0 +1,40 @@
+id: engineering-standards
+category: standard
+tags:
+  - general
+  - api
+  - data-format
+  - cross-cutting
+priority: 70
+content:
+  constraints:
+    - 'DO NOT use floating-point numbers for monetary values. Represent money as an integer in the smallest currency unit (e.g., cents) with an ISO 4217 currency code — { amount: 1099, currency: "USD" } means $10.99. IEEE 754 rounding errors accumulate across arithmetic operations.'
+    - 'DO NOT expose sequential or auto-increment IDs in external APIs. Use UUIDs. Sequential IDs enable enumeration attacks and leak business volume (e.g., total order count).'
+    - 'DO NOT store or transmit timestamps without timezone information. Always use ISO 8601 UTC format (e.g., "2024-01-15T09:30:00Z"). Timezone-naive strings ("2024-01-15 09:30:00") are ambiguous and cause silent data corruption across regions.'
+    - 'DO NOT use magic numbers or magic strings inline. Extract to named constants or env config. Inline literals (e.g., if (retries > 3), setTimeout(fn, 5000)) make intent opaque and changes error-prone.'
+    - 'DO NOT return inconsistent error response shapes across endpoints. Every error response MUST follow a standard envelope: { code: string, message: string, requestId: string }. Arbitrary shapes (e.g., { success: false, msg }) break client error handling.'
+    - 'DO NOT accept unbounded input. Enforce Content-Length limits, request body size limits, array length limits, and string length limits at the API boundary. Missing bounds are a DoS vector and amplify downstream processing cost.'
+  guidelines:
+    - 'UTC everywhere: store all timestamps as UTC in the DB (TIMESTAMPTZ), transmit as ISO 8601 UTC in APIs and logs. Convert to local timezone only in the presentation layer.'
+    - 'Wrap all API responses in a consistent envelope: { data: T | null, error: ErrorEnvelope | null, meta: { requestId: string, timestamp: string } }. This makes client-side response handling uniform regardless of endpoint.'
+    - 'Propagate a correlation ID (X-Request-Id) through every layer: API gateway → service → DB query comment → log entry → outbound HTTP headers. This makes distributed tracing and log correlation possible without a full APM setup.'
+    - 'Validate environment variables at application startup using Zod parse. Print all missing or invalid variables before failing — fail fast with full context rather than a cryptic runtime error on first use.'
+    - 'Name domain error codes as DOMAIN_ACTION_REASON (e.g., PAYMENT_CHARGE_INSUFFICIENT_FUNDS, AUTH_TOKEN_EXPIRED). Generic codes (INVALID_INPUT, SERVER_ERROR) give clients no actionable information.'
+    - 'Accept an Idempotency-Key header on non-idempotent mutations (POST, PATCH). Cache the response for the key within a TTL and return the cached response for duplicate requests. This makes retries safe for clients.'
+    - 'Expose GET /health (liveness — process is alive) and GET /ready (readiness — dependent services reachable) endpoints. Kubernetes liveness and readiness probes require these to be separate.'
+    - 'Represent monetary amounts as { amount: number, currency: string } where amount is an integer in the minor unit (cents, pence, etc.) and currency is an ISO 4217 code. Divide by the minor unit factor only at the display layer.'
+    - 'Return empty collections as [] (or {}) instead of null. Returning null forces every client to null-check before calling .map(), .filter(), or Object.keys(). An empty collection is unambiguous and safe to iterate without guards.'
+    - 'Handle SIGTERM for graceful shutdown: (1) stop accepting new requests, (2) wait for in-flight requests to complete, (3) close DB connection pools and message queue connections before exiting. Align the shutdown timeout with Kubernetes terminationGracePeriodSeconds to avoid forceful pod kills.'
+  decision_table:
+    - when: 'A new entity needs a primary key'
+      then: 'Use UUID v7 (RFC 9562) — time-sortable, B-tree friendly, no enumeration risk'
+      avoid: 'Auto-increment integers (enumeration attack, leaks volume); UUID v4 (non-sortable, causes B-tree page splits at scale)'
+    - when: 'An API endpoint needs to return an error'
+      then: 'Use a structured error envelope: { code: string, message: string, details?: unknown[] } following RFC 9457 (Problem Details for HTTP APIs)'
+      avoid: 'Arbitrary error shapes ({ success: false, msg: string }) — breaks uniform client error handling and logging'
+    - when: 'Timestamps are exchanged between systems (API, logs, DB)'
+      then: 'Use ISO 8601 UTC strings ("2024-01-15T09:30:00Z") for APIs and logs; TIMESTAMPTZ column type for DB'
+      avoid: 'Unix epoch milliseconds for human-readable interfaces (undebuggable without a converter); timezone-naive strings (ambiguous); ISO 8601 with local offset in storage (inconsistent sort order). Note: Unix epoch is acceptable in compact formats such as JWT exp/iat claims.'
+    - when: 'An API needs to support multiple versions'
+      then: 'Use URL path prefix versioning (/v1/, /v2/) — explicit, cacheable, and simple to route'
+      avoid: 'Header-based versioning (Accept-Version, X-API-Version) — invisible in browser/curl, complicates CDN caching and routing'

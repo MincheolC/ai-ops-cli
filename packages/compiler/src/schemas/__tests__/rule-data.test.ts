@@ -29,6 +29,7 @@ const ruleFiles = [
   'libs-backend.yaml',
   'libs-frontend-web.yaml',
   'libs-frontend-app.yaml',
+  'engineering-standards.yaml',
 ] as const;
 
 describe('rule data files', () => {
