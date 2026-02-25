@@ -1,0 +1,43 @@
+id: libs-backend
+category: tooling
+tags:
+  - typescript
+  - nestjs
+  - backend
+priority: 25
+content:
+  constraints:
+    - 'DO NOT use moment.js or dayjs. Use date-fns 4+ (tree-shakeable, immutable, functional API) — import individual functions only.'
+    - 'DO NOT use jsonwebtoken. Use jose 6+ (Web Crypto API, edge-compatible, no native binary dependencies).'
+    - 'DO NOT use Express APIs (req/res) directly in NestJS handlers. Route through the NestJS platform adapter layer.'
+    - 'DO NOT import lodash as a full bundle (import _ from "lodash"). Prefer native JS (structuredClone, Object.groupBy, Array.at) first; only then use individual lodash imports.'
+    - 'DO NOT use node-fetch or got for HTTP calls inside NestJS. Use @nestjs/axios (HttpModule) or native fetch().'
+    - 'DO NOT use winston, morgan, or console.log for application logging. Use pino 9+ via nestjs-pino 4+ — it fully replaces the NestJS Logger and provides best-in-class JSON serialization performance.'
+  guidelines:
+    - 'class-validator 0.14+ / class-transformer 0.5+ — DTO validation and serialization. Always enable whitelist: true in ValidationPipe.'
+    - '@nestjs/graphql 13+ / @nestjs/apollo 13+ / @apollo/server 5+ — GraphQL API layer. Use code-first approach with TypeScript decorators.'
+    - '@graphql-codegen/cli 6+ / client-preset 5+ — generate type-safe GraphQL operation types from the SDL at build time.'
+    - 'date-fns 4+ / date-fns-tz 3+ — date manipulation and timezone handling. Always import individual functions (e.g., import { format } from "date-fns").'
+    - 'jose 6+ — JWT signing, verification, JWK/JWKS handling. Use SignJWT / jwtVerify / createRemoteJWKSet.'
+    - 'pino 9+ / nestjs-pino 4+ — structured JSON logging. Bootstrap with LoggerModule.forRoot() to replace the NestJS Logger across all modules automatically.'
+    - 'rxjs 7+ — reactive patterns for NestJS interceptors, guards, and event streams. Prefer operators over manual Promise chains.'
+    - 'vitest 4+ / @nestjs/testing / supertest 7+ — unit and e2e testing. ESM-native; no ts-jest or @swc/jest configuration required.'
+    - 'pg 8+ / @prisma/adapter-pg 7+ — Prisma driver adapter. Configure connection pool size (max, idleTimeoutMillis) explicitly.'
+    - 'typescript 5+ with strict: true / @swc/core — type checking and fast transpilation in development and CI.'
+    - 'axios via @nestjs/axios HttpModule — outbound HTTP calls that require interceptors, retry logic, or request/response transformation.'
+  decision_table:
+    - when: 'JWT authentication is needed'
+      then: 'Use jose 6+ (SignJWT, jwtVerify, createRemoteJWKSet)'
+      avoid: 'jsonwebtoken — not Web Crypto compatible, not edge-runtime safe'
+    - when: 'Date manipulation or formatting is needed'
+      then: 'Use date-fns 4+ with individual function imports'
+      avoid: 'moment.js (mutable, large bundle), dayjs (non-standard plugin model)'
+    - when: 'A utility function is needed (e.g., deep clone, groupBy)'
+      then: 'Use native JS first (structuredClone, Object.groupBy); only fall back to individual lodash imports'
+      avoid: "lodash full bundle import (import _ from 'lodash')"
+    - when: 'Schema validation outside of DTOs is needed (e.g., env vars, external payloads)'
+      then: 'Use zod with parse/safeParse'
+      avoid: 'joi (CommonJS-only API), manual type guards (brittle, untestable)'
+    - when: 'Structured application logging is needed'
+      then: 'Use pino 9+ via nestjs-pino 4+ (LoggerModule.forRoot)'
+      avoid: 'winston (slow JSON serialization), morgan (HTTP-only), console.log (unstructured)'

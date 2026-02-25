@@ -26,6 +26,9 @@ const ruleFiles = [
   'prisma-postgresql.yaml',
   'shadcn-ui.yaml',
   'flutter.yaml',
+  'libs-backend.yaml',
+  'libs-frontend-web.yaml',
+  'libs-frontend-app.yaml',
 ] as const;
 
 describe('rule data files', () => {
