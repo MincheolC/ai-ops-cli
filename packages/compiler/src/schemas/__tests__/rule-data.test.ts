@@ -21,6 +21,7 @@ const ruleFiles = [
   'naming-convention.yaml',
   'typescript.yaml',
   'react-typescript.yaml',
+  'nextjs.yaml',
 ] as const;
 
 describe('rule data files', () => {

@@ -36,6 +36,22 @@
 
 기존 `.claude/rules/*.md` 컨벤션 YAML 구조화 + 주력 기술 스택 규칙 추가.
 
+#### Rule 콘텐츠 작성 원칙
+
+각 항목은 **하나의 레이어에만** 존재해야 한다. 레이어 간 내용이 중복되면 AI 모델에 불필요한 토큰을 소비하고, 모순이 생길 위험이 높아진다.
+
+| 레이어           | 역할                        | 작성 기준                                                                                                                  |
+| ---------------- | --------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `constraints`    | 절대 금지 (hard ban)        | AI가 자주 생성하는 **위험한 안티패턴**만. "DO NOT ..." 형식.                                                               |
+| `guidelines`     | 권장 패턴 (best practice)   | AI가 자주 빠뜨리거나 잘못 적용하는 **긍정적 패턴**만. constraints와 대칭되지 않아야 함.                                    |
+| `decision_table` | 분기 판단 (ambiguous cases) | AI가 **진짜 헷갈릴 수 있는 A vs B 선택**만. constraint/guideline으로 명확히 표현 가능한 것은 decision_table에 넣지 않는다. |
+
+**체크리스트 (작성 후 자가 검증):**
+
+1. 같은 주제가 2개 이상의 레이어에 등장하지 않는가?
+2. AI 모델이 이미 잘 아는 내용(공식 문서에 명확히 나오는 기본 사용법)을 규칙으로 강제하고 있지 않은가?
+3. 각 constraint는 실제로 AI가 위반할 가능성이 높은가?
+
 - **2-B-1.** `data/rules/general.yaml` — 기존 general.md 기반 (역할, 커뮤니케이션, 핵심 철학)
 - **2-B-2.** `data/rules/coding-convention.yaml` — 기존 coding-convention.md 기반 (네이밍, 구조)
 - **2-B-3.** `data/rules/typescript.yaml` — 기존 typescript.md 기반 (type-only, no enum, etc.)
@@ -44,6 +60,8 @@
 - **2-B-6.** `data/rules/prisma-postgresql.yaml` — Prisma 스키마 + PostgreSQL 최적화 (합본)
 - **2-B-7.** `data/rules/react-ui.yaml` — React + Shadcn + TailwindCSS (합본, 프론트엔드 UI 레이어)
 - **2-B-8.** `data/rules/flutter.yaml` — Flutter/Dart 컨벤션
+- **2-B-9.** `data/rules/tech-stack.yaml` — 프로젝트 표준 라이브러리 선택 (category: stack, priority: 55)
+- **2-B-10.** `data/rules/engineering-standards.yaml` — 횡단 엔지니어링 표준: 날짜(ISO8601 UTC), API envelope 등 (category: standard, priority: 70)
 
 ### 2-C. AI 에이전트별 공식 문서 조사 & Reference 작성
 
