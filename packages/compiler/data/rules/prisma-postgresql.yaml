@@ -1,0 +1,30 @@
+id: prisma-postgresql
+category: database
+tags:
+  - typescript
+  - prisma
+  - postgresql
+priority: 40
+content:
+  constraints:
+    - 'DO NOT use $queryRawUnsafe with string interpolation or concatenation. It creates SQL injection vulnerabilities. Use tagged template $queryRaw`...${variable}` which auto-escapes, or use positional parameters ($1, $2) with $queryRawUnsafe.'
+    - 'DO NOT return Prisma model objects directly as API responses. Models may contain sensitive fields (password, tokens, deletedAt). Use select to pick specific fields or map to a response DTO.'
+    - 'DO NOT define mutable models without an updatedAt field. Add `updatedAt DateTime @updatedAt` to every model that can be modified after creation.'
+    - 'DO NOT use $use() middleware — it is removed in Prisma v7. Use Client Extensions ($extends) with query hooks instead.'
+    - 'DO NOT use prisma db push in production. It can cause data loss and has no migration history. Use prisma migrate deploy with versioned migration files only.'
+  guidelines:
+    - 'Use the prisma-client generator with an explicit output path: generator client { provider = "prisma-client"; output = "./generated/prisma/client" }. The legacy prisma-client-js provider is deprecated in v7.'
+    - 'Configure a driver adapter explicitly. For PostgreSQL, use @prisma/adapter-pg with pool settings (max connections, idleTimeoutMillis, connectionTimeoutMillis) tuned to your environment.'
+    - 'Add @@index on fields used in where, orderBy, and relation foreign keys. Use composite indexes @@index([fieldA, fieldB]) for multi-column filter patterns.'
+    - 'Set explicit timeout and maxWait on interactive transactions to match your business requirements — the defaults (timeout: 5000ms, maxWait: 2000ms) may be too short for complex operations.'
+    - 'Centralize configuration in prisma.config.ts (datasource URL, migration path, seed script). The url and directUrl fields in the schema.prisma datasource block are deprecated in v7.'
+    - 'Implement soft delete via Client Extension ($extends query hook) that injects where: { deletedAt: null } into find queries automatically — not via the removed $use() middleware.'
+    - 'Prefer cursor-based pagination (cursor + take) over offset-based (skip + take) for large tables. Offset pagination degrades as page depth increases; cursor pagination leverages indexes consistently.'
+    - 'In serverless or containerized environments, configure an external connection pooler (e.g., PgBouncer) or set an explicit connection_limit on @prisma/adapter-pg to prevent database max connection exhaustion.'
+  decision_table:
+    - when: 'Query requires window functions, CTEs, complex aggregations, or PostgreSQL-specific syntax not supported by Prisma Client API'
+      then: 'Use $queryRaw with tagged template literals for automatic escaping and type safety'
+      avoid: 'Overusing raw SQL for queries that Prisma Client API can express — lose type safety and query validation'
+    - when: 'Transaction involves multiple writes where later queries depend on earlier results'
+      then: 'Use interactive transaction ($transaction(async (tx) => { ... })) with explicit timeout/maxWait'
+      avoid: 'Using batch transaction ($transaction([...])) when queries are interdependent — batch does not guarantee execution order access'

@@ -23,6 +23,7 @@ const ruleFiles = [
   'react-typescript.yaml',
   'nextjs.yaml',
   'nestjs.yaml',
+  'prisma-postgresql.yaml',
 ] as const;
 
 describe('rule data files', () => {
