@@ -62,6 +62,8 @@
 - **2-B-8.** `data/rules/flutter.yaml` — Flutter/Dart 컨벤션
 - **2-B-9.** `data/rules/tech-stack.yaml` — 프로젝트 표준 라이브러리 선택 (category: stack, priority: 55)
 - **2-B-10.** `data/rules/engineering-standards.yaml` — 횡단 엔지니어링 표준: 날짜(ISO8601 UTC), API envelope 등 (category: standard, priority: 70)
+- **2-B-11.** `data/rules/graphql.yaml` — GraphQL 스키마 설계, 쿼리/뮤테이션 패턴 (category: api, priority: TBD)
+- **2-B-12.** `data/rules/nestjs-graphql.yaml` — NestJS GraphQL code-first, resolver 패턴 (category: framework, priority: TBD)
 
 ### 2-C. AI 에이전트별 공식 문서 조사 & Reference 작성
 

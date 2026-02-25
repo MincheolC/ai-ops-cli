@@ -22,6 +22,7 @@ const ruleFiles = [
   'typescript.yaml',
   'react-typescript.yaml',
   'nextjs.yaml',
+  'nestjs.yaml',
 ] as const;
 
 describe('rule data files', () => {
