@@ -25,6 +25,7 @@ const ruleFiles = [
   'nestjs.yaml',
   'prisma-postgresql.yaml',
   'shadcn-ui.yaml',
+  'flutter.yaml',
 ] as const;
 
 describe('rule data files', () => {
