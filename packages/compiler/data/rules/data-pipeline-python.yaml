@@ -1,0 +1,34 @@
+id: data-pipeline-python
+category: domain
+tags:
+  - python
+  - data-engineering
+  - polars
+  - duckdb
+priority: 33
+content:
+  constraints:
+    - 'DO NOT iterate over DataFrame rows with a Python for-loop. Use vectorized operations.'
+    - 'DO NOT use Pandas .apply(axis=1). It runs at Python speed. Use vectorized column expressions or migrate to Polars.'
+    - 'DO NOT load an entire dataset that exceeds available RAM into memory. Use streaming or chunked reads (scan_parquet, read_csv_batched, DuckDB out-of-core).'
+    - 'DO NOT rely on automatic dtype inference (.infer_objects()). Specify explicit dtypes or schema at read time.'
+    - 'DO NOT mutate DataFrames in-place (inplace=True). Always reassign to a new variable.'
+  guidelines:
+    - 'Prefer Polars for new pipelines: lazy evaluation, multi-threaded execution, no index confusion.'
+    - 'Use DuckDB for SQL-style analysis on local Parquet/CSV files. Zero-copy interop with Polars and Pandas DataFrames.'
+    - 'Use generators and itertools for record-level streaming transformations to avoid materializing large datasets.'
+    - 'Write large outputs as Hive-style partitioned Parquet (year=YYYY/month=MM/) for efficient downstream reads.'
+    - 'Enforce explicit schemas at all I/O boundaries: Polars Schema, Pandas dtype dict, or Pydantic model.'
+  decision_table:
+    - when: 'Table transformation under ~10 GB'
+      then: 'Polars lazy mode + .collect()'
+      avoid: 'Pandas (GIL-bound, single-threaded, slow for large frames)'
+    - when: 'Ad-hoc SQL analysis on local Parquet/CSV files'
+      then: 'DuckDB SQL directly on files'
+      avoid: 'Loading into Pandas then filtering in Python (slow, memory-hungry)'
+    - when: 'Data exceeds available memory'
+      then: 'Polars scan_* (lazy streaming) or DuckDB out-of-core execution'
+      avoid: 'pandas.read_csv full load (OOM risk)'
+    - when: 'Complex Python logic needed per row'
+      then: 'Polars .map_elements() or struct expressions'
+      avoid: '.iter_rows() for-loop (Python speed, loses vectorization benefits)'

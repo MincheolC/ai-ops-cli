@@ -1,0 +1,35 @@
+id: ai-llm-python
+category: domain
+tags:
+  - python
+  - llm
+  - ai
+priority: 28
+content:
+  constraints:
+    - 'DO NOT parse LLM text responses with regex or string splitting. Use structured output via Pydantic + response_format / instructor / function calling.'
+    - 'DO NOT hardcode prompts inline. Externalize to version-controlled templates (files or DB) that are diffable and reviewable.'
+    - 'DO NOT call synchronous SDK methods inside async applications. Use AsyncOpenAI, AsyncAnthropic, or equivalent async clients.'
+    - 'DO NOT ignore token limits. Count input tokens and truncate or chunk before sending when context window would be exceeded.'
+    - 'DO NOT log or persist raw API responses that contain PII. Mask sensitive fields before logging.'
+  guidelines:
+    - 'Use instructor or native SDK response_format + Pydantic model to extract structured output from LLM responses.'
+    - 'Apply exponential backoff retry on LLM API calls via tenacity. Handle 429, 500, and 503 explicitly.'
+    - 'Abstract provider selection with LiteLLM. Avoid scattering provider-specific SDK calls across the codebase.'
+    - 'Track per-request token usage (input tokens, output tokens, model name, latency) for cost monitoring.'
+    - 'Apply semantic versioning to prompt templates. Include the version in LLM call logs for reproducibility.'
+    - 'Use stream=True for user-facing LLM calls to stream progressive responses (improves TTFB). Reserve non-streaming for internal pipelines that require structured output extraction.'
+    - 'Define a fallback model chain for primary model failures or rate limits. Use LiteLLM fallbacks config or implement retry-with-downgrade logic.'
+  decision_table:
+    - when: 'LLM output must conform to a specific schema'
+      then: 'Use instructor + Pydantic or response_format={"type": "json_schema"}'
+      avoid: 'Regex parsing of free-text LLM output (brittle, breaks on formatting changes)'
+    - when: 'Selecting a model for a task'
+      then: 'Use the smallest model sufficient for the task (Haiku/GPT-4o-mini for classification/extraction; large models for complex reasoning only)'
+      avoid: 'Defaulting to the largest/most expensive model for every task'
+    - when: 'Input document exceeds context window'
+      then: 'Chunk with overlap, process independently, then aggregate results'
+      avoid: 'Silent truncation at the SDK level (loses data without warning)'
+    - when: 'Multiple LLM providers must be supported'
+      then: 'Use LiteLLM unified interface with routing config'
+      avoid: 'Separate provider SDK call sites scattered across the codebase'

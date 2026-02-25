@@ -1,0 +1,31 @@
+id: python
+category: language
+tags:
+  - python
+priority: 55
+content:
+  constraints:
+    - 'DO NOT use Any type hint. Use object or concrete generics instead.'
+    - 'DO NOT use mutable default arguments (def f(items: list = [])). Use None sentinel + factory pattern inside the function body.'
+    - 'DO NOT use bare except: or except Exception:. Catch specific exception types.'
+    - 'DO NOT use from module import *. Always use explicit imports.'
+    - 'DO NOT use string-based type checking (type(x) == str). Use isinstance() or Protocol.'
+    - 'DO NOT use # type: ignore without an error code. Always specify the code (e.g., # type: ignore[arg-type]).'
+  guidelines:
+    - 'Annotate all function parameters and return types, including -> None.'
+    - 'Use Pydantic V2 BaseModel for DTOs, config, and schemas. Use model_validator / field_validator (V1 deprecated validator is forbidden).'
+    - 'Leverage TypeAlias, TypeVar, ParamSpec, TypedDict, and Literal for expressive type annotations.'
+    - 'Isolate business logic in *_logic.py (pure functions). Keep services and routers as thin orchestrators.'
+    - 'Use @dataclass(frozen=True) for immutable value objects that do not require runtime validation.'
+    - 'Use pathlib.Path instead of os.path for all filesystem operations.'
+    - 'Use f-strings only. Avoid % formatting and .format().'
+  decision_table:
+    - when: 'Structured data requires validation or serialization'
+      then: 'Use Pydantic V2 BaseModel'
+      avoid: 'plain dict, TypedDict (no runtime validation)'
+    - when: 'Immutable value object without runtime validation is needed'
+      then: 'Use @dataclass(frozen=True)'
+      avoid: 'Pydantic (unnecessary overhead for pure value objects)'
+    - when: 'Runtime type narrowing is needed'
+      then: 'Use isinstance() or model_validate()'
+      avoid: 'type() comparison, hasattr() (fragile and non-idiomatic)'

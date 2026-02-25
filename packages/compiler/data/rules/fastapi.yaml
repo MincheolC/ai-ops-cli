@@ -1,0 +1,37 @@
+id: fastapi
+category: framework
+tags:
+  - python
+  - fastapi
+  - backend
+priority: 42
+content:
+  constraints:
+    - 'DO NOT use plain dict or TypedDict as request/response models. Use Pydantic BaseModel with Field constraints.'
+    - 'DO NOT perform synchronous blocking I/O inside async def handlers (time.sleep, requests.get, open()). Use httpx.AsyncClient, aiofiles, or run_in_executor.'
+    - 'DO NOT return manual error dicts from route handlers. Use @app.exception_handler with HTTPException or custom exceptions.'
+    - 'DO NOT put business logic inside router functions. Inject services via Depends().'
+    - 'DO NOT hardcode CORS origins. Load them from Pydantic Settings.'
+  guidelines:
+    - 'Use Depends() for DI: DB sessions, auth, services. Write reusable dependency functions.'
+    - 'Create one APIRouter per domain (prefix="/users", tags=["users"]) and mount on the main app.'
+    - 'Specify response_model on all endpoints for OpenAPI accuracy and response filtering.'
+    - 'Use Annotated[T, Depends(...)] pattern (PEP 593) for dependency injection.'
+    - 'Use Pydantic Settings with SettingsConfigDict(env_file=".env") for environment variable validation at startup.'
+    - 'Use lifespan async context manager for startup/shutdown. @app.on_event is deprecated and forbidden.'
+  decision_table:
+    - when: 'Endpoint is CPU-bound'
+      then: 'Use def (sync) — FastAPI automatically runs it in a threadpool'
+      avoid: 'async def with blocking code (starves the event loop)'
+    - when: 'Endpoint is I/O-bound'
+      then: 'Use async def with async drivers (asyncpg, httpx.AsyncClient, aiofiles)'
+      avoid: 'def with sync drivers (blocks the threadpool under load)'
+    - when: 'Shared resource needs setup/teardown (DB pool, HTTP client)'
+      then: 'Use lifespan async context manager'
+      avoid: '@app.on_event("startup"/"shutdown") — deprecated since FastAPI 0.93'
+    - when: 'Error response must be returned'
+      then: 'Raise HTTPException or a custom exception handled by @app.exception_handler. Sync with engineering-standards error envelope.'
+      avoid: 'Returning manual JSONResponse from the route handler'
+    - when: 'Fire-and-forget work is needed after responding'
+      then: 'Lightweight tasks: BackgroundTasks (FastAPI built-in). Heavy tasks or retry needed: Celery or TaskIQ (async-native).'
+      avoid: 'Awaiting the task synchronously inside the route handler (delays response)'

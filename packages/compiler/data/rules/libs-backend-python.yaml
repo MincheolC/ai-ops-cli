@@ -1,0 +1,36 @@
+id: libs-backend-python
+category: tooling
+tags:
+  - python
+  - backend
+priority: 22
+content:
+  constraints:
+    - 'DO NOT use requirements.txt. Use uv (preferred) or Poetry with pyproject.toml. Lock file (uv.lock or poetry.lock) must be committed.'
+    - 'DO NOT use print() for logging. Use structlog with JSON output.'
+    - 'DO NOT use unittest.TestCase. Use pytest with function-based tests and fixtures.'
+    - 'DO NOT use bare assert in production code. The -O flag strips assert statements. Use explicit if/raise instead.'
+  guidelines:
+    - 'uv 0.5+ — package management. uv sync, uv run. Commit uv.lock.'
+    - 'pytest 8+ / pytest-asyncio / pytest-cov — testing. Use fixtures, parametrize, and coverage reports.'
+    - 'httpx 0.28+ — sync/async HTTP client. Use ASGITransport for FastAPI integration tests.'
+    - 'structlog 24+ — structured JSON logging. Bind request_id and user_id to the context.'
+    - 'ruff — lint and format (replaces flake8, black, isort). Configure in pyproject.toml [tool.ruff].'
+    - 'mypy 1.10+ or pyright — static type checking in strict mode. Enforce as a CI gate.'
+    - 'pydantic-settings 2+ — environment variable loading and validation. Single source of truth for config.'
+    - 'tenacity 9+ — retry logic with exponential backoff. Use for external API calls and transient failure recovery.'
+    - 'Great Expectations 1+ or pandera — pipeline input/output data quality validation.'
+    - 'polars 1+ / duckdb 1+ — core data processing stack. Works in conjunction with data-pipeline-python rule.'
+  decision_table:
+    - when: 'Package management is needed'
+      then: 'Use uv + pyproject.toml + uv.lock'
+      avoid: 'pip + requirements.txt (no lock file guarantees), conda (heavy, slow CI)'
+    - when: 'Lint and format tooling is needed'
+      then: 'Use ruff as the single tool for lint and format'
+      avoid: 'flake8 + black + isort (fragmented config, slower CI)'
+    - when: 'Data quality validation is needed'
+      then: 'Great Expectations (batch pipeline) or pandera (DataFrame schema)'
+      avoid: 'Scattered manual assert statements inside pipeline code (untestable, no reporting)'
+    - when: 'HTTP client is needed'
+      then: 'Use httpx (supports both sync and async with a single API)'
+      avoid: 'requests (no async support), aiohttp (complex low-level API)'
