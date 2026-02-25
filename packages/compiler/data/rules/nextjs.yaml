@@ -17,6 +17,8 @@ content:
     - 'Use next/image for all images with explicit width/height or fill+sizes.'
     - 'Use next/font in root layout, apply via CSS variable.'
     - 'Use middleware.ts only for cross-cutting concerns: auth redirects, locale detection, header injection.'
+    - 'Export generateMetadata or a static metadata object from every public-facing page.tsx. Include title, description, and Open Graph fields for SEO crawlers and social sharing.'
+    - 'Apply JSON-LD structured data markup for GEO (Generative Engine Optimization). Inject <script type="application/ld+json"> with schema.org-based structured data in public pages to optimize for AI search engines (SGE, Perplexity) and traditional search engines.'
   decision_table:
     - when: 'Component needs event handlers, useState, useEffect, or browser APIs'
       then: "Add 'use client' to that component only"
