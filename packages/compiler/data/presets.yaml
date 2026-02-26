@@ -1,0 +1,52 @@
+frontend-web:
+  description: '웹 프론트엔드 프로젝트를 위한 프리셋'
+  rules:
+    - role-persona
+    - communication
+    - code-philosophy
+    - naming-convention
+    - engineering-standards
+    - typescript
+    - react-typescript
+    - shadcn-ui
+    - nextjs
+    - libs-frontend-web
+
+frontend-app:
+  description: '앱 프론트엔드 프로젝트를 위한 프리셋'
+  rules:
+    - role-persona
+    - communication
+    - code-philosophy
+    - naming-convention
+    - engineering-standards
+    - flutter
+    - libs-frontend-app
+
+backend-ts:
+  description: 'TypeScript 백엔드 프로젝트를 위한 프리셋'
+  rules:
+    - role-persona
+    - communication
+    - code-philosophy
+    - naming-convention
+    - engineering-standards
+    - typescript
+    - nestjs
+    - prisma-postgresql
+    - graphql
+    - nestjs-graphql
+    - libs-backend-ts
+
+backend-python:
+  description: 'Python 백엔드 프로젝트를 위한 프리셋'
+  rules:
+    - role-persona
+    - communication
+    - code-philosophy
+    - naming-convention
+    - engineering-standards
+    - python
+    - fastapi
+    - sqlalchemy
+    - libs-backend-python
