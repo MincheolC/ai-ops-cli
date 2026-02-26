@@ -22,13 +22,13 @@ last_fetched: 2026-02-26
 
 ## 2. Config & Path Specs
 
-| Scope                | Directory / Path                                  | Capability / Purpose                          | Override Rules                                                      |
-| -------------------- | ------------------------------------------------- | --------------------------------------------- | ------------------------------------------------------------------- |
-| **Org Policy**       | Managed policy settings                           | Enforce organization-wide security/compliance | Overrides user `disableAllHooks` if `allowManagedHooksOnly` is true |
-| **User (Global)**    | `~/.claude/settings.json`                         | Cross-project personal workflows/preferences  | Overridden by local/project configs                                 |
-| **Project (Shared)** | `.claude/settings.json`                           | Team-shared repo hooks                        | Committed to version control                                        |
-| **Project (Local)**  | `.claude/settings.local.json`                     | Private sandbox hooks                         | Auto-gitignored                                                     |
-| **Plugin**           | `hooks/hooks.json`                                | Plugin-bundled automation                     | Active only when plugin is enabled                                  |
+| Scope                | Directory / Path                                            | Capability / Purpose                          | Override Rules                                                      |
+| -------------------- | ----------------------------------------------------------- | --------------------------------------------- | ------------------------------------------------------------------- |
+| **Org Policy**       | Managed policy settings                                     | Enforce organization-wide security/compliance | Overrides user `disableAllHooks` if `allowManagedHooksOnly` is true |
+| **User (Global)**    | `~/.claude/settings.json`                                   | Cross-project personal workflows/preferences  | Overridden by local/project configs                                 |
+| **Project (Shared)** | `.claude/settings.json`                                     | Team-shared repo hooks                        | Committed to version control                                        |
+| **Project (Local)**  | `.claude/settings.local.json`                               | Private sandbox hooks                         | Auto-gitignored                                                     |
+| **Plugin**           | `hooks/hooks.json`                                          | Plugin-bundled automation                     | Active only when plugin is enabled                                  |
 | **Component**        | `hooks:` field in `SKILL.md` / agent `.md` YAML Frontmatter | Component lifecycle-scoped hooks              | Active only during component runtime                                |
 
 ## 3. Syntax & Commands (Hard Constraints)

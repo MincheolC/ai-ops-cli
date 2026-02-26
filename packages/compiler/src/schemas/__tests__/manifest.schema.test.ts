@@ -33,9 +33,7 @@ describe('ManifestSchema', () => {
     });
 
     it('preset optional 필드 포함', () => {
-      expect(() =>
-        ManifestSchema.parse({ ...validManifest, preset: 'frontend-web' }),
-      ).not.toThrow();
+      expect(() => ManifestSchema.parse({ ...validManifest, preset: 'frontend-web' })).not.toThrow();
     });
 
     it('preset 생략', () => {
@@ -69,9 +67,7 @@ describe('ManifestSchema', () => {
     });
 
     it('비ISO datetime (임의 문자열)', () => {
-      expect(() =>
-        ManifestSchema.parse({ ...validManifest, generatedAt: 'not-a-date' }),
-      ).toThrow();
+      expect(() => ManifestSchema.parse({ ...validManifest, generatedAt: 'not-a-date' })).toThrow();
     });
 
     it('필수 필드 누락 (tools)', () => {

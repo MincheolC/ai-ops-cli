@@ -1,0 +1,27 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Snapshot > 실제 typescript.yaml 로드 후 렌더링 결과 snapshot 1`] = `
+"# Typescript
+
+## Constraints
+
+- DO NOT use interface. Use type only.
+- DO NOT use enum. Use as const objects instead.
+- DO NOT use any. Use unknown with type narrowing (Zod / type guards).
+- DO NOT use non-null assertion (!). Use optional chaining (?.) and nullish coalescing (??) instead.
+- DO NOT use .then() chains. Use async/await.
+- DO NOT throw raw strings. Use throw new Error(...) only. Type catch errors as unknown and narrow.
+
+## Guidelines
+
+- Use arrow functions only. Explicitly annotate return types for exported functions.
+- Use import type { ... } for type-only imports. Use absolute paths (@/...) only.
+- Use as const for static configuration objects.
+- Separate business logic into *.logic.ts files (pure functions). Keep stateless helpers in *.util.ts files (parsers, formatters).
+
+## Decision Table
+
+| When | Then | Avoid |
+|------|------|-------|
+| Type assertion (as) seems necessary | Prefer Zod .parse() or type guards to narrow the type safely | Using as to bypass the type system without runtime validation |"
+`;

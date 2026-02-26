@@ -23,15 +23,15 @@ last_fetched: 2026-02-26
 
 ## 2. Config & Path Specs
 
-| Scope | Directory / Path | Capability / Purpose | Override Rules |
-| --- | --- | --- | --- |
-| **Org (macOS)** | `/Library/Application Support/ClaudeCode/CLAUDE.md` | IT/DevOps managed policy | Lowest Priority |
-| **Org (Linux)** | `/etc/claude-code/CLAUDE.md` | IT/DevOps managed policy | Lowest Priority |
-| **Org (Windows)** | `C:\Program Files\ClaudeCode\CLAUDE.md` | IT/DevOps managed policy | Lowest Priority |
-| **User (Global)** | `~/.claude/CLAUDE.md` <br> `~/.claude/rules/*.md` | Personal preferences / workflows for all projects | Overridden by Project configs |
-| **Project (Shared)** | `./CLAUDE.md` or `./.claude/CLAUDE.md` <br> `./.claude/rules/*.md` | Team-shared modular rules, testing, architecture | Overrides User configs |
-| **Project (Local)** | `./CLAUDE.local.md` | Private sandbox preferences (Auto added to `.gitignore`) | Highest Priority |
-| **Auto Memory** | `~/.claude/projects/<project>/memory/` | Agent's internal learnings, debug patterns, indexes | Subject to 200-line load limit |
+| Scope                | Directory / Path                                                   | Capability / Purpose                                     | Override Rules                 |
+| -------------------- | ------------------------------------------------------------------ | -------------------------------------------------------- | ------------------------------ |
+| **Org (macOS)**      | `/Library/Application Support/ClaudeCode/CLAUDE.md`                | IT/DevOps managed policy                                 | Lowest Priority                |
+| **Org (Linux)**      | `/etc/claude-code/CLAUDE.md`                                       | IT/DevOps managed policy                                 | Lowest Priority                |
+| **Org (Windows)**    | `C:\Program Files\ClaudeCode\CLAUDE.md`                            | IT/DevOps managed policy                                 | Lowest Priority                |
+| **User (Global)**    | `~/.claude/CLAUDE.md` <br> `~/.claude/rules/*.md`                  | Personal preferences / workflows for all projects        | Overridden by Project configs  |
+| **Project (Shared)** | `./CLAUDE.md` or `./.claude/CLAUDE.md` <br> `./.claude/rules/*.md` | Team-shared modular rules, testing, architecture         | Overrides User configs         |
+| **Project (Local)**  | `./CLAUDE.local.md`                                                | Private sandbox preferences (Auto added to `.gitignore`) | Highest Priority               |
+| **Auto Memory**      | `~/.claude/projects/<project>/memory/`                             | Agent's internal learnings, debug patterns, indexes      | Subject to 200-line load limit |
 
 ## 3. Syntax & Commands (Hard Constraints)
 
