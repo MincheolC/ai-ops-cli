@@ -20,17 +20,16 @@
 - **1-6.** .gitignore 업데이트 — dist/ 추가, next.js 관련 제거
 - **1-7.** tsup 빌드 설정 — compiler/cli 각각 ESM 빌드 config
 
-## Phase 2: SSOT 데이터 모델 (Schemas + Data)
+## Phase 2: SSOT 규칙 중앙화 및 네이티브 확장(Extensions) 구조화
 
-컴파일러의 입출력 계약 확정 + 실제 SSOT 데이터 구축.
+복잡한 컴파일러(AST, 템플릿 변환) 대신, **지식(Rule)은 중앙화**하고 **행위(Skill, Hook 등)는 네이티브 파일 복사** 방식으로 단순화합니다. 이는 유지보수 비용을 낮추고 도구별 네이티브 기능을 100% 활용하기 위한 전략적 피벗입니다 (Simple Made Easy).
 
-### 2-A. Zod 스키마 정의 & 테스트
+### 2-A. Zod 스키마 정의 (Rule & Registry)
 
-- **2-A-1.** Rule YAML Zod 스키마 — id, category, tags, priority, content(constraints/guidelines/decision_table)
-- **2-A-2.** Profile YAML Zod 스키마 — id, output(format/files), include_rules, quality_gate
-- **2-A-3.** Manifest 스키마 — profile, scope, include_rules, sourceHash, generatedAt
+- **2-A-1.** Rule YAML 스키마 — id, category, tags, priority, content(constraints/guidelines)
+- **2-A-2.** Extensions Registry 스키마 — id, type(skill|hook|command), description, implementations(경로 매핑)
+- **2-A-3.** Manifest 스키마 — scope, include_rules, extensions, sourceHash, generatedAt
 - **2-A-4.** 스키마 barrel export + vitest 설정
-- **2-A-5.** 스키마 유효성 테스트 — valid/invalid 케이스
 
 ### 2-B. Rule YAML 작성
 
@@ -67,36 +66,50 @@
 
 ### 2-C. AI 에이전트별 공식 문서 조사 & Reference 작성
 
-각 에이전트의 rule, skill, hook, command 체계를 공식 문서에서 조사하여 `data/references/`에 정리.
+각 에이전트의 rule, skill, hook, command 체계를 공식 문서에서 조사하여 `data/references/`에 정리합니다. 이는 `Phase 2-D`에서 네이티브 파일을 작성할 때의 공식 사양서 역할을 합니다.
 
-- **2-C-1.** Claude Code 공식 문서 조사 — rule, skill, hook, command 체계 → `data/references/claude-code.md`
-- **2-C-2.** Gemini CLI 공식 문서 조사 — rule, skill, hook, command 체계 → `data/references/gemini-cli.md`
-- **2-C-3.** Codex CLI 공식 문서 조사 — rule, skill, hook, command 체계 → `data/references/codex-cli.md`
+- **2-C-1.** Claude Code 공식 문서 조사 — rule, skill, hook, command 체계 → `data/references/claude-code/*.md`
+- **2-C-2.** Gemini CLI 공식 문서 조사 — rule, skill, hook, command 체계 → `data/references/gemini-cli/*.md`
+- **2-C-3.** Codex CLI 공식 문서 조사 — rule, skill, hook, command 체계 → `data/references/codex/*.md`
 
-### 2-D. Profile YAML 작성
+### 2-C′. TUI 플로우 설계 & 프로젝트 타입 프리셋 정의
 
-2-C 조사 결과를 기반으로 각 에이전트의 실제 파일 위치/포맷/섹션 구조를 반영.
+Profile 개념을 폐기하고, CLI `init`의 동적 TUI 플로우가 Rule 선택을 결정하는 방식으로 전환합니다.
 
-- **2-D-1.** `data/profiles/claude.yaml` — .claude/CLAUDE.md, .claude/rules/\*.md 등
-- **2-D-2.** `data/profiles/gemini.yaml` — 조사된 Gemini CLI 설정 파일 구조 반영
-- **2-D-3.** `data/profiles/codex.yaml` — 조사된 Codex CLI 설정 파일 구조 반영
+- **2-C′-1.** TUI 플로우 설계 — `ai-ops init`의 전체 사용자 경험을 설계
+  - 설치 카테고리 다중 선택: 규칙 / 스킬 / 훅 / 커스텀 커멘드
+  - 규칙 선택 분기:
+    - 신규 프로젝트: 모노레포 여부 → 프론트웹/앱/백엔드 선택 → 프리셋 적용
+    - 기존 프로젝트: package.json 자동 감지 → 추천 규칙 제안 또는 수동 선택
+  - AI 도구 선택: claude-code / gemini-cli / codex (다중 선택)
+  - 스코프 선택: project (cwd) / global (~)
+- **2-C′-2.** 프로젝트 타입 프리셋 매핑 정의 — `src/presets/` 또는 `data/presets.yaml`
+  - frontend-web: [typescript, react-typescript, nextjs, shadcn-ui, libs-frontend-web]
+  - frontend-app: [flutter, libs-frontend-app]
+  - backend-ts: [typescript, nestjs, prisma-postgresql, libs-backend-ts]
+  - backend-python: [python, fastapi, sqlalchemy, libs-backend-python]
+  - 등 프리셋-규칙 매핑 확정
+- **2-C′-3.** Profile 스키마 정리 — `profile.schema.ts` 제거 또는 프리셋 스키마로 경량 교체, 관련 테스트 수정
+- **2-C′-4.** Manifest 스키마 조정 — TUI 선택 결과를 반영하도록 manifest에 기록할 필드 확정 (선택된 프리셋, 도구, 스코프 등)
 
-## Phase 3: 컴파일러 핵심 로직 (Layer 1 Deterministic Compiler)
+### 2-D. 네이티브 확장 기능 (Extensions) 및 매핑 문서화
 
-순수 함수 기반 컴파일 파이프라인. 각 함수 독립 테스트 가능.
+`2-C`에서 조사된 사양을 바탕으로, 컴파일 없이 그대로 복사될 각 AI 도구별 네이티브 파일들을 구성하고 매핑 레지스트리를 작성합니다.
 
-- **3-1.** YAML 로더 — rules/profiles/references 파일 로딩 + Zod 검증
-- **3-2.** YAML 로더 테스트
-- **3-3.** 우선순위 정렬 로직 — priority DESC → category ASC → id ASC (순수 함수)
-- **3-4.** 정렬 로직 테스트
-- **3-5.** 컨텐츠 렌더러 — constraints-first, reference injection, U-shaped attention
-- **3-6.** 렌더러 테스트
-- **3-7.** 템플릿 엔진 — claude/gemini/codex 프로필별 출력 구조
-- **3-8.** 품질 게이트 삽입 — self-checklist 하단 자동 추가
-- **3-9.** 소스 해시 생성 — deterministic SHA-256 → 6자 hex
-- **3-10.** 컴파일러 오케스트레이터 — thin shell이 순수 함수들 조합
-- **3-11.** 스냅샷 테스트 — 동일 입력 = 동일 출력 보장
-- **3-12.** 패키지 엔트리포인트 export
+- **2-D-1.** `data/extensions-registry.yaml` 작성 — 전체 커스텀 명령어, 훅, 스킬의 목적과 각 도구별 파일 경로를 매핑하는 SSOT 문서.
+- **2-D-2.** Claude Code 네이티브 파일 — `data/extensions/claude/` 아래에 훅/명령어 원본 파일 하드코딩.
+- **2-D-3.** Gemini CLI 네이티브 파일 — `data/extensions/gemini/` 아래에 스킬/커스텀 명령어 원본 파일 하드코딩.
+- **2-D-4.** Codex CLI 네이티브 파일 — `data/extensions/codex/` 아래에 관련 원본 파일 하드코딩.
+
+## Phase 3: Core Generator & Scaffolder (단순화된 파이프라인)
+
+복잡한 템플릿 엔진 대신, Rule YAML을 읽어 "지연 로딩 목차(Rule Registry)" 텍스트를 만들고, Extensions 파일들을 복사하는 단순한 핵심 로직입니다.
+
+- **3-1.** Rule 로더 & 정렬 — YAML 로딩 및 priority 순 정렬 (순수 함수)
+- **3-2.** Rule Registry 생성기 — 정렬된 Rule들을 바탕으로 "AI가 읽어야 할 파일 목록과 조건"을 Markdown 블록(안내문)으로 렌더링
+- **3-3.** 매니페스트(Manifest) 관리자 — 프로젝트에 설치된 확장 기능과 Rule 목록, Hash 기록 및 검증
+- **3-4.** Scaffolder 엔진 — CLI에서 선택한 확장 기능들을 `extensions-registry.yaml`을 참조하여 대상 프로젝트로 단순 복사(copy)하는 로직
+- **3-5.** 패키지 엔트리포인트 export
 
 ## Phase 4: Managed Block 시스템 (Idempotent Install)
 
@@ -115,7 +128,7 @@ compiler 패키지를 소비하는 @clack/prompts 기반 CLI.
 - **5-1.** CLI 엔트리포인트 + Commander 설정 (init/update/diff)
 - **5-2.** 환경 자동 감지 — package.json 스캔으로 언어/프레임워크 감지
 - **5-3.** 자동 감지 테스트
-- **5-4.** `ai-ops init` — TUI 플로우 (감지 → scope → profile → rules 선택 → 설치)
+- **5-4.** `ai-ops init` — TUI 플로우 (`2-C′-1` 설계 문서 기반: 감지 → scope → 프리셋 선택 → rules 선택 → 설치)
 - **5-5.** `ai-ops update` — manifest 기반 갱신 + --force 옵션
 - **5-6.** `ai-ops diff` — 설치된 vs 최신 비교 표시
 - **5-7.** 스코프 라우팅 — project(cwd) / global(~) 경로 해석
