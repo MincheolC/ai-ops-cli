@@ -115,14 +115,36 @@ CLI의 파일 설치/업데이트 핵심 메커니즘.
 
 compiler 패키지를 소비하는 @clack/prompts 기반 CLI. Rule 설치에 집중.
 
+> **TUI 플로우 확정안** (`docs/tui-flow-ai-init-plan.md` 기준):
+> 도구 선택 → 설치 항목 선택 → 모노레포 여부 → 워크스페이스 선택(또는 루트) → 워크스페이스별 preset 선택 → 규칙 세부조정(전체 선택 후 제외) → 설치
+> 자동 환경 감지는 제거됨.
+
+### 설계 결정 (구현 전 확정 필요)
+
+- **5-D1.** Fine-tune step의 global rule 처리 방식 결정
+  - Global rule (`role-persona`, `communication`, `code-philosophy`, `naming-convention`, `engineering-standards`)을 fine-tune UI에서 **잠금(locked, 항상 포함)** 처리할지, 제외도 허용할지
+  - 잠금 시: `isGlobalRule()`로 필터링하여 locked 항목으로 별도 표시
+  - 제외 허용 시: `domainContent`만 없어질 수 있으므로 Phase 5에서 빈 파일 생성 방지 처리 추가
+
+- **5-D2.** 다중 워크스페이스 시 `renderForTool` 호출 패턴 결정
+  - 현재 `renderForTool(toolId, rules)`는 global/domain을 내부에서 분리하므로 워크스페이스마다 호출하면 `rootContent`가 중복 생성됨
+  - **권장**: 각 도구별로 `partitionRules` 한 번 → `renderRulesToMarkdown(global)`로 루트 파일 생성, 워크스페이스별로 `renderRulesToMarkdown(domainRules)`만 반복 호출
+  - `renderForTool`은 단일 워크스페이스/비모노레포 케이스에만 사용
+
+- **5-D3.** `domainContent`/domain files 비어있는 경우 처리
+  - Fine-tune에서 domain rule을 전부 제외하면 codex/gemini는 `domainContent = ""`
+  - 빈 `AGENTS.override.md`, `GEMINI.md` 생성 방지 로직 필요
+
+### 구현
+
 - **5-1.** CLI 엔트리포인트 + Commander 설정 (init/update/diff)
-- **5-2.** 환경 자동 감지 — package.json 스캔으로 언어/프레임워크 감지
-- **5-3.** 자동 감지 테스트
-- **5-4.** `ai-ops init` — Rule TUI 플로우 (`2-C′-1` 설계 기반: 도구 선택 → scope → 프리셋 선택 → rules 확인 → 설치)
-- **5-5.** `ai-ops update` — manifest 기반 갱신 + --force 옵션
-- **5-6.** `ai-ops diff` — 설치된 vs 최신 비교 표시
-- **5-7.** 스코프 라우팅 — project(cwd) / global(~) 경로 해석
-- **5-8.** CLI E2E 테스트 — temp dir에서 init/update/멱등성 검증
+- ~~**5-2.** 환경 자동 감지 — package.json 스캔으로 언어/프레임워크 감지~~ (TUI 플로우 변경으로 제거)
+- ~~**5-3.** 자동 감지 테스트~~ (제거)
+- **5-2.** `ai-ops init` — Rule TUI 플로우 (확정안 기반, 5-D1~D3 결정 반영)
+- **5-3.** `ai-ops update` — manifest 기반 갱신 + --force 옵션
+- **5-4.** `ai-ops diff` — 설치된 vs 최신 비교 표시
+- **5-5.** 스코프 라우팅 — project(cwd) / global(~) 경로 해석
+- **5-6.** CLI E2E 테스트 — temp dir에서 init/update/멱등성 검증
 
 ## Phase 6: 빌드/배포 파이프라인 (MVP 배포)
 

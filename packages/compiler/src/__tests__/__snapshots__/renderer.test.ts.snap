@@ -25,3 +25,89 @@ exports[`Snapshot > 실제 typescript.yaml 로드 후 렌더링 결과 snapshot 
 |------|------|-------|
 | Type assertion (as) seems necessary | Prefer Zod .parse() or type guards to narrow the type safely | Using as to bypass the type system without runtime validation |"
 `;
+
+exports[`Snapshot: renderForTool > claude-code snapshot 1`] = `
+{
+  "files": [
+    {
+      "content": "# Communication
+
+## Constraints
+
+- Be concise
+
+## Guidelines
+
+- Use Korean",
+      "fileName": "communication.md",
+    },
+    {
+      "content": "---
+paths:
+  - "**/*.ts"
+  - "**/*.tsx"
+---
+
+# Typescript
+
+## Constraints
+
+- No any
+
+## Guidelines
+
+- Use arrow functions",
+      "fileName": "typescript.md",
+    },
+  ],
+  "tool": "claude-code",
+}
+`;
+
+exports[`Snapshot: renderForTool > codex snapshot 1`] = `
+{
+  "domainContent": "# Typescript
+
+## Constraints
+
+- No any
+
+## Guidelines
+
+- Use arrow functions",
+  "rootContent": "# Communication
+
+## Constraints
+
+- Be concise
+
+## Guidelines
+
+- Use Korean",
+  "tool": "codex",
+}
+`;
+
+exports[`Snapshot: renderForTool > gemini snapshot 1`] = `
+{
+  "domainContent": "# Typescript
+
+## Constraints
+
+- No any
+
+## Guidelines
+
+- Use arrow functions",
+  "rootContent": "# Communication
+
+## Constraints
+
+- Be concise
+
+## Guidelines
+
+- Use Korean",
+  "tool": "gemini",
+}
+`;
