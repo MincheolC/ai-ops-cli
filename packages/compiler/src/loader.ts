@@ -12,6 +12,12 @@ export const sortRulesByPriority = (rules: readonly Rule[]): Rule[] =>
 export const parseRawPresets = (raw: Record<string, { description: string; rules: string[] }>): Preset[] =>
   Object.entries(raw).map(([id, value]) => PresetSchema.parse({ id, ...value }));
 
+// TUI 세부조정: 사용자가 해제한 rule ID 목록을 제외 (순서 유지)
+export const excludeRules = (rules: readonly Rule[], excludeIds: readonly string[]): Rule[] => {
+  const excludeSet = new Set(excludeIds);
+  return rules.filter((r) => !excludeSet.has(r.id));
+};
+
 // preset.rules ID 목록으로 allRules에서 필터링 + priority 정렬, 누락 시 throw
 export const resolvePresetRules = (preset: Preset, allRules: readonly Rule[]): Rule[] => {
   const resolved = preset.rules.map((ruleId) => {

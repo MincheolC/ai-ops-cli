@@ -101,15 +101,19 @@ Rule YAML을 읽어 대상 프로젝트에 Rule 파일들을 설치하는 단순
 - **3-3.** 매니페스트(Manifest) 관리자 — 설치된 Rule 목록, sourceHash 기록 및 검증
 - **3-4.** 패키지 엔트리포인트 export
 
-## Phase 4: Managed Block 시스템 (Idempotent Install)
+## Phase 4: Idempotent Install (Managed Header + Manifest I/O + Diff)
 
-CLI의 파일 설치/업데이트 핵심 메커니즘.
+렌더링된 콘텐츠를 대상 파일에 안전하게 설치하기 위한 빌딩 블록.
 
-- **4-1.** Managed Block 파서/라이터 — 마커 추출, 교체, 삽입 + 메타 헤더
-- **4-2.** Managed Block 테스트 — 멱등성, 커스텀 보존
-- **4-3.** Manifest 읽기/쓰기
-- **4-4.** Diff 로직 — sourceHash 비교, 변경 규칙 목록
-- **4-5.** Diff 테스트
+> **설계 변경**: Managed Block(마커 기반 파서/교체) → **Managed Header**(Full File Ownership + 식별 헤더).
+> Managed Block이 필요한 지점은 codex/gemini 루트 파일 2곳뿐이고, 복잡성 대비 이점이 부족.
+> 기존 파일 충돌은 Phase 5 CLI에서 `isManagedFile` 체크 → 사용자 경고로 처리.
+
+- **4-1.** Managed Header 유틸 (`managed-header.ts`) — `wrapWithHeader`, `isManagedFile`, `parseManagedHeader`, `stripManagedHeader` 순수 함수 + 테스트
+- **4-2.** Manifest I/O (`manifest-io.ts`) — `parseManifest`/`serializeManifest` 순수 함수 + `readManifest`/`writeManifest` I/O 래퍼 + 테스트
+- **4-3.** Diff 로직 (`diff.ts`) — `installed_rules` 배열 비교 + `sourceHash` 비교 → `DiffResult` (added/removed/sourceChanged) 순수 함수 + 테스트
+- **4-4.** Install Plan (`install-plan.ts`) — `renderForTool` 결과 → `FileAction[]` (relativePath + 헤더 포함 content) 변환 순수 함수 + 테스트
+- **4-5.** barrel export 확장 (`index.ts`)
 
 ## Phase 5: CLI 구현 (Rule TUI MVP)
 
