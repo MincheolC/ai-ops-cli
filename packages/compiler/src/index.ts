@@ -7,4 +7,5 @@ export * from './managed-header.js';
 export * from './manifest-io.js';
 export * from './diff.js';
 export * from './install-plan.js';
+export * from './uninstall-plan.js';
 export * from './paths.js';

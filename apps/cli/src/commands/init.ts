@@ -93,8 +93,9 @@ const installHierarchicalMonorepo = (
   mappings: readonly WorkspacePresetMapping[],
   basePath: string,
   meta: { sourceHash: string; generatedAt: string },
-): void => {
+): string[] => {
   const config = TOOL_OUTPUT_MAP[toolId];
+  const written: string[] = [];
 
   const allRules = deduplicateRules(mappings.flatMap((m) => m.finalRules));
   const { global } = partitionRules(allRules);
@@ -104,7 +105,7 @@ const installHierarchicalMonorepo = (
       relativePath: join(config.dir, config.rootFileName),
       content: wrapWithHeader(renderRulesToMarkdown(global), meta),
     };
-    installFiles(basePath, [rootAction]);
+    written.push(...installFiles(basePath, [rootAction]).written);
   }
 
   for (const mapping of mappings) {
@@ -115,15 +116,17 @@ const installHierarchicalMonorepo = (
       relativePath: join(mapping.workspace, config.domainFileName),
       content: wrapWithHeader(renderRulesToMarkdown(domain), meta),
     };
-    installFiles(basePath, [domainAction]);
+    written.push(...installFiles(basePath, [domainAction]).written);
   }
+
+  return written;
 };
 
 const installClaudeCodeMonorepo = (
   mappings: readonly WorkspacePresetMapping[],
   basePath: string,
   meta: { sourceHash: string; generatedAt: string },
-): void => {
+): string[] => {
   const allRules = deduplicateRules(mappings.flatMap((m) => m.finalRules));
   const workspaceMappings: WorkspaceMapping[] = mappings.map((m) => ({
     path: m.workspace,
@@ -131,7 +134,7 @@ const installClaudeCodeMonorepo = (
   }));
   const renderResult = renderForTool('claude-code', allRules, workspaceMappings);
   const actions = buildInstallPlan({ toolId: 'claude-code', renderResult, meta });
-  installFiles(basePath, actions);
+  return installFiles(basePath, actions).written;
 };
 
 export const initCommand = async (opts: { scope: Scope }): Promise<void> => {
@@ -209,24 +212,27 @@ export const initCommand = async (opts: { scope: Scope }): Promise<void> => {
 
   const meta = { sourceHash, generatedAt: new Date().toISOString() };
   const allSkipped: string[] = [];
+  const allInstalledFiles: string[] = [];
 
   for (const toolId of selectedTools as ToolId[]) {
     if (isMonorepo) {
       if (toolId === 'claude-code') {
-        installClaudeCodeMonorepo(mappings, basePath, meta);
+        allInstalledFiles.push(...installClaudeCodeMonorepo(mappings, basePath, meta));
       } else {
-        installHierarchicalMonorepo(toolId, mappings, basePath, meta);
+        allInstalledFiles.push(...installHierarchicalMonorepo(toolId, mappings, basePath, meta));
       }
     } else {
       const renderResult = renderForTool(toolId, mappings[0].finalRules);
       const actions = buildInstallPlan({ toolId, renderResult, meta });
       const result = installFiles(basePath, actions);
       allSkipped.push(...result.skipped);
+      allInstalledFiles.push(...result.written);
     }
   }
 
   if (geminiSettingValues && geminiSettingValues.length > 0) {
     installGeminiSettings(basePath, geminiSettingValues);
+    allInstalledFiles.push('.gemini/settings.json');
   }
 
   s.stop('규칙 설치 완료');
@@ -246,6 +252,7 @@ export const initCommand = async (opts: { scope: Scope }): Promise<void> => {
     preset: !isMonorepo ? mappings[0].preset.id : undefined,
     workspaces: workspacesRecord,
     installedRules: allInstalledRuleIds,
+    installedFiles: allInstalledFiles,
     sourceHash,
   });
   writeManifest(resolveManifestPath(basePath), manifest);

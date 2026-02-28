@@ -85,4 +85,34 @@ describe('buildManifest', () => {
     expect(() => ManifestSchema.parse(manifest)).not.toThrow();
     expect(manifest.workspaces?.['apps/web']?.preset).toBe('frontend-web');
   });
+
+  it('installedFiles 포함 시 installed_files 필드 저장', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2025-01-01T00:00:00Z'));
+
+    const manifest = buildManifest({
+      tools: ['claude-code'],
+      scope: 'project',
+      installedRules: ['typescript'],
+      installedFiles: ['.claude/rules/typescript.md'],
+      sourceHash: 'abc123',
+    });
+
+    expect(() => ManifestSchema.parse(manifest)).not.toThrow();
+    expect(manifest.installed_files).toEqual(['.claude/rules/typescript.md']);
+  });
+
+  it('installedFiles 생략 시 installed_files undefined', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2025-01-01T00:00:00Z'));
+
+    const manifest = buildManifest({
+      tools: ['claude-code'],
+      scope: 'project',
+      installedRules: ['typescript'],
+      sourceHash: 'abc123',
+    });
+
+    expect(manifest.installed_files).toBeUndefined();
+  });
 });

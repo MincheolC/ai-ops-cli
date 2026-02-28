@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import { initCommand } from '../commands/init.js';
 import { updateCommand } from '../commands/update.js';
 import { diffCommand } from '../commands/diff.js';
+import { uninstallCommand } from '../commands/uninstall.js';
 import type { Scope } from '../lib/paths.js';
 
 const program = new Command();
@@ -26,5 +27,11 @@ program
   .description('설치된 규칙과 최신 소스 비교')
   .option('--scope <scope>', 'project | global', 'project')
   .action((opts: { scope: Scope }) => diffCommand(opts));
+
+program
+  .command('uninstall')
+  .description('설치된 규칙 파일 및 manifest 제거')
+  .option('--scope <scope>', 'project | global', 'project')
+  .action((opts: { scope: Scope }) => uninstallCommand(opts));
 
 program.parse();

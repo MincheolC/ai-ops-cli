@@ -55,6 +55,16 @@ describe('ManifestSchema', () => {
     it('workspaces 생략', () => {
       expect(() => ManifestSchema.parse(validManifest)).not.toThrow();
     });
+
+    it('installed_files optional 포함', () => {
+      expect(() =>
+        ManifestSchema.parse({ ...validManifest, installed_files: ['.claude/rules/typescript.md'] }),
+      ).not.toThrow();
+    });
+
+    it('installed_files 생략 (기존 manifest 호환)', () => {
+      expect(() => ManifestSchema.parse(validManifest)).not.toThrow();
+    });
   });
 
   describe('invalid', () => {

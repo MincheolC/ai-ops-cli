@@ -18,6 +18,7 @@ import {
   isManagedFile,
 } from 'ai-ops-compiler';
 import { installFiles } from '../lib/install.js';
+import { removeFiles } from '../lib/uninstall.js';
 import { resolveRulesDir, resolvePresetsPath } from '../lib/paths.js';
 
 const BIN_PATH = new URL('../../dist/bin/index.js', import.meta.url).pathname;
@@ -45,6 +46,7 @@ describe.skipIf(!distExists)('bin subprocess', () => {
     expect(output).toContain('init');
     expect(output).toContain('update');
     expect(output).toContain('diff');
+    expect(output).toContain('uninstall');
   });
 });
 
@@ -231,6 +233,56 @@ describe('E2E: update flow', () => {
     expect(diff.status).toBe('up-to-date');
     expect(diff.added).toHaveLength(0);
     expect(diff.removed).toHaveLength(0);
+  });
+});
+
+describe('E2E: uninstall flow', () => {
+  const rulesDir = resolveRulesDir();
+  const presetsPath = resolvePresetsPath();
+
+  it('init → uninstall: 파일 및 manifest 모두 제거', () => {
+    const { dir, cleanup } = setup();
+    try {
+      const presets = loadPresets(presetsPath);
+      const preset = presets[0];
+      const allRules = loadAllRules(rulesDir);
+      const rules = resolvePresetRules(preset, allRules);
+      const sourceHash = computeSourceHash(rulesDir);
+      const meta = { sourceHash, generatedAt: new Date().toISOString() };
+
+      // install
+      const renderResult = renderForTool('claude-code', rules);
+      const actions = buildInstallPlan({ toolId: 'claude-code', renderResult, meta });
+      const installResult = installFiles(dir, actions);
+      expect(installResult.written.length).toBeGreaterThan(0);
+
+      const manifest = buildManifest({
+        tools: ['claude-code'],
+        scope: 'project',
+        preset: preset.id,
+        installedRules: rules.map((r) => r.id),
+        installedFiles: installResult.written,
+        sourceHash,
+      });
+      const manifestPath = resolveManifestPath(dir);
+      writeManifest(manifestPath, manifest);
+
+      // manifest에 installed_files 저장 확인
+      const loaded = readManifest(manifestPath);
+      expect(loaded?.installed_files).toEqual(installResult.written);
+
+      // uninstall
+      const uninstallResult = removeFiles(dir, installResult.written);
+      expect(uninstallResult.deleted).toEqual(installResult.written);
+      expect(uninstallResult.skipped).toHaveLength(0);
+
+      // 파일 모두 삭제 확인
+      for (const rel of installResult.written) {
+        expect(existsSync(join(dir, rel))).toBe(false);
+      }
+    } finally {
+      cleanup();
+    }
   });
 });
 

@@ -53,6 +53,7 @@ export const updateCommand = async (opts: { scope: Scope; force: boolean }): Pro
 
   const allRules = loadAllRules(rulesDir);
   const meta = { sourceHash, generatedAt: new Date().toISOString() };
+  const allInstalledFiles: string[] = [];
 
   if (manifest.workspaces) {
     // 모노레포: workspaces 기반 재설치
@@ -70,7 +71,7 @@ export const updateCommand = async (opts: { scope: Scope; force: boolean }): Pro
         }));
         const renderResult = renderForTool('claude-code', rulesToInstall, workspaceMappings);
         const actions = buildInstallPlan({ toolId: 'claude-code', renderResult, meta });
-        installFiles(basePath, actions);
+        allInstalledFiles.push(...installFiles(basePath, actions).written);
       } else {
         // codex/gemini: global → 루트, domain → 워크스페이스별
         const config = TOOL_OUTPUT_MAP[toolId];
@@ -84,7 +85,7 @@ export const updateCommand = async (opts: { scope: Scope; force: boolean }): Pro
             relativePath: join(config.dir, config.rootFileName),
             content: wrapWithHeader(renderRulesToMarkdown(global), meta),
           };
-          installFiles(basePath, [rootAction]);
+          allInstalledFiles.push(...installFiles(basePath, [rootAction]).written);
         }
 
         for (const [ws, entry] of workspaceEntries) {
@@ -97,7 +98,7 @@ export const updateCommand = async (opts: { scope: Scope; force: boolean }): Pro
             relativePath: join(ws, config.domainFileName),
             content: wrapWithHeader(renderRulesToMarkdown(domain), meta),
           };
-          installFiles(basePath, [domainAction]);
+          allInstalledFiles.push(...installFiles(basePath, [domainAction]).written);
         }
       }
     }
@@ -110,7 +111,7 @@ export const updateCommand = async (opts: { scope: Scope; force: boolean }): Pro
       const toolId = toolIdStr as ToolId;
       const renderResult = renderForTool(toolId, rulesToInstall);
       const actions = buildInstallPlan({ toolId, renderResult, meta });
-      installFiles(basePath, actions);
+      allInstalledFiles.push(...installFiles(basePath, actions).written);
     }
   }
 
@@ -120,6 +121,7 @@ export const updateCommand = async (opts: { scope: Scope; force: boolean }): Pro
     preset: manifest.preset,
     workspaces: manifest.workspaces,
     installedRules: manifest.installed_rules,
+    installedFiles: allInstalledFiles.length > 0 ? allInstalledFiles : manifest.installed_files,
     sourceHash,
   });
   writeManifest(manifestPath, newManifest);
