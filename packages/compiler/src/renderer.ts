@@ -1,3 +1,4 @@
+import { join } from 'node:path';
 import type { Rule, DecisionTableEntry } from './schemas/index.js';
 import { GLOBAL_CATEGORIES, CLAUDE_CODE_PATH_GLOBS, TOOL_OUTPUT_MAP } from './tool-output.js';
 import type { ToolId } from './tool-output.js';
@@ -78,28 +79,16 @@ export const renderFrontmatter = (paths: readonly string[]): string => {
   return `---\npaths:\n${lines}\n---`;
 };
 
-// 모노레포에서 rule이 포함된 워크스페이스별 scoped glob 생성
-// e.g. typescript rule + ['backend-ts', 'web'] → ['backend-ts/**/*.ts', 'web/**/*.ts', ...]
 export type WorkspaceMapping = {
   path: string;
   ruleIds: readonly string[];
 };
 
-const buildScopedGlobs = (rule: Rule, workspaceMappings: readonly WorkspaceMapping[]): readonly string[] | undefined => {
-  const baseGlobs = CLAUDE_CODE_PATH_GLOBS[rule.id];
-  if (!baseGlobs) return undefined;
-
-  const relevant = workspaceMappings.filter((ws) => ws.ruleIds.includes(rule.id));
-  if (relevant.length === 0) return baseGlobs;
-
-  return relevant.flatMap((ws) => baseGlobs.map((g) => `${ws.path}/${g}`));
-};
-
 // 단일 Rule → Claude Code용 Markdown
-// domain 룰이면서 glob 매핑이 있으면 paths: frontmatter 추가
-// global 룰 또는 매핑 없는 domain 룰 → frontmatter 없음 (안전 fallback)
-export const renderClaudeCodeRule = (rule: Rule, scopedGlobs?: readonly string[]): string => {
-  const globs = scopedGlobs ?? CLAUDE_CODE_PATH_GLOBS[rule.id];
+// domain 룰이면서 glob 매핑이 있으면 paths: frontmatter 추가 (단일 프로젝트 전용)
+// global 룰 또는 매핑 없는 domain 룰 → frontmatter 없음
+export const renderClaudeCodeRule = (rule: Rule): string => {
+  const globs = CLAUDE_CODE_PATH_GLOBS[rule.id];
   if (!isGlobalRule(rule) && globs !== undefined) {
     return `${renderFrontmatter(globs)}\n\n${renderRuleToMarkdown(rule)}`;
   }
@@ -109,7 +98,7 @@ export const renderClaudeCodeRule = (rule: Rule, scopedGlobs?: readonly string[]
 // 도구별 렌더링 결과 타입 (tagged union)
 export type ClaudeCodeRenderResult = {
   tool: 'claude-code';
-  files: { fileName: string; content: string }[];
+  files: { relativePath: string; content: string }[];
 };
 
 export type CodexRenderResult = {
@@ -127,27 +116,47 @@ export type GeminiRenderResult = {
 export type ToolRenderResult = ClaudeCodeRenderResult | CodexRenderResult | GeminiRenderResult;
 
 // CLI 진입점: toolId + rules → 도구별 렌더링 결과
-// workspaceMappings 전달 시 claude-code frontmatter에 workspace-prefixed glob 생성
 export const renderForTool = (
   toolId: ToolId,
   rules: readonly Rule[],
   workspaceMappings?: readonly WorkspaceMapping[],
 ): ToolRenderResult => {
-  const { global, domain } = partitionRules(rules);
   const config = TOOL_OUTPUT_MAP[toolId];
 
   if (toolId === 'claude-code') {
-    const { fileExtension } = config as (typeof TOOL_OUTPUT_MAP)['claude-code'];
-    const files = rules.map((rule) => {
-      const scopedGlobs = workspaceMappings ? buildScopedGlobs(rule, workspaceMappings) : undefined;
-      return {
-        fileName: `${rule.id}${fileExtension}`,
-        content: renderClaudeCodeRule(rule, scopedGlobs),
-      };
-    });
-    return { tool: 'claude-code', files };
+    const { rulesDir, fileExtension } = config as (typeof TOOL_OUTPUT_MAP)['claude-code'];
+
+    if (!workspaceMappings || workspaceMappings.length === 0) {
+      // 단일 프로젝트: domain 룰에 paths: frontmatter (path-scoped)
+      const files = rules.map((rule) => ({
+        relativePath: join(rulesDir, `${rule.id}${fileExtension}`),
+        content: renderClaudeCodeRule(rule),
+      }));
+      return { tool: 'claude-code', files };
+    }
+
+    // 모노레포: global → .claude/rules/, domain → {workspace}/CLAUDE.md (진짜 지연 로딩)
+    const { global, domain } = partitionRules(rules);
+
+    const globalFiles = global.map((rule) => ({
+      relativePath: join(rulesDir, `${rule.id}${fileExtension}`),
+      content: renderRuleToMarkdown(rule), // global은 frontmatter 불필요
+    }));
+
+    const workspaceFiles: { relativePath: string; content: string }[] = [];
+    for (const ws of workspaceMappings) {
+      const wsRules = domain.filter((r) => ws.ruleIds.includes(r.id));
+      if (wsRules.length === 0) continue;
+      workspaceFiles.push({
+        relativePath: join(ws.path, 'CLAUDE.md'),
+        content: renderRulesToMarkdown(wsRules),
+      });
+    }
+
+    return { tool: 'claude-code', files: [...globalFiles, ...workspaceFiles] };
   }
 
+  const { global, domain } = partitionRules(rules);
   const rootContent = renderRulesToMarkdown(global);
   const domainContent = renderRulesToMarkdown(domain);
 

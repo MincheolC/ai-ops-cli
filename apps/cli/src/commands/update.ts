@@ -64,7 +64,11 @@ export const updateCommand = async (opts: { scope: Scope; force: boolean }): Pro
       if (toolId === 'claude-code') {
         const allInstalledRuleSet = new Set(manifest.installed_rules);
         const rulesToInstall = allRules.filter((r) => allInstalledRuleSet.has(r.id));
-        const renderResult = renderForTool('claude-code', rulesToInstall);
+        const workspaceMappings = Object.entries(manifest.workspaces!).map(([path, entry]) => ({
+          path,
+          ruleIds: entry.rules,
+        }));
+        const renderResult = renderForTool('claude-code', rulesToInstall, workspaceMappings);
         const actions = buildInstallPlan({ toolId: 'claude-code', renderResult, meta });
         installFiles(basePath, actions);
       } else {

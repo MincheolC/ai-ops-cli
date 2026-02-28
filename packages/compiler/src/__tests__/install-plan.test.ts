@@ -9,8 +9,8 @@ describe('buildInstallPlan - claude-code', () => {
   const renderResult: ToolRenderResult = {
     tool: 'claude-code',
     files: [
-      { fileName: 'typescript.md', content: '# Typescript\n\n- Use strict mode' },
-      { fileName: 'react-typescript.md', content: '# React Typescript\n\n- Use FC' },
+      { relativePath: '.claude/rules/typescript.md', content: '# Typescript\n\n- Use strict mode' },
+      { relativePath: '.claude/rules/react-typescript.md', content: '# React Typescript\n\n- Use FC' },
     ],
   };
 

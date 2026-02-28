@@ -39,7 +39,7 @@ exports[`Snapshot: renderForTool > claude-code snapshot 1`] = `
 ## Guidelines
 
 - Use Korean",
-      "fileName": "communication.md",
+      "relativePath": ".claude/rules/communication.md",
     },
     {
       "content": "---
@@ -57,7 +57,7 @@ paths:
 ## Guidelines
 
 - Use arrow functions",
-      "fileName": "typescript.md",
+      "relativePath": ".claude/rules/typescript.md",
     },
   ],
   "tool": "claude-code",

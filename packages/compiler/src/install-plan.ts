@@ -17,9 +17,8 @@ export const buildInstallPlan = (params: {
   const { toolId, renderResult, meta } = params;
 
   if (toolId === 'claude-code' && renderResult.tool === 'claude-code') {
-    const { rulesDir } = TOOL_OUTPUT_MAP['claude-code'];
-    return renderResult.files.map(({ fileName, content }) => ({
-      relativePath: join(rulesDir, fileName),
+    return renderResult.files.map(({ relativePath, content }) => ({
+      relativePath,
       content: wrapWithHeader(content, meta),
     }));
   }

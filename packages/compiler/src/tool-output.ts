@@ -30,7 +30,8 @@ export const TOOL_OUTPUT_MAP = {
     mode: 'multi-file' as const,
     rulesDir: '.claude/rules',
     fileExtension: '.md',
-    contextStrategy: 'path-scoped' as const, // paths: frontmatter
+    // single: path-scoped (paths: frontmatter) / monorepo: hierarchical ({workspace}/CLAUDE.md)
+    contextStrategy: 'hybrid' as const,
   },
   codex: {
     mode: 'multi-file' as const,
