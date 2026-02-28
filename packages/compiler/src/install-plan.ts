@@ -4,6 +4,10 @@ import { TOOL_OUTPUT_MAP } from './tool-output.js';
 import type { ToolId } from './tool-output.js';
 import type { ToolRenderResult } from './renderer.js';
 
+// Codex has no settings.json — plan directory convention must live in AGENTS.md
+const CODEX_PLAN_SECTION =
+  '\n\n---\n\n## Plan\n\nSave plans to `.codex/plans/<timestamp>-<topic>.md` when creating or updating plans in plan mode.';
+
 export type FileAction = {
   relativePath: string;
   content: string;
@@ -31,9 +35,13 @@ export const buildInstallPlan = (params: {
     const actions: FileAction[] = [];
 
     if (renderResult.rootContent) {
+      const rootContent =
+        toolId === 'codex'
+          ? renderResult.rootContent + CODEX_PLAN_SECTION
+          : renderResult.rootContent;
       actions.push({
         relativePath: join(config.dir, config.rootFileName),
-        content: wrapWithHeader(renderResult.rootContent, meta),
+        content: wrapWithHeader(rootContent, meta),
       });
     }
 
