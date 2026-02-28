@@ -8,8 +8,9 @@
 ## 사용법
 
 1. 검토할 rule YAML 파일(들)을 첨부하거나 내용을 붙여넣는다.
-2. 아래 프롬프트 전체를 함께 전달한다.
-3. 출력된 리뷰 결과를 보고 지적 사항을 수정한다.
+2. 기존 규칙을 **수정/압축**한 경우, 수정 전 원본(또는 `git diff`)도 함께 첨부한다.
+3. 아래 프롬프트 전체를 함께 전달한다.
+4. 출력된 리뷰 결과를 보고 지적 사항을 수정한다.
 
 ---
 
@@ -19,7 +20,8 @@
 아래 rule YAML 파일(들)을 컨텍스트 엔지니어링 관점에서 리뷰해줘.
 이 파일들은 AI 에이전트의 시스템 프롬프트로 주입되는 규칙 데이터야.
 
-다음 4가지 기준으로만 판단해. 각 항목에서 문제가 없으면 "✅ 이상 없음"으로 표기해.
+다음 5가지 기준으로 판단해. 각 항목에서 문제가 없으면 "✅ 이상 없음"으로 표기해.
+(기준 5는 기존 규칙을 수정/압축한 경우에만 적용. 신규 작성이면 생략.)
 
 ---
 
@@ -71,6 +73,34 @@ constraints는 "위반 시 객관적인 피해(버그, 보안, 데이터 손상)
 - 실패 시 복구 절차 또는 롤백 기준이 명시되어 있는가?
 
 없다면 추가가 필요한 항목을 제안해줘.
+
+---
+
+### 기준 5: 수정 시 의미 보존 (Semantic Fidelity)
+
+> 기존 규칙을 수정(압축, 리팩터링 등)한 경우에만 적용한다. 신규 작성이면 이 기준은 건너뛴다.
+
+수정 전 원본과 비교하여 다음 5가지 실패 패턴이 있는지 검사해:
+
+1. **한정어 삽입 (Qualifier Injection)**
+   원본이 절대 금지인데 수정본에 "unless", "by default", "when possible" 등이 추가되어 escape hatch가 생겼는가?
+   예: `DO NOT use Any` → `DO NOT use Any unless there is no viable alternative`
+
+2. **범위 축소 (Scope Narrowing)**
+   수정본에 "shared", "in core logic", "on large data" 같은 범위 한정어가 추가되어 원본보다 적용 범위가 좁아졌는가?
+   예: `DO NOT mutate state` → `DO NOT mutate shared state in business logic`
+
+3. **구체 정보 소실 (Actionable Specifics Lost)**
+   LLM의 판단에 실제로 필요한 구체적 API명, 메서드명, 패턴 선택 기준 등이 빠졌는가?
+   예: `selectinload() for 1:N, joinedload() for N:1` → `choose eager loading intentionally`
+
+4. **예외 조건 삭제 (Exception Erasure)**
+   원본에 문서화된 허용 예외가 삭제되어 false positive 위반이 발생할 수 있는가?
+   예: JWT exp/iat에서 Unix epoch 허용 예외가 삭제됨
+
+5. **패턴 관계 소실 (Pattern Nuance Collapse)**
+   두 패턴 간의 관계(상호보완, 대안, 순서 등)가 압축 과정에서 하나로 합쳐져 의미가 바뀌었는가?
+   예: `Payload AND Union are complementary` → `return typed errors in payload`
 
 ---
 
