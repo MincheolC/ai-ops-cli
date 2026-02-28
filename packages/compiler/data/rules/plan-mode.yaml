@@ -1,0 +1,30 @@
+id: plan-mode
+category: standard
+tags:
+  - general
+  - planning
+  - mermaid
+priority: 70
+content:
+  constraints:
+    - 'DO NOT explain a plan in pure text when a diagram can communicate the structure more clearly. Always prefer visual representation.'
+    - 'DO NOT use plain bullet lists to describe flows, sequences, or relationships between components. Use Mermaid diagrams instead.'
+  guidelines:
+    - 'Use Mermaid flowchart for UX flows, decision trees, and control flow logic.'
+    - 'Use Mermaid sequenceDiagram for API call sequences, inter-service communication, and async flows.'
+    - 'Use Mermaid erDiagram for data models, schema relationships, and entity structures.'
+    - 'Use Mermaid stateDiagram-v2 for state machine transitions and lifecycle management.'
+    - 'Wrap all Mermaid diagrams in a ```mermaid code block.'
+  decision_table:
+    - when: 'Describing a user journey or UI navigation flow'
+      then: 'Use Mermaid flowchart (LR or TD)'
+      avoid: 'Numbered text steps only'
+    - when: 'Describing API request/response or service interactions'
+      then: 'Use Mermaid sequenceDiagram'
+      avoid: 'Arrow notation in plain text (e.g., Client -> Server)'
+    - when: 'Describing a database schema or entity relationships'
+      then: 'Use Mermaid erDiagram'
+      avoid: 'Listing table columns as bullet points'
+    - when: 'Describing component states or transitions'
+      then: 'Use Mermaid stateDiagram-v2'
+      avoid: 'Describing states as a flat list'

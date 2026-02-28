@@ -4,6 +4,7 @@ frontend-web:
     - role-persona
     - communication
     - code-philosophy
+    - plan-mode
     - naming-convention
     - engineering-standards
     - typescript
@@ -18,6 +19,7 @@ frontend-app:
     - role-persona
     - communication
     - code-philosophy
+    - plan-mode
     - naming-convention
     - engineering-standards
     - flutter
@@ -29,6 +31,7 @@ backend-ts:
     - role-persona
     - communication
     - code-philosophy
+    - plan-mode
     - naming-convention
     - engineering-standards
     - typescript
@@ -44,6 +47,7 @@ backend-python:
     - role-persona
     - communication
     - code-philosophy
+    - plan-mode
     - naming-convention
     - engineering-standards
     - python

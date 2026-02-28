@@ -106,9 +106,9 @@ describe('resolvePresetRules', () => {
 });
 
 describe('I/O', () => {
-  it('loadAllRules: 실제 data/rules/ 23개 로드', () => {
+  it('loadAllRules: 실제 data/rules/ 24개 로드', () => {
     const rules = loadAllRules(resolve(dataDir, 'rules'));
-    expect(rules).toHaveLength(23);
+    expect(rules).toHaveLength(24);
   });
 
   it('loadPresets: 실제 data/presets.yaml 4개 로드', () => {
