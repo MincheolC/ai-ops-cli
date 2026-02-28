@@ -23,6 +23,7 @@ import type { Scope } from '../lib/paths.js';
 import { resolveBasePath, resolveRulesDir, resolvePresetsPath } from '../lib/paths.js';
 import { listWorkspaceCandidates } from '../lib/workspace.js';
 import { installFiles } from '../lib/install.js';
+import { promptGeminiSettings, installGeminiSettings } from '../lib/gemini-settings.js';
 
 type WorkspacePresetMapping = {
   workspace: string;
@@ -197,6 +198,11 @@ export const initCommand = async (opts: { scope: Scope }): Promise<void> => {
     }
   }
 
+  // 4.5. Gemini 설정 (gemini 선택 시)
+  const geminiSettingValues: readonly string[] | null = (selectedTools as ToolId[]).includes('gemini')
+    ? await promptGeminiSettings()
+    : null;
+
   // 5. 설치
   const s = p.spinner();
   s.start('규칙 설치 중...');
@@ -217,6 +223,10 @@ export const initCommand = async (opts: { scope: Scope }): Promise<void> => {
       const result = installFiles(basePath, actions);
       allSkipped.push(...result.skipped);
     }
+  }
+
+  if (geminiSettingValues && geminiSettingValues.length > 0) {
+    installGeminiSettings(basePath, geminiSettingValues);
   }
 
   s.stop('규칙 설치 완료');
