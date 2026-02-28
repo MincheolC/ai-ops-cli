@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse } from 'yaml';
@@ -14,31 +14,7 @@ const loadYaml = (filename: string): unknown => {
   return parse(raw);
 };
 
-const ruleFiles = [
-  'role-persona.yaml',
-  'communication.yaml',
-  'code-philosophy.yaml',
-  'naming-convention.yaml',
-  'engineering-standards.yaml',
-  'typescript.yaml',
-  'react-typescript.yaml',
-  'python.yaml',
-  'nextjs.yaml',
-  'graphql.yaml',
-  'nestjs.yaml',
-  'nestjs-graphql.yaml',
-  'fastapi.yaml',
-  'prisma-postgresql.yaml',
-  'sqlalchemy.yaml',
-  'shadcn-ui.yaml',
-  'data-pipeline-python.yaml',
-  'flutter.yaml',
-  'ai-llm-python.yaml',
-  'libs-backend-ts.yaml',
-  'libs-backend-python.yaml',
-  'libs-frontend-web.yaml',
-  'libs-frontend-app.yaml',
-] as const;
+const ruleFiles = readdirSync(rulesDir).filter((f) => f.endsWith('.yaml'));
 
 describe('rule data files', () => {
   describe('각 YAML이 RuleSchema를 통과한다', () => {

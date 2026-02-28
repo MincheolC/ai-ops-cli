@@ -12,7 +12,7 @@ content:
     - 'DO NOT expose sequential or auto-increment IDs in external APIs. Use UUIDs. Sequential IDs enable enumeration attacks and leak business volume (e.g., total order count).'
     - 'DO NOT store or transmit timestamps without timezone information. Always use ISO 8601 UTC format (e.g., "2024-01-15T09:30:00Z"). Timezone-naive strings ("2024-01-15 09:30:00") are ambiguous and cause silent data corruption across regions.'
     - 'DO NOT use magic numbers or magic strings inline. Extract to named constants or env config. Inline literals (e.g., if (retries > 3), setTimeout(fn, 5000)) make intent opaque and changes error-prone.'
-    - 'DO NOT return inconsistent error response shapes across endpoints. Every error response MUST follow a standard envelope: { code: string, message: string, requestId: string }. Arbitrary shapes (e.g., { success: false, msg }) break client error handling.'
+    - 'DO NOT return inconsistent error response shapes across endpoints. Every error response MUST follow a standard envelope: { code: string, message: string, details?: unknown[] } (RFC 9457). Arbitrary shapes (e.g., { success: false, msg }) break client error handling. Note: requestId belongs in the response meta envelope, not the error body.'
     - 'DO NOT accept unbounded input. Enforce Content-Length limits, request body size limits, array length limits, and string length limits at the API boundary. Missing bounds are a DoS vector and amplify downstream processing cost.'
   guidelines:
     - 'UTC everywhere: store all timestamps as UTC in the DB (TIMESTAMPTZ), transmit as ISO 8601 UTC in APIs and logs. Convert to local timezone only in the presentation layer.'

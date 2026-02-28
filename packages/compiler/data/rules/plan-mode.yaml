@@ -4,12 +4,12 @@ tags:
   - general
   - planning
   - mermaid
-priority: 70
+priority: 71
 content:
   constraints:
-    - 'DO NOT explain a plan in pure text when a diagram can communicate the structure more clearly. Always prefer visual representation.'
-    - 'DO NOT use plain bullet lists to describe flows, sequences, or relationships between components. Use Mermaid diagrams instead.'
+    - 'DO NOT mix diagram types arbitrarily. Choose the Mermaid diagram type that matches the information structure: flowchart for control flow, sequenceDiagram for interactions, erDiagram for data models, stateDiagram-v2 for state transitions.'
   guidelines:
+    - 'Prefer Mermaid diagrams over plain bullet lists when describing flows, sequences, or relationships between components — a diagram conveys structure that prose cannot.'
     - 'Use Mermaid flowchart for UX flows, decision trees, and control flow logic.'
     - 'Use Mermaid sequenceDiagram for API call sequences, inter-service communication, and async flows.'
     - 'Use Mermaid erDiagram for data models, schema relationships, and entity structures.'
