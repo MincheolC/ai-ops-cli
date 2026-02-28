@@ -8,27 +8,27 @@ tags:
 priority: 50
 content:
   constraints:
-    - "DO NOT import server-only code (db clients, secrets, internal APIs) in Client Components. Use the 'server-only' package to enforce the boundary."
-    - 'DO NOT store secrets in NEXT_PUBLIC_ environment variables. Only NEXT_PUBLIC_ vars are exposed to the browser.'
-    - 'DO NOT use next/router. Use next/navigation (useRouter, usePathname, useSearchParams) in App Router.'
+    - "DO NOT import server-only code into Client Components. Enforce with 'server-only'."
+    - 'DO NOT store secrets in NEXT_PUBLIC_ variables. Only NEXT_PUBLIC_ vars are exposed to the browser bundle.'
+    - 'DO NOT use next/router in App Router projects. Use next/navigation APIs.'
   guidelines:
-    - 'Use the Next.js file conventions: page.tsx, layout.tsx, loading.tsx, error.tsx, not-found.tsx.'
-    - "Co-locate Server Actions in a dedicated file (e.g., actions.ts) with 'use server' at the top."
-    - 'Use next/image for all images with explicit width/height or fill+sizes.'
-    - 'Use next/font in root layout, apply via CSS variable.'
-    - 'Use middleware.ts only for cross-cutting concerns: auth redirects, locale detection, header injection.'
-    - 'Export generateMetadata or a static metadata object from every public-facing page.tsx. Include title, description, and Open Graph fields for SEO crawlers and social sharing.'
-    - 'Apply JSON-LD structured data markup for GEO (Generative Engine Optimization). Inject <script type="application/ld+json"> with schema.org-based structured data in public pages to optimize for AI search engines (SGE, Perplexity) and traditional search engines.'
+    - 'Follow App Router file conventions (page.tsx, layout.tsx, loading.tsx, error.tsx, not-found.tsx).'
+    - "Keep Server Actions in dedicated files (e.g., actions.ts) with 'use server'."
+    - 'Use next/image with explicit dimensions or fill + sizes.'
+    - 'Use next/font in root layout and apply through CSS variables.'
+    - 'Use middleware.ts only for cross-cutting concerns (auth redirect, locale, header policy).'
+    - 'Export metadata (or generateMetadata) for public pages with title/description/OpenGraph.'
+    - 'Add JSON-LD structured data for public pages when SEO/GEO matters.'
   decision_table:
-    - when: 'Component needs event handlers, useState, useEffect, or browser APIs'
-      then: "Add 'use client' to that component only"
-      avoid: "Adding 'use client' to a parent — push it to the smallest leaf"
-    - when: 'Data needs to be fetched for a page'
-      then: 'Fetch in Server Component (page.tsx, layout.tsx) with async/await'
-      avoid: 'useEffect + fetch in Client Component for initial page data'
-    - when: 'Form submission or data mutation'
-      then: 'Server Action via form action or startTransition'
-      avoid: 'POST route.ts for simple mutations'
-    - when: 'API endpoint for external consumers or webhooks'
-      then: 'route.ts with explicit HTTP method exports (GET, POST)'
-      avoid: 'Server Actions for external API endpoints'
+    - when: 'A component needs browser APIs, state hooks, or event handlers'
+      then: "Add 'use client' at the smallest leaf component"
+      avoid: "Marking high-level parent trees as 'use client'"
+    - when: 'Page data is needed for initial render'
+      then: 'Fetch in Server Components with async/await'
+      avoid: 'Client-side useEffect fetch for primary page data'
+    - when: 'Internal form mutation is needed'
+      then: 'Use Server Actions'
+      avoid: 'route.ts endpoints for simple internal form writes'
+    - when: 'External API/webhook endpoint is needed'
+      then: 'Use route.ts with explicit HTTP method exports'
+      avoid: 'Server Actions for public API integration points'
