@@ -1,6 +1,6 @@
 import { join, resolve } from 'node:path';
 import { homedir } from 'node:os';
-import { COMPILER_DATA_DIR } from '@ai-ops/compiler';
+import { COMPILER_DATA_DIR } from 'ai-ops-compiler';
 
 export type Scope = 'project' | 'global';
 

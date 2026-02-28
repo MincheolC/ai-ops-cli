@@ -1,5 +1,5 @@
 import * as p from '@clack/prompts';
-import type { ToolId } from '@ai-ops/compiler';
+import type { ToolId } from 'ai-ops-compiler';
 import {
   readManifest,
   resolveManifestPath,
@@ -13,8 +13,8 @@ import {
   partitionRules,
   renderRulesToMarkdown,
   wrapWithHeader,
-} from '@ai-ops/compiler';
-import type { FileAction } from '@ai-ops/compiler';
+} from 'ai-ops-compiler';
+import type { FileAction } from 'ai-ops-compiler';
 import { join } from 'node:path';
 import type { Scope } from '../lib/paths.js';
 import { resolveBasePath, resolveRulesDir } from '../lib/paths.js';

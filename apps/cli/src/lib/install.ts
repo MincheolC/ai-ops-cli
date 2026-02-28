@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-import { isManagedFile } from '@ai-ops/compiler';
-import type { FileAction } from '@ai-ops/compiler';
+import { isManagedFile } from 'ai-ops-compiler';
+import type { FileAction } from 'ai-ops-compiler';
 
 export type InstallResult = {
   written: string[];

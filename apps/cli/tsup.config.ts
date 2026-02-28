@@ -12,5 +12,5 @@ export default defineConfig({
   banner: {
     js: '#!/usr/bin/env node',
   },
-  external: ['@ai-ops/compiler', '@clack/prompts', 'commander'],
+  external: ['ai-ops-compiler', '@clack/prompts', 'commander'],
 });

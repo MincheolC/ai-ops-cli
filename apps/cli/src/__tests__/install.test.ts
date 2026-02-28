@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { wrapWithHeader } from '@ai-ops/compiler';
+import { wrapWithHeader } from 'ai-ops-compiler';
 import { installFiles } from '../lib/install.js';
 
 const META = { sourceHash: 'a1b2c3', generatedAt: '2026-02-27T00:00:00.000Z' };
