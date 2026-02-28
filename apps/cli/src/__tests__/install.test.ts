@@ -29,7 +29,6 @@ describe('installFiles', () => {
   it('managed 파일 → 덮어쓰기 (written)', () => {
     const { dir, cleanup } = setup();
     try {
-      const absPath = join(dir, 'rules/typescript.md');
       installFiles(dir, [{ relativePath: 'rules/typescript.md', content: wrapWithHeader('old', META) }]);
       const result = installFiles(dir, [{ relativePath: 'rules/typescript.md', content: wrapWithHeader('new', META) }]);
       expect(result.written).toEqual(['rules/typescript.md']);
