@@ -78,11 +78,28 @@ export const renderFrontmatter = (paths: readonly string[]): string => {
   return `---\npaths:\n${lines}\n---`;
 };
 
+// 모노레포에서 rule이 포함된 워크스페이스별 scoped glob 생성
+// e.g. typescript rule + ['backend-ts', 'web'] → ['backend-ts/**/*.ts', 'web/**/*.ts', ...]
+export type WorkspaceMapping = {
+  path: string;
+  ruleIds: readonly string[];
+};
+
+const buildScopedGlobs = (rule: Rule, workspaceMappings: readonly WorkspaceMapping[]): readonly string[] | undefined => {
+  const baseGlobs = CLAUDE_CODE_PATH_GLOBS[rule.id];
+  if (!baseGlobs) return undefined;
+
+  const relevant = workspaceMappings.filter((ws) => ws.ruleIds.includes(rule.id));
+  if (relevant.length === 0) return baseGlobs;
+
+  return relevant.flatMap((ws) => baseGlobs.map((g) => `${ws.path}/${g}`));
+};
+
 // 단일 Rule → Claude Code용 Markdown
 // domain 룰이면서 glob 매핑이 있으면 paths: frontmatter 추가
 // global 룰 또는 매핑 없는 domain 룰 → frontmatter 없음 (안전 fallback)
-export const renderClaudeCodeRule = (rule: Rule): string => {
-  const globs = CLAUDE_CODE_PATH_GLOBS[rule.id];
+export const renderClaudeCodeRule = (rule: Rule, scopedGlobs?: readonly string[]): string => {
+  const globs = scopedGlobs ?? CLAUDE_CODE_PATH_GLOBS[rule.id];
   if (!isGlobalRule(rule) && globs !== undefined) {
     return `${renderFrontmatter(globs)}\n\n${renderRuleToMarkdown(rule)}`;
   }
@@ -110,16 +127,24 @@ export type GeminiRenderResult = {
 export type ToolRenderResult = ClaudeCodeRenderResult | CodexRenderResult | GeminiRenderResult;
 
 // CLI 진입점: toolId + rules → 도구별 렌더링 결과
-export const renderForTool = (toolId: ToolId, rules: readonly Rule[]): ToolRenderResult => {
+// workspaceMappings 전달 시 claude-code frontmatter에 workspace-prefixed glob 생성
+export const renderForTool = (
+  toolId: ToolId,
+  rules: readonly Rule[],
+  workspaceMappings?: readonly WorkspaceMapping[],
+): ToolRenderResult => {
   const { global, domain } = partitionRules(rules);
   const config = TOOL_OUTPUT_MAP[toolId];
 
   if (toolId === 'claude-code') {
     const { fileExtension } = config as (typeof TOOL_OUTPUT_MAP)['claude-code'];
-    const files = rules.map((rule) => ({
-      fileName: `${rule.id}${fileExtension}`,
-      content: renderClaudeCodeRule(rule),
-    }));
+    const files = rules.map((rule) => {
+      const scopedGlobs = workspaceMappings ? buildScopedGlobs(rule, workspaceMappings) : undefined;
+      return {
+        fileName: `${rule.id}${fileExtension}`,
+        content: renderClaudeCodeRule(rule, scopedGlobs),
+      };
+    });
     return { tool: 'claude-code', files };
   }
 

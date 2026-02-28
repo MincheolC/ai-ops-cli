@@ -38,8 +38,8 @@ describe('buildInstallPlan - codex', () => {
     };
     const actions = buildInstallPlan({ toolId: 'codex', renderResult, meta: META });
     expect(actions).toHaveLength(2);
-    expect(actions[0].relativePath).toBe('AGENTS.md');
-    expect(actions[1].relativePath).toBe('AGENTS.override.md');
+    expect(actions[0].relativePath).toBe('.codex/AGENTS.md');
+    expect(actions[1].relativePath).toBe('.codex/AGENTS.override.md');
   });
 
   it('produces 1 FileAction when domainContent is empty', () => {
@@ -50,7 +50,7 @@ describe('buildInstallPlan - codex', () => {
     };
     const actions = buildInstallPlan({ toolId: 'codex', renderResult, meta: META });
     expect(actions).toHaveLength(1);
-    expect(actions[0].relativePath).toBe('AGENTS.md');
+    expect(actions[0].relativePath).toBe('.codex/AGENTS.md');
   });
 
   it('includes managed header in all content', () => {
@@ -67,7 +67,7 @@ describe('buildInstallPlan - codex', () => {
 });
 
 describe('buildInstallPlan - gemini', () => {
-  it('maps to GEMINI.md for both root and domain', () => {
+  it('maps to .gemini/GEMINI.md for both root and domain', () => {
     const renderResult: ToolRenderResult = {
       tool: 'gemini',
       rootContent: '# Global Rules',
@@ -75,8 +75,8 @@ describe('buildInstallPlan - gemini', () => {
     };
     const actions = buildInstallPlan({ toolId: 'gemini', renderResult, meta: META });
     expect(actions).toHaveLength(2);
-    expect(actions[0].relativePath).toBe('GEMINI.md');
-    expect(actions[1].relativePath).toBe('GEMINI.md');
+    expect(actions[0].relativePath).toBe('.gemini/GEMINI.md');
+    expect(actions[1].relativePath).toBe('.gemini/GEMINI.md');
   });
 
   it('omits empty rootContent', () => {
@@ -87,6 +87,6 @@ describe('buildInstallPlan - gemini', () => {
     };
     const actions = buildInstallPlan({ toolId: 'gemini', renderResult, meta: META });
     expect(actions).toHaveLength(1);
-    expect(actions[0].relativePath).toBe('GEMINI.md');
+    expect(actions[0].relativePath).toBe('.gemini/GEMINI.md');
   });
 });

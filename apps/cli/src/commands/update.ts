@@ -13,6 +13,7 @@ import {
   partitionRules,
   renderRulesToMarkdown,
   wrapWithHeader,
+  TOOL_OUTPUT_MAP,
 } from 'ai-ops-compiler';
 import type { FileAction } from 'ai-ops-compiler';
 import { join } from 'node:path';
@@ -68,8 +69,7 @@ export const updateCommand = async (opts: { scope: Scope; force: boolean }): Pro
         installFiles(basePath, actions);
       } else {
         // codex/gemini: global → 루트, domain → 워크스페이스별
-        const rootFileName = toolId === 'codex' ? 'AGENTS.md' : 'GEMINI.md';
-        const domainFileName = toolId === 'codex' ? 'AGENTS.override.md' : 'GEMINI.md';
+        const config = TOOL_OUTPUT_MAP[toolId];
 
         const allInstalledRuleSet = new Set(manifest.installed_rules);
         const allRulesToInstall = allRules.filter((r) => allInstalledRuleSet.has(r.id));
@@ -77,7 +77,7 @@ export const updateCommand = async (opts: { scope: Scope; force: boolean }): Pro
 
         if (global.length > 0) {
           const rootAction: FileAction = {
-            relativePath: rootFileName,
+            relativePath: join(config.dir, config.rootFileName),
             content: wrapWithHeader(renderRulesToMarkdown(global), meta),
           };
           installFiles(basePath, [rootAction]);
@@ -90,7 +90,7 @@ export const updateCommand = async (opts: { scope: Scope; force: boolean }): Pro
           if (domain.length === 0) continue;
 
           const domainAction: FileAction = {
-            relativePath: join(ws, domainFileName),
+            relativePath: join(ws, config.dir, config.domainFileName),
             content: wrapWithHeader(renderRulesToMarkdown(domain), meta),
           };
           installFiles(basePath, [domainAction]);

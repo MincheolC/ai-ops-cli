@@ -33,14 +33,14 @@ export const buildInstallPlan = (params: {
 
     if (renderResult.rootContent) {
       actions.push({
-        relativePath: config.rootFileName,
+        relativePath: join(config.dir, config.rootFileName),
         content: wrapWithHeader(renderResult.rootContent, meta),
       });
     }
 
     if (renderResult.domainContent) {
       actions.push({
-        relativePath: config.domainFileName,
+        relativePath: join(config.dir, config.domainFileName),
         content: wrapWithHeader(renderResult.domainContent, meta),
       });
     }

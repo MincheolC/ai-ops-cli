@@ -173,6 +173,14 @@ describe('renderClaudeCodeRule', () => {
     expect(result).toContain('# Typescript');
   });
 
+  it('scopedGlobs 전달 시 해당 glob 사용', () => {
+    const rule = makeRule({ id: 'typescript', category: 'language' });
+    const result = renderClaudeCodeRule(rule, ['backend-ts/**/*.ts', 'web/**/*.ts']);
+    expect(result).toContain('"backend-ts/**/*.ts"');
+    expect(result).toContain('"web/**/*.ts"');
+    expect(result).not.toContain('"**/*.ts"');
+  });
+
   it('global 룰 → frontmatter 없음', () => {
     const rule = makeRule({ id: 'role-persona', category: 'persona' });
     const result = renderClaudeCodeRule(rule);
@@ -205,6 +213,19 @@ describe('renderForTool', () => {
 
     const personaFile = result.files.find((f) => f.fileName === 'role-persona.md');
     expect(personaFile?.content).not.toContain('---');
+  });
+
+  it('claude-code + workspaceMappings → workspace-prefixed glob', () => {
+    const result = renderForTool('claude-code', rules, [
+      { path: 'backend-ts', ruleIds: ['typescript'] },
+      { path: 'web', ruleIds: ['typescript'] },
+    ]);
+    if (result.tool !== 'claude-code') return;
+
+    const tsFile = result.files.find((f) => f.fileName === 'typescript.md');
+    expect(tsFile?.content).toContain('"backend-ts/**/*.ts"');
+    expect(tsFile?.content).toContain('"web/**/*.ts"');
+    expect(tsFile?.content).not.toContain('"**/*.ts"');
   });
 
   it('codex: rootContent에 global만, domainContent에 domain만', () => {

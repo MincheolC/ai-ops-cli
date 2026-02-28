@@ -1,6 +1,6 @@
 import * as p from '@clack/prompts';
 import { join } from 'node:path';
-import type { Rule, Preset, ToolId } from 'ai-ops-compiler';
+import type { Rule, Preset, ToolId, WorkspaceMapping } from 'ai-ops-compiler';
 import {
   loadAllRules,
   loadPresets,
@@ -16,6 +16,7 @@ import {
   resolveManifestPath,
   writeManifest,
   wrapWithHeader,
+  TOOL_OUTPUT_MAP,
 } from 'ai-ops-compiler';
 import type { FileAction } from 'ai-ops-compiler';
 import type { Scope } from '../lib/paths.js';
@@ -92,15 +93,14 @@ const installHierarchicalMonorepo = (
   basePath: string,
   meta: { sourceHash: string; generatedAt: string },
 ): void => {
-  const rootFileName = toolId === 'codex' ? 'AGENTS.md' : 'GEMINI.md';
-  const domainFileName = toolId === 'codex' ? 'AGENTS.override.md' : 'GEMINI.md';
+  const config = TOOL_OUTPUT_MAP[toolId];
 
   const allRules = deduplicateRules(mappings.flatMap((m) => m.finalRules));
   const { global } = partitionRules(allRules);
 
   if (global.length > 0) {
     const rootAction: FileAction = {
-      relativePath: rootFileName,
+      relativePath: join(config.dir, config.rootFileName),
       content: wrapWithHeader(renderRulesToMarkdown(global), meta),
     };
     installFiles(basePath, [rootAction]);
@@ -111,7 +111,7 @@ const installHierarchicalMonorepo = (
     if (domain.length === 0) continue;
 
     const domainAction: FileAction = {
-      relativePath: join(mapping.workspace, domainFileName),
+      relativePath: join(mapping.workspace, config.dir, config.domainFileName),
       content: wrapWithHeader(renderRulesToMarkdown(domain), meta),
     };
     installFiles(basePath, [domainAction]);
@@ -124,7 +124,11 @@ const installClaudeCodeMonorepo = (
   meta: { sourceHash: string; generatedAt: string },
 ): void => {
   const allRules = deduplicateRules(mappings.flatMap((m) => m.finalRules));
-  const renderResult = renderForTool('claude-code', allRules);
+  const workspaceMappings: WorkspaceMapping[] = mappings.map((m) => ({
+    path: m.workspace,
+    ruleIds: m.finalRules.map((r) => r.id),
+  }));
+  const renderResult = renderForTool('claude-code', allRules, workspaceMappings);
   const actions = buildInstallPlan({ toolId: 'claude-code', renderResult, meta });
   installFiles(basePath, actions);
 };

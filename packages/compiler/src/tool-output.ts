@@ -34,12 +34,14 @@ export const TOOL_OUTPUT_MAP = {
   },
   codex: {
     mode: 'multi-file' as const,
+    dir: '.codex',
     rootFileName: 'AGENTS.md', // global 룰
     domainFileName: 'AGENTS.override.md', // domain 룰 (하위 폴더)
     contextStrategy: 'hierarchical' as const, // 루트 + 하위 폴더 JIT
   },
   gemini: {
     mode: 'multi-file' as const,
+    dir: '.gemini',
     rootFileName: 'GEMINI.md', // global 룰
     domainFileName: 'GEMINI.md', // domain 룰 (하위 폴더)
     contextStrategy: 'hierarchical' as const, // 루트 + 하위 폴더 JIT
