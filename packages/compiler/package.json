@@ -1,6 +1,6 @@
 {
   "name": "ai-ops-compiler",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Compiler and rule management core for ai-ops scaffolding tools",
   "license": "MIT",
   "type": "module",
