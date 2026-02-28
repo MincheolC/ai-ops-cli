@@ -35,10 +35,7 @@ export const buildInstallPlan = (params: {
     const actions: FileAction[] = [];
 
     if (renderResult.rootContent) {
-      const rootContent =
-        toolId === 'codex'
-          ? renderResult.rootContent + CODEX_PLAN_SECTION
-          : renderResult.rootContent;
+      const rootContent = toolId === 'codex' ? renderResult.rootContent + CODEX_PLAN_SECTION : renderResult.rootContent;
       actions.push({
         relativePath: join(config.dir, config.rootFileName),
         content: wrapWithHeader(rootContent, meta),
