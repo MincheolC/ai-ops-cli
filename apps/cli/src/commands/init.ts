@@ -111,7 +111,7 @@ const installHierarchicalMonorepo = (
     if (domain.length === 0) continue;
 
     const domainAction: FileAction = {
-      relativePath: join(mapping.workspace, config.dir, config.domainFileName),
+      relativePath: join(mapping.workspace, config.domainFileName),
       content: wrapWithHeader(renderRulesToMarkdown(domain), meta),
     };
     installFiles(basePath, [domainAction]);

@@ -94,7 +94,7 @@ export const updateCommand = async (opts: { scope: Scope; force: boolean }): Pro
           if (domain.length === 0) continue;
 
           const domainAction: FileAction = {
-            relativePath: join(ws, config.dir, config.domainFileName),
+            relativePath: join(ws, config.domainFileName),
             content: wrapWithHeader(renderRulesToMarkdown(domain), meta),
           };
           installFiles(basePath, [domainAction]);
