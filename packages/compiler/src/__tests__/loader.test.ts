@@ -1,7 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { sortRulesByPriority, parseRawPresets, resolvePresetRules, excludeRules, loadAllRules, loadPresets } from '../loader.js';
+import {
+  sortRulesByPriority,
+  parseRawPresets,
+  resolvePresetRules,
+  excludeRules,
+  loadAllRules,
+  loadPresets,
+} from '../loader.js';
 import type { Rule } from '../schemas/index.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));

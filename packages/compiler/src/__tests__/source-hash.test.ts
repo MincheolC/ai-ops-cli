@@ -66,4 +66,23 @@ describe('buildManifest', () => {
     expect(() => ManifestSchema.parse(manifest)).not.toThrow();
     expect(manifest.preset).toBeUndefined();
   });
+
+  it('workspaces 포함 시 ManifestSchema 통과', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2025-01-01T00:00:00Z'));
+
+    const manifest = buildManifest({
+      tools: ['claude-code', 'codex'],
+      scope: 'project',
+      workspaces: {
+        'apps/web': { preset: 'frontend-web', rules: ['typescript', 'nextjs'] },
+        'services/api': { preset: 'backend-ts', rules: ['typescript', 'nestjs'] },
+      },
+      installedRules: ['typescript', 'nextjs', 'nestjs'],
+      sourceHash: 'abc123',
+    });
+
+    expect(() => ManifestSchema.parse(manifest)).not.toThrow();
+    expect(manifest.workspaces?.['apps/web']?.preset).toBe('frontend-web');
+  });
 });

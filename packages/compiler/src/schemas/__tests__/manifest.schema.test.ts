@@ -39,6 +39,22 @@ describe('ManifestSchema', () => {
     it('preset 생략', () => {
       expect(() => ManifestSchema.parse(validManifest)).not.toThrow();
     });
+
+    it('workspaces optional 포함', () => {
+      expect(() =>
+        ManifestSchema.parse({
+          ...validManifest,
+          workspaces: {
+            'apps/web': { preset: 'frontend-web', rules: ['typescript', 'nextjs'] },
+            'services/api': { preset: 'backend-ts', rules: ['typescript', 'nestjs'] },
+          },
+        }),
+      ).not.toThrow();
+    });
+
+    it('workspaces 생략', () => {
+      expect(() => ManifestSchema.parse(validManifest)).not.toThrow();
+    });
   });
 
   describe('invalid', () => {

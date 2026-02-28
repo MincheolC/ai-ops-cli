@@ -22,6 +22,7 @@ export const buildManifest = (params: {
   tools: readonly string[];
   scope: 'project' | 'global';
   preset?: string;
+  workspaces?: Record<string, { preset: string; rules: string[] }>;
   installedRules: readonly string[];
   sourceHash: string;
 }): Manifest =>
@@ -29,6 +30,7 @@ export const buildManifest = (params: {
     tools: [...params.tools],
     scope: params.scope,
     preset: params.preset,
+    workspaces: params.workspaces,
     installed_rules: [...params.installedRules],
     sourceHash: params.sourceHash,
     generatedAt: new Date().toISOString(),
