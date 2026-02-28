@@ -31,20 +31,12 @@ git add packages/compiler/package.json apps/cli/package.json
 git commit -m "chore: release v$NEW_VERSION"
 git tag "v$NEW_VERSION"
 
-# ── 4. OTP prompt ─────────────────────────────────────────────────────────────
-echo ""
-read -rp "npm OTP (2FA code, or Enter to skip): " OTP
-OTP_FLAG=""
-if [[ -n "$OTP" ]]; then
-  OTP_FLAG="--otp=$OTP"
-fi
-
-# ── 5. publish (compiler → cli) ───────────────────────────────────────────────
+# ── 4. publish (compiler → cli) ───────────────────────────────────────────────
 echo "▶ Publishing ai-ops-compiler@$NEW_VERSION..."
-npm publish --workspace=packages/compiler $OTP_FLAG
+npm publish --workspace=packages/compiler
 
 echo "▶ Publishing ai-ops-cli@$NEW_VERSION..."
-npm publish --workspace=apps/cli $OTP_FLAG
+npm publish --workspace=apps/cli
 
 # ── 6. push ───────────────────────────────────────────────────────────────────
 echo ""
