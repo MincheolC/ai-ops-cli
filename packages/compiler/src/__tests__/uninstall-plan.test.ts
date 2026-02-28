@@ -36,15 +36,15 @@ describe('inferInstalledFiles - claude-code', () => {
 });
 
 describe('inferInstalledFiles - codex', () => {
-  it('비모노: .codex/AGENTS.md + .codex/AGENTS.override.md', () => {
+  it('비모노: AGENTS.md + AGENTS.override.md', () => {
     const manifest: Manifest = { ...BASE_MANIFEST, tools: ['codex'] };
     const files = inferInstalledFiles(manifest);
-    expect(files).toContain('.codex/AGENTS.md');
-    expect(files).toContain('.codex/AGENTS.override.md');
+    expect(files).toContain('AGENTS.md');
+    expect(files).toContain('AGENTS.override.md');
     expect(files).toHaveLength(2);
   });
 
-  it('모노레포: .codex/AGENTS.md + {workspace}/AGENTS.override.md', () => {
+  it('모노레포: AGENTS.md + {workspace}/AGENTS.override.md', () => {
     const manifest: Manifest = {
       ...BASE_MANIFEST,
       tools: ['codex'],
@@ -54,7 +54,7 @@ describe('inferInstalledFiles - codex', () => {
       },
     };
     const files = inferInstalledFiles(manifest);
-    expect(files).toContain('.codex/AGENTS.md');
+    expect(files).toContain('AGENTS.md');
     expect(files).toContain('apps/web/AGENTS.override.md');
     expect(files).toContain('services/api/AGENTS.override.md');
     expect(files).toHaveLength(3);
@@ -92,8 +92,8 @@ describe('inferInstalledFiles - 복합 도구', () => {
     const files = inferInstalledFiles(manifest);
     expect(files).toContain('.claude/rules/typescript.md');
     expect(files).toContain('.claude/rules/react-typescript.md');
-    expect(files).toContain('.codex/AGENTS.md');
-    expect(files).toContain('.codex/AGENTS.override.md');
+    expect(files).toContain('AGENTS.md');
+    expect(files).toContain('AGENTS.override.md');
   });
 
   it('중복 없음 (Set 보장)', () => {

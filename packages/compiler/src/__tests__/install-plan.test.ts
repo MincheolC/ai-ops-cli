@@ -38,8 +38,8 @@ describe('buildInstallPlan - codex', () => {
     };
     const actions = buildInstallPlan({ toolId: 'codex', renderResult, meta: META });
     expect(actions).toHaveLength(2);
-    expect(actions[0].relativePath).toBe('.codex/AGENTS.md');
-    expect(actions[1].relativePath).toBe('.codex/AGENTS.override.md');
+    expect(actions[0].relativePath).toBe('AGENTS.md');
+    expect(actions[1].relativePath).toBe('AGENTS.override.md');
   });
 
   it('produces 1 FileAction when domainContent is empty', () => {
@@ -50,7 +50,7 @@ describe('buildInstallPlan - codex', () => {
     };
     const actions = buildInstallPlan({ toolId: 'codex', renderResult, meta: META });
     expect(actions).toHaveLength(1);
-    expect(actions[0].relativePath).toBe('.codex/AGENTS.md');
+    expect(actions[0].relativePath).toBe('AGENTS.md');
   });
 
   it('appends plan section to AGENTS.md root content', () => {

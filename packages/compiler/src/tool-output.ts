@@ -35,7 +35,7 @@ export const TOOL_OUTPUT_MAP = {
   },
   codex: {
     mode: 'multi-file' as const,
-    dir: '.codex',
+    dir: '',
     rootFileName: 'AGENTS.md', // global 룰
     domainFileName: 'AGENTS.override.md', // domain 룰 (하위 폴더)
     contextStrategy: 'hierarchical' as const, // 루트 + 하위 폴더 JIT
