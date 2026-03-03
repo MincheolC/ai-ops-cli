@@ -65,7 +65,7 @@ export const updateCommand = async (opts: { force: boolean }): Promise<void> => 
       if (toolId === 'claude-code') {
         const allInstalledRuleSet = new Set(manifest.installed_rules);
         const rulesToInstall = allRules.filter((r) => allInstalledRuleSet.has(r.id));
-        const workspaceMappings = Object.entries(manifest.workspaces!).map(([path, entry]) => ({
+        const workspaceMappings = workspaceEntries.map(([path, entry]) => ({
           path,
           ruleIds: entry.rules,
         }));
