@@ -3,6 +3,15 @@
   "version": "0.1.10",
   "description": "CLI for ai-ops scaffolding — manage AI tool rules and presets",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MincheolC/ai-ops-cli.git",
+    "directory": "apps/cli"
+  },
+  "bugs": {
+    "url": "https://github.com/MincheolC/ai-ops-cli/issues"
+  },
+  "homepage": "https://github.com/MincheolC/ai-ops-cli#readme",
   "type": "module",
   "engines": {
     "node": ">=18"
