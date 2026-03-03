@@ -1,6 +1,6 @@
 import * as p from '@clack/prompts';
 import { join } from 'node:path';
-import type { Rule, Preset, ToolId, WorkspaceMapping } from 'ai-ops-compiler';
+import type { Rule, Preset, ToolId, WorkspaceMapping } from '@/core/index.js';
 import {
   loadAllRules,
   loadPresets,
@@ -17,8 +17,8 @@ import {
   writeManifest,
   wrapWithHeader,
   TOOL_OUTPUT_MAP,
-} from 'ai-ops-compiler';
-import type { FileAction } from 'ai-ops-compiler';
+} from '@/core/index.js';
+import type { FileAction } from '@/core/index.js';
 import { resolveBasePath, resolveRulesDir, resolvePresetsPath } from '../lib/paths.js';
 import { listWorkspaceCandidates } from '../lib/workspace.js';
 import { installFiles } from '../lib/install.js';

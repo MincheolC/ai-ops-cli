@@ -20,21 +20,17 @@ echo "▶ Building..."
 npm run build
 
 # ── 2. version bump (no git commit yet) ──────────────────────────────────────
-npm version "$BUMP" --no-git-tag-version --workspace=packages/compiler
 npm version "$BUMP" --no-git-tag-version --workspace=apps/cli
 
-NEW_VERSION=$(node -p "require('./packages/compiler/package.json').version")
+NEW_VERSION=$(node -p "require('./apps/cli/package.json').version")
 echo "▶ Bumped to v$NEW_VERSION"
 
 # ── 3. git commit + tag ───────────────────────────────────────────────────────
-git add packages/compiler/package.json apps/cli/package.json
+git add apps/cli/package.json package-lock.json
 git commit -m "chore: release v$NEW_VERSION"
 git tag "v$NEW_VERSION"
 
-# ── 4. publish (compiler → cli) ───────────────────────────────────────────────
-echo "▶ Publishing ai-ops-compiler@$NEW_VERSION..."
-npm publish --workspace=packages/compiler
-
+# ── 4. publish (cli only) ─────────────────────────────────────────────────────
 echo "▶ Publishing ai-ops-cli@$NEW_VERSION..."
 npm publish --workspace=apps/cli
 
@@ -46,4 +42,4 @@ if [[ "$PUSH" =~ ^[Yy]$ ]]; then
   echo "✓ Pushed v$NEW_VERSION"
 fi
 
-echo "✓ Done — ai-ops-compiler@$NEW_VERSION, ai-ops-cli@$NEW_VERSION"
+echo "✓ Done — ai-ops-cli@$NEW_VERSION"

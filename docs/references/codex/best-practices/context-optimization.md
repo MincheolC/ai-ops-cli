@@ -81,7 +81,7 @@ Example registry snippet for root `AGENTS.md`:
 
 Do not guess architecture or style constraints.
 Before editing code, read the relevant rule files from:
-`packages/compiler/data/rules/*.yaml`
+`apps/cli/data/rules/*.yaml`
 
 Mapping:
 

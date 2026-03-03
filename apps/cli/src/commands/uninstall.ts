@@ -1,6 +1,6 @@
 import * as p from '@clack/prompts';
 import { rmSync } from 'node:fs';
-import { readManifest, resolveManifestPath, inferInstalledFiles, MANIFEST_FILENAME } from 'ai-ops-compiler';
+import { readManifest, resolveManifestPath, inferInstalledFiles, MANIFEST_FILENAME } from '@/core/index.js';
 import { resolveBasePath } from '../lib/paths.js';
 import { removeFiles, cleanEmptyDirs, collectManagedDirs } from '../lib/uninstall.js';
 

@@ -7,7 +7,7 @@ import { RuleSchema } from '../rule.schema.js';
 import type { Rule } from '../rule.schema.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const rulesDir = resolve(__dirname, '../../../data/rules');
+const rulesDir = resolve(__dirname, '../../../../data/rules');
 
 const loadYaml = (filename: string): unknown => {
   const raw = readFileSync(resolve(rulesDir, filename), 'utf-8');
@@ -42,7 +42,7 @@ describe('rule data files', () => {
 });
 
 describe('presets.yaml', () => {
-  const presetsPath = resolve(__dirname, '../../../data/presets.yaml');
+  const presetsPath = resolve(__dirname, '../../../../data/presets.yaml');
   const presetsRaw = readFileSync(presetsPath, 'utf-8');
   const presetsData = parse(presetsRaw) as Record<string, { description: string; rules: string[] }>;
 

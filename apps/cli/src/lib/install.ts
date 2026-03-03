@@ -6,8 +6,8 @@ import {
   wrapWithSection,
   replaceAiOpsSection,
   stripManagedHeader,
-} from 'ai-ops-compiler';
-import type { FileAction } from 'ai-ops-compiler';
+} from '@/core/index.js';
+import type { FileAction } from '@/core/index.js';
 
 export type InstallResult = {
   written: string[];

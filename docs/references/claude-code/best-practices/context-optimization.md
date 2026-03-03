@@ -86,7 +86,7 @@ DO NOT guess architectural or stylistic rules. Before modifying or generating
 code, you MUST use the Read tool to load the relevant rule file based on the
 tech stack you are working on.
 
-**Rule Registry Location:** `packages/compiler/data/rules/*.yaml`
+**Rule Registry Location:** `apps/cli/data/rules/*.yaml`
 
 **Mapping:**
 

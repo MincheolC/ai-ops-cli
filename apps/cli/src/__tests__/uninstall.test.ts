@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync, existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { wrapWithHeader, wrapWithSection } from 'ai-ops-compiler';
+import { wrapWithHeader, wrapWithSection } from '@/core/index.js';
 import { removeFiles, cleanEmptyDirs, collectManagedDirs } from '../lib/uninstall.js';
 
 const META = { sourceHash: 'a1b2c3', generatedAt: '2026-02-28T00:00:00.000Z' };

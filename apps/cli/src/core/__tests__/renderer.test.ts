@@ -100,7 +100,7 @@ describe('renderRulesToMarkdown', () => {
 
 describe('Snapshot', () => {
   it('실제 typescript.yaml 로드 후 렌더링 결과 snapshot', () => {
-    const filePath = resolve(__dirname, '../../data/rules/typescript.yaml');
+    const filePath = resolve(__dirname, '../../../data/rules/typescript.yaml');
     const rule = loadRuleFile(filePath);
     const md = renderRuleToMarkdown(rule);
     expect(md).toMatchSnapshot();

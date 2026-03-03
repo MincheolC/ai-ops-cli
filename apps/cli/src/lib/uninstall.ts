@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, rmSync, readdirSync, writeFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
-import { isManagedFile, hasAiOpsSection, stripAiOpsSection } from 'ai-ops-compiler';
+import { isManagedFile, hasAiOpsSection, stripAiOpsSection } from '@/core/index.js';
 
 export type UninstallResult = {
   deleted: string[];

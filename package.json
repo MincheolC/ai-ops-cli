@@ -2,13 +2,12 @@
   "name": "ai-ops-scaffolder",
   "private": true,
   "workspaces": [
-    "packages/*",
     "apps/*"
   ],
   "scripts": {
-    "build": "npm run build --workspace=packages/compiler && npm run build --workspace=apps/cli",
+    "build": "npm run build --workspace=apps/cli",
     "test": "vitest run",
-    "compile": "node packages/compiler/dist/index.js",
+    "compile": "node apps/cli/dist/bin/index.js --help",
     "dev": "npm run dev --workspaces --if-present",
     "format": "prettier --write \"**/*.{ts,json,yaml,md}\" --ignore-path .gitignore",
     "lint": "eslint .",

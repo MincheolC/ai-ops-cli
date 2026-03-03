@@ -1,5 +1,5 @@
 import { join } from 'node:path';
-import { COMPILER_DATA_DIR } from 'ai-ops-compiler';
+import { COMPILER_DATA_DIR } from '@/core/index.js';
 
 export const resolveCompilerDataDir = (): string => COMPILER_DATA_DIR;
 

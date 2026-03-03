@@ -16,7 +16,7 @@ import {
   computeSourceHash,
   computeDiff,
   isManagedFile,
-} from 'ai-ops-compiler';
+} from '@/core/index.js';
 import { installFiles } from '../lib/install.js';
 import { removeFiles } from '../lib/uninstall.js';
 import { resolveRulesDir, resolvePresetsPath } from '../lib/paths.js';

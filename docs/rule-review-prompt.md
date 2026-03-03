@@ -1,6 +1,6 @@
 # Rule 품질 리뷰 프롬프트
 
-`packages/compiler/data/rules/` 아래 YAML 파일들을 추가하거나 수정한 뒤,
+`apps/cli/data/rules/` 아래 YAML 파일들을 추가하거나 수정한 뒤,
 아래 프롬프트를 AI에게 전달해 품질을 검증한다.
 
 ---

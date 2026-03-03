@@ -5,7 +5,7 @@ import { computeHash, computeSourceHash, buildManifest } from '../source-hash.js
 import { ManifestSchema } from '../schemas/index.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const rulesDir = resolve(__dirname, '../../data/rules');
+const rulesDir = resolve(__dirname, '../../../data/rules');
 
 afterEach(() => {
   vi.useRealTimers();

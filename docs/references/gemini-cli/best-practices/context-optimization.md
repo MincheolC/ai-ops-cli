@@ -4,7 +4,7 @@ This document outlines architectural patterns and best practices for managing co
 
 ## The Challenge: Context Bloat
 
-The Gemini CLI's memory import processor (`@<path>`) is powerful but eager: it synchronously reads and injects the entire target file into the agent's system prompt during initialization. As project rules (`packages/compiler/data/rules/*.yaml`) grow in number and detail, importing them all globally causes:
+The Gemini CLI's memory import processor (`@<path>`) is powerful but eager: it synchronously reads and injects the entire target file into the agent's system prompt during initialization. As project rules (`apps/cli/data/rules/*.yaml`) grow in number and detail, importing them all globally causes:
 
 1. **Token Exhaustion:** Wasting context window on irrelevant domains (e.g., loading Python rules while working on a React component).
 2. **Attention Dilution:** Increasing the likelihood that the LLM misses or misinterprets instructions due to information overload.
@@ -32,7 +32,7 @@ Instead of importing domain-specific rules, inject a **"Rule Registry"** (an ind
 
 DO NOT guess the architectural or stylistic rules. Before modifying or generating code, you MUST use the `read_file` tool to load the relevant rule configurations based on the tech stack you are working on.
 
-**Rule Registry Location:** `packages/compiler/data/rules/*.yaml`
+**Rule Registry Location:** `apps/cli/data/rules/*.yaml`
 
 **Mapping:**
 

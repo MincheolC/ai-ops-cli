@@ -1,5 +1,5 @@
 import * as p from '@clack/prompts';
-import { readManifest, resolveManifestPath, computeSourceHash, computeDiff } from 'ai-ops-compiler';
+import { readManifest, resolveManifestPath, computeSourceHash, computeDiff } from '@/core/index.js';
 import { resolveBasePath, resolveRulesDir } from '../lib/paths.js';
 
 export const diffCommand = async (): Promise<void> => {

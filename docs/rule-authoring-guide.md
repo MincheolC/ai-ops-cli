@@ -23,7 +23,7 @@ content:
       avoid: '...' # avoid는 optional
 ```
 
-> **참고 파일:** `packages/compiler/src/schemas/rule.schema.ts`
+> **참고 파일:** `apps/cli/src/core/schemas/rule.schema.ts`
 
 ---
 
@@ -103,7 +103,7 @@ union 타입과 `userErrors`는 **대립이 아닌 보완 관계**:
 
 ## 5. 파일 추가 체크리스트
 
-새 rule YAML을 `packages/compiler/data/rules/`에 추가할 때:
+새 rule YAML을 `apps/cli/data/rules/`에 추가할 때:
 
 ```
 □ id가 파일명과 일치하고 kebab-case인가
@@ -123,7 +123,7 @@ union 타입과 `userErrors`는 **대립이 아닌 보완 관계**:
 
 ```bash
 # rule-data.test.ts: 스키마 파싱 + id 유일성 + priority 유일성 자동 검사
-cd packages/compiler && npm test
+npm run test --workspace=apps/cli
 
 # 빌드 검증
 npm run build

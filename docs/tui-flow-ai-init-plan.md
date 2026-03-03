@@ -5,12 +5,12 @@ Phase 3′에서 도구별 Context Optimization 전략(path-scoped / hierarchica
 
 # Key Files & Context
 
-- `packages/compiler/src/schemas/profile.schema.ts` (삭제 및 `preset.schema.ts`로 교체)
-- `packages/compiler/src/schemas/manifest.schema.ts` (변경)
-- `packages/compiler/src/schemas/index.ts` (export 변경)
-- `packages/compiler/src/schemas/__tests__/profile.schema.test.ts` (삭제 및 `preset.schema.test.ts`로 교체)
-- `packages/compiler/src/schemas/__tests__/manifest.schema.test.ts` (변경)
-- `packages/compiler/data/presets.yaml` (신규 파일: 프리셋 매핑 정의)
+- `apps/cli/src/core/schemas/profile.schema.ts` (삭제 및 `preset.schema.ts`로 교체)
+- `apps/cli/src/core/schemas/manifest.schema.ts` (변경)
+- `apps/cli/src/core/schemas/index.ts` (export 변경)
+- `apps/cli/src/core/schemas/__tests__/profile.schema.test.ts` (삭제 및 `preset.schema.test.ts`로 교체)
+- `apps/cli/src/core/schemas/__tests__/manifest.schema.test.ts` (변경)
+- `apps/cli/data/presets.yaml` (신규 파일: 프리셋 매핑 정의)
 
 # Implementation Steps
 
@@ -97,7 +97,7 @@ project/
 
 ## 2. 프로젝트 타입 프리셋 매핑 정의 (`data/presets.yaml`)
 
-`packages/compiler/data/presets.yaml` 파일을 생성하여 다음 내용을 정의합니다:
+`apps/cli/data/presets.yaml` 파일을 생성하여 다음 내용을 정의합니다:
 
 ```yaml
 frontend-web:
@@ -146,5 +146,5 @@ backend-python:
 
 # Verification & Testing
 
-- `npm run test -- packages/compiler/src/schemas` 명령어를 실행하여 Manifest 및 Preset 스키마 테스트가 통과하는지 확인.
+- `npm run test --workspace=apps/cli` 명령어를 실행하여 Manifest 및 Preset 스키마 테스트가 통과하는지 확인.
 - Zod 스키마 구조의 무결성 검증.

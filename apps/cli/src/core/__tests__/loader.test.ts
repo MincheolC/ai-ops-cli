@@ -12,7 +12,7 @@ import {
 import type { Rule } from '../schemas/index.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const dataDir = resolve(__dirname, '../../data');
+const dataDir = resolve(__dirname, '../../../data');
 
 const makeRule = (id: string, priority: number): Rule => ({
   id,

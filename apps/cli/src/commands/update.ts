@@ -1,5 +1,5 @@
 import * as p from '@clack/prompts';
-import type { ToolId } from 'ai-ops-compiler';
+import type { ToolId } from '@/core/index.js';
 import {
   readManifest,
   resolveManifestPath,
@@ -14,8 +14,8 @@ import {
   renderRulesToMarkdown,
   wrapWithHeader,
   TOOL_OUTPUT_MAP,
-} from 'ai-ops-compiler';
-import type { FileAction } from 'ai-ops-compiler';
+} from '@/core/index.js';
+import type { FileAction } from '@/core/index.js';
 import { join } from 'node:path';
 import { resolveBasePath, resolveRulesDir } from '../lib/paths.js';
 import { installFiles } from '../lib/install.js';
