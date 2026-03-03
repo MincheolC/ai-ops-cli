@@ -18,9 +18,9 @@
 
 ## Decision Table
 
-| When | Then | Avoid |
-|------|------|-------|
-| Describing user journey or UI navigation | Use flowchart (LR or TD) | Text-only step lists |
-| Describing API or service interactions | Use sequenceDiagram | Plain text arrows only |
-| Describing schema relationships | Use erDiagram | Unstructured table bullet lists |
-| Describing state transitions | Use stateDiagram-v2 | Flat textual state lists |
+| When                                     | Then                     | Avoid                           |
+| ---------------------------------------- | ------------------------ | ------------------------------- |
+| Describing user journey or UI navigation | Use flowchart (LR or TD) | Text-only step lists            |
+| Describing API or service interactions   | Use sequenceDiagram      | Plain text arrows only          |
+| Describing schema relationships          | Use erDiagram            | Unstructured table bullet lists |
+| Describing state transitions             | Use stateDiagram-v2      | Flat textual state lists        |

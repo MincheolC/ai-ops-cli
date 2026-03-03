@@ -17,10 +17,10 @@
 - Use arrow functions only. Annotate return types for exported functions.
 - Use import type for type-only imports. Use absolute paths (@/...) only.
 - Use as const for static config objects.
-- Keep business logic in *.logic.ts and stateless helpers in *.util.ts.
+- Keep business logic in _.logic.ts and stateless helpers in _.util.ts.
 
 ## Decision Table
 
-| When | Then | Avoid |
-|------|------|-------|
+| When                                   | Then                                                          | Avoid                                               |
+| -------------------------------------- | ------------------------------------------------------------- | --------------------------------------------------- |
 | You feel forced to use an as assertion | Prefer schema parse (e.g., Zod) or explicit type guards first | Bypassing the type system with unchecked assertions |

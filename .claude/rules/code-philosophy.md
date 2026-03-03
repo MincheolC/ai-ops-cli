@@ -20,8 +20,8 @@
 
 ## Decision Table
 
-| When | Then | Avoid |
-|------|------|-------|
-| Implementing complex business logic | Write failing tests first, then implement pure functions | Implementation-first with mixed I/O |
-| Similar code appears in two places | Keep duplication temporarily | Early shared abstraction |
-| Similar code appears in three or more places | Extract a clearly named shared function |  |
+| When                                         | Then                                                     | Avoid                               |
+| -------------------------------------------- | -------------------------------------------------------- | ----------------------------------- |
+| Implementing complex business logic          | Write failing tests first, then implement pure functions | Implementation-first with mixed I/O |
+| Similar code appears in two places           | Keep duplication temporarily                             | Early shared abstraction            |
+| Similar code appears in three or more places | Extract a clearly named shared function                  |                                     |

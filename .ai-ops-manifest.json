@@ -1,9 +1,5 @@
 {
-  "tools": [
-    "claude-code",
-    "codex",
-    "gemini"
-  ],
+  "tools": ["claude-code", "codex", "gemini"],
   "scope": "project",
   "preset": "backend-ts",
   "installed_rules": [

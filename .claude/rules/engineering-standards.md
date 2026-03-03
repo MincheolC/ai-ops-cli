@@ -26,9 +26,9 @@
 
 ## Decision Table
 
-| When | Then | Avoid |
-|------|------|-------|
-| A new entity needs a primary key | Use UUID v7 | Auto-increment IDs or UUID v4 by default |
-| An endpoint returns an error | Return the standard error envelope | Ad-hoc error fields (e.g., { success: false, msg }) |
-| Systems exchange timestamps | Use ISO 8601 UTC in API/logs and TIMESTAMPTZ in DB; Unix epoch is acceptable in compact token formats (e.g., JWT exp/iat) | Timezone-naive strings or mixed local-time storage |
-| An API needs versioning | Use URL versioning (/v1, /v2) | Header-only versioning by default |
+| When                             | Then                                                                                                                      | Avoid                                               |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| A new entity needs a primary key | Use UUID v7                                                                                                               | Auto-increment IDs or UUID v4 by default            |
+| An endpoint returns an error     | Return the standard error envelope                                                                                        | Ad-hoc error fields (e.g., { success: false, msg }) |
+| Systems exchange timestamps      | Use ISO 8601 UTC in API/logs and TIMESTAMPTZ in DB; Unix epoch is acceptable in compact token formats (e.g., JWT exp/iat) | Timezone-naive strings or mixed local-time storage  |
+| An API needs versioning          | Use URL versioning (/v1, /v2)                                                                                             | Header-only versioning by default                   |
