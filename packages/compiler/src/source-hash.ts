@@ -20,7 +20,7 @@ export const computeSourceHash = (rulesDir: string): string => {
 // Manifest Builder (Pure, 단 generatedAt에 현재 시각 사용)
 export const buildManifest = (params: {
   tools: readonly string[];
-  scope: 'project' | 'global';
+  scope: 'project';
   preset?: string;
   workspaces?: Record<string, { preset: string; rules: string[] }>;
   installedRules: readonly string[];

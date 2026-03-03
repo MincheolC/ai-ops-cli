@@ -17,12 +17,11 @@ import {
 } from 'ai-ops-compiler';
 import type { FileAction } from 'ai-ops-compiler';
 import { join } from 'node:path';
-import type { Scope } from '../lib/paths.js';
 import { resolveBasePath, resolveRulesDir } from '../lib/paths.js';
 import { installFiles } from '../lib/install.js';
 
-export const updateCommand = async (opts: { scope: Scope; force: boolean }): Promise<void> => {
-  const basePath = resolveBasePath(opts.scope);
+export const updateCommand = async (opts: { force: boolean }): Promise<void> => {
+  const basePath = resolveBasePath();
   const manifestPath = resolveManifestPath(basePath);
 
   p.intro('ai-ops update');

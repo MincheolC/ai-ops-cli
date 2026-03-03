@@ -15,10 +15,6 @@ describe('ManifestSchema', () => {
       expect(ManifestSchema.parse(validManifest)).toEqual(validManifest);
     });
 
-    it('global scope', () => {
-      expect(() => ManifestSchema.parse({ ...validManifest, scope: 'global' })).not.toThrow();
-    });
-
     it('offset datetime (+09:00)', () => {
       expect(() =>
         ManifestSchema.parse({
@@ -68,7 +64,11 @@ describe('ManifestSchema', () => {
   });
 
   describe('invalid', () => {
-    it('미지원 scope', () => {
+    it('미지원 scope: global', () => {
+      expect(() => ManifestSchema.parse({ ...validManifest, scope: 'global' })).toThrow();
+    });
+
+    it('미지원 scope: workspace', () => {
       expect(() => ManifestSchema.parse({ ...validManifest, scope: 'workspace' })).toThrow();
     });
 
@@ -126,8 +126,7 @@ describe('ManifestSchema', () => {
 });
 
 describe('SCOPES', () => {
-  it('PROJECT/GLOBAL 상수 값 확인', () => {
+  it('PROJECT 상수 값 확인', () => {
     expect(SCOPES.PROJECT).toBe('project');
-    expect(SCOPES.GLOBAL).toBe('global');
   });
 });

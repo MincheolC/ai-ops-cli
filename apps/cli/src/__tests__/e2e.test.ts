@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import { mkdtempSync, mkdirSync, rmSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import {
   loadAllRules,
   loadPresets,
@@ -47,6 +47,15 @@ describe.skipIf(!distExists)('bin subprocess', () => {
     expect(output).toContain('update');
     expect(output).toContain('diff');
     expect(output).toContain('uninstall');
+    expect(output).not.toContain('--scope');
+  });
+
+  it('--scope exits with explicit deprecation error', () => {
+    const result = spawnSync(process.execPath, [BIN_PATH, 'init', '--scope', 'global'], {
+      encoding: 'utf-8',
+    });
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('`--scope` is no longer supported. ai-ops is now project-only.');
   });
 });
 

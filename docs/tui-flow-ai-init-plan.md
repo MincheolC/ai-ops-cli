@@ -55,10 +55,9 @@ flowchart TD
 
     %% 확장 기능 (스킬, 훅, 명령어) 설치 플로우
     Has_Exts{스킬/훅/명령어 포함?}
-    Has_Exts -->|"Yes"| Ext_Scope[스코프 선택: Global/Project]
+    Has_Exts -->|"Yes"| Ext_Select[사용 가능한 확장 리스트 확인 및 선택]
     Has_Exts -->|"No"| Finalize
 
-    Ext_Scope --> Ext_Select[사용 가능한 확장 리스트 확인 및 선택]
     Ext_Select --> Install_Exts[확장 기능 설치]
 
     Install_Exts --> Finalize[완료 및 Manifest 업데이트]
@@ -70,7 +69,7 @@ flowchart TD
 
 ```
 project/
-  .claude/rules/role-persona.md          ← global (frontmatter 없음)
+  .claude/rules/role-persona.md          ← shared (frontmatter 없음)
   .claude/rules/typescript.md            ← domain (paths: frontmatter 포함)
   .claude/rules/nextjs.md                ← domain (paths: frontmatter 포함)
 ```
@@ -79,7 +78,7 @@ project/
 
 ```
 project/
-  AGENTS.md                              ← global 룰 병합
+  AGENTS.md                              ← shared 룰 병합
   apps/web/AGENTS.override.md            ← frontend domain 룰
   services/api/AGENTS.override.md        ← backend domain 룰
 ```
@@ -88,12 +87,12 @@ project/
 
 ```
 project/
-  GEMINI.md                              ← global 룰 병합
+  GEMINI.md                              ← shared 룰 병합
   apps/web/GEMINI.md                     ← frontend domain 룰
   services/api/GEMINI.md                 ← backend domain 룰
 ```
 
-> **Phase 3 책임**: `renderForTool()`로 global/domain 콘텐츠 분리 렌더링.
+> **Phase 3 책임**: `renderForTool()`로 shared/domain 콘텐츠 분리 렌더링.
 > **Phase 5 책임**: TUI 워크스페이스 선택 + 경로별 파일 배치.
 
 ## 2. 프로젝트 타입 프리셋 매핑 정의 (`data/presets.yaml`)

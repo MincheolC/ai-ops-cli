@@ -1,10 +1,9 @@
 import * as p from '@clack/prompts';
 import { readManifest, resolveManifestPath, computeSourceHash, computeDiff } from 'ai-ops-compiler';
-import type { Scope } from '../lib/paths.js';
 import { resolveBasePath, resolveRulesDir } from '../lib/paths.js';
 
-export const diffCommand = async (opts: { scope: Scope }): Promise<void> => {
-  const basePath = resolveBasePath(opts.scope);
+export const diffCommand = async (): Promise<void> => {
+  const basePath = resolveBasePath();
 
   p.intro('ai-ops diff');
 

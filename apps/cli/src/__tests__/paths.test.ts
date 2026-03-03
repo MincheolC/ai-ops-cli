@@ -1,7 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { existsSync } from 'node:fs';
-import { homedir } from 'node:os';
-import { resolve } from 'node:path';
 import { resolveCompilerDataDir, resolveRulesDir, resolvePresetsPath, resolveBasePath } from '../lib/paths.js';
 
 describe('resolveCompilerDataDir', () => {
@@ -19,11 +17,7 @@ describe('resolveCompilerDataDir', () => {
 });
 
 describe('resolveBasePath', () => {
-  it('project → process.cwd()', () => {
-    expect(resolveBasePath('project')).toBe(process.cwd());
-  });
-
-  it('global → ~/.ai-ops/', () => {
-    expect(resolveBasePath('global')).toBe(resolve(homedir(), '.ai-ops'));
+  it('project-only → process.cwd()', () => {
+    expect(resolveBasePath()).toBe(process.cwd());
   });
 });

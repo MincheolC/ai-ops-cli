@@ -58,7 +58,7 @@ describe('buildManifest', () => {
 
     const manifest = buildManifest({
       tools: ['claude-code'],
-      scope: 'global',
+      scope: 'project',
       installedRules: ['typescript'],
       sourceHash: 'abc123',
     });

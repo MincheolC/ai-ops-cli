@@ -10,10 +10,8 @@ CLI for managing AI tool rules and presets across projects.
 - Tool conventions evolve over time, so manually maintained setup files become inconsistent quickly.
 - Teams need a single, repeatable way to install and maintain AI rule scaffolding.
 
-This project uses a centralized rule source (SSOT) and scaffolds tool-native files into project/global scope.
+This project uses a centralized rule source (SSOT) and scaffolds tool-native files into the current project.
 For the full product background and architecture intent, see [`docs/plan.md`](../../docs/plan.md).
-
-## Scope
 
 ### What this library provides
 
@@ -21,7 +19,7 @@ For the full product background and architecture intent, see [`docs/plan.md`](..
 - Managed updates based on installed manifest (`ai-ops update`)
 - Drift detection against current source hash (`ai-ops diff`)
 - Safe cleanup of installed managed files + manifest (`ai-ops uninstall`)
-- Scope-aware installation target (`--scope project|global`)
+- Project-local installation and management
 
 ### What this library does not provide
 
@@ -39,17 +37,17 @@ For the full product background and architecture intent, see [`docs/plan.md`](..
 
 ### Tool-specific installation layout
 
-| Tool        | Single project                                       | Monorepo                                                                      | Why this layout (JIT rationale)                                                                      |
-| ----------- | ---------------------------------------------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| Claude Code | `.claude/rules/<rule-id>.md` per rule                | Global rules in `.claude/rules/*.md`, domain rules in `<workspace>/CLAUDE.md` | Keeps always-on rules stable while loading domain rules only for matching paths/workspaces.          |
-| Codex       | `AGENTS.md` (global) + `AGENTS.override.md` (domain) | Root `AGENTS.md` + `<workspace>/AGENTS.override.md`                           | Uses root baseline + local override so only relevant workspace context is applied at execution time. |
-| Gemini CLI  | `.gemini/GEMINI.md`                                  | Root `.gemini/GEMINI.md` + `<workspace>/GEMINI.md`                            | Splits shared defaults and workspace-local context to reduce irrelevant prompt context.              |
+| Tool        | Single project                        | Monorepo                                                                      | Why this layout (JIT rationale)                                                                      |
+| ----------- | ------------------------------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Claude Code | `.claude/rules/<rule-id>.md` per rule | Shared rules in `.claude/rules/*.md`, domain rules in `<workspace>/CLAUDE.md` | Keeps always-on rules stable while loading domain rules only for matching paths/workspaces.          |
+| Codex       | `AGENTS.md` + `AGENTS.override.md`    | Root `AGENTS.md` + `<workspace>/AGENTS.override.md`                           | Uses root baseline + local override so only relevant workspace context is applied at execution time. |
+| Gemini CLI  | `.gemini/GEMINI.md`                   | Root `.gemini/GEMINI.md` + `<workspace>/GEMINI.md`                            | Splits shared defaults and workspace-local context to reduce irrelevant prompt context.              |
 
 Gemini CLI can also install optional runtime settings to `.gemini/settings.json`.
 
 ### Installation behavior details
 
-- Rules are split into global and domain categories and rendered per tool with tool-native file shapes.
+- Rules are split into shared and domain categories and rendered per tool with tool-native file shapes.
 - Existing managed files are replaced safely using ai-ops metadata headers.
 - Existing non-managed files are preserved and receive an `ai-ops` managed section block instead of full overwrite.
 - `update`, `diff`, and `uninstall` operate from the manifest to keep changes deterministic and idempotent.
@@ -88,7 +86,6 @@ Commands:
   uninstall Remove installed rules and manifest
 
 Options:
-  --scope <scope>  Target scope: project (default) or global
   --force          Force update even when no changes detected
   -V, --version    Output the version number
   -h, --help       Display help

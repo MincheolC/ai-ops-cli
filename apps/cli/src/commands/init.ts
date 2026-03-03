@@ -19,7 +19,6 @@ import {
   TOOL_OUTPUT_MAP,
 } from 'ai-ops-compiler';
 import type { FileAction } from 'ai-ops-compiler';
-import type { Scope } from '../lib/paths.js';
 import { resolveBasePath, resolveRulesDir, resolvePresetsPath } from '../lib/paths.js';
 import { listWorkspaceCandidates } from '../lib/workspace.js';
 import { installFiles } from '../lib/install.js';
@@ -145,8 +144,8 @@ const installClaudeCodeMonorepo = (
   return { written: r.written, appended: r.appended };
 };
 
-export const initCommand = async (opts: { scope: Scope }): Promise<void> => {
-  const basePath = resolveBasePath(opts.scope);
+export const initCommand = async (): Promise<void> => {
+  const basePath = resolveBasePath();
   const rulesDir = resolveRulesDir();
 
   p.intro('ai-ops init');
@@ -260,7 +259,7 @@ export const initCommand = async (opts: { scope: Scope }): Promise<void> => {
 
   const manifest = buildManifest({
     tools: selectedTools as string[],
-    scope: opts.scope,
+    scope: 'project',
     preset: !isMonorepo ? mappings[0].preset.id : undefined,
     workspaces: workspacesRecord,
     installedRules: allInstalledRuleIds,

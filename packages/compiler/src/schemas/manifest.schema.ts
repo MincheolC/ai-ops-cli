@@ -5,7 +5,6 @@ import { z } from 'zod';
 
 export const SCOPES = {
   PROJECT: 'project',
-  GLOBAL: 'global',
 } as const;
 
 /** 모노레포 워크스페이스별 preset + rules 추적 */
@@ -21,7 +20,7 @@ export type WorkspaceEntry = z.infer<typeof WorkspaceEntrySchema>;
 export const ManifestSchema = z
   .object({
     tools: z.array(z.string().min(1)).min(1),
-    scope: z.enum(['project', 'global']),
+    scope: z.literal('project'),
     /** 비모노레포 단일 preset */
     preset: z.string().min(1).optional(),
     /** 모노레포: workspace path → { preset, rules } */

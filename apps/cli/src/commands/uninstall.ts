@@ -1,12 +1,11 @@
 import * as p from '@clack/prompts';
 import { rmSync } from 'node:fs';
 import { readManifest, resolveManifestPath, inferInstalledFiles, MANIFEST_FILENAME } from 'ai-ops-compiler';
-import type { Scope } from '../lib/paths.js';
 import { resolveBasePath } from '../lib/paths.js';
 import { removeFiles, cleanEmptyDirs, collectManagedDirs } from '../lib/uninstall.js';
 
-export const uninstallCommand = async (opts: { scope: Scope }): Promise<void> => {
-  const basePath = resolveBasePath(opts.scope);
+export const uninstallCommand = async (): Promise<void> => {
+  const basePath = resolveBasePath();
   const manifestPath = resolveManifestPath(basePath);
 
   p.intro('ai-ops uninstall');

@@ -120,5 +120,5 @@ src/
 | Tool          | 파일                                                             |
 | ------------- | ---------------------------------------------------------------- |
 | `claude-code` | `.claude/rules/{rule-id}.md` (룰당 1파일, path frontmatter 포함) |
-| `codex`       | `AGENTS.md` (global) + `AGENTS.override.md` (domain)             |
-| `gemini`      | `GEMINI.md` (global) + `GEMINI.md` (domain, 하위 폴더)           |
+| `codex`       | `AGENTS.md` (root/shared) + `AGENTS.override.md` (domain)        |
+| `gemini`      | `GEMINI.md` (root/shared) + `GEMINI.md` (domain, 하위 폴더)      |
