@@ -1,0 +1,34 @@
+{
+  "tools": [
+    "claude-code",
+    "codex",
+    "gemini"
+  ],
+  "scope": "project",
+  "preset": "backend-ts",
+  "installed_rules": [
+    "role-persona",
+    "communication",
+    "code-philosophy",
+    "naming-convention",
+    "plan-mode",
+    "engineering-standards",
+    "typescript"
+  ],
+  "installed_files": [
+    ".claude/rules/role-persona.md",
+    ".claude/rules/communication.md",
+    ".claude/rules/code-philosophy.md",
+    ".claude/rules/naming-convention.md",
+    ".claude/rules/plan-mode.md",
+    ".claude/rules/engineering-standards.md",
+    ".claude/rules/typescript.md",
+    "AGENTS.md",
+    "AGENTS.override.md",
+    ".gemini/GEMINI.md",
+    ".gemini/GEMINI.md",
+    ".gemini/settings.json"
+  ],
+  "sourceHash": "d53af8",
+  "generatedAt": "2026-03-03T02:59:36.634Z"
+}

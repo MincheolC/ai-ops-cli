@@ -1,0 +1,18 @@
+{
+  "ui": {
+    "showLineNumbers": false
+  },
+  "general": {
+    "plan": {
+      "directory": ".gemini/plans",
+      "modelRouting": true
+    },
+    "sessionRetention": {
+      "maxAge": "30d"
+    }
+  },
+  "experimental": {
+    "jitContext": true,
+    "plan": true
+  }
+}
