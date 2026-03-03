@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync, existsSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync, existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { wrapWithHeader } from 'ai-ops-compiler';
+import { wrapWithHeader, wrapWithSection } from 'ai-ops-compiler';
 import { removeFiles, cleanEmptyDirs, collectManagedDirs } from '../lib/uninstall.js';
 
 const META = { sourceHash: 'a1b2c3', generatedAt: '2026-02-28T00:00:00.000Z' };
@@ -31,6 +31,7 @@ describe('removeFiles', () => {
       writeManaged(dir, '.claude/rules/typescript.md');
       const result = removeFiles(dir, ['.claude/rules/typescript.md']);
       expect(result.deleted).toEqual(['.claude/rules/typescript.md']);
+      expect(result.cleaned).toHaveLength(0);
       expect(result.skipped).toHaveLength(0);
       expect(result.notFound).toHaveLength(0);
       expect(existsSync(join(dir, '.claude/rules/typescript.md'))).toBe(false);
@@ -46,7 +47,31 @@ describe('removeFiles', () => {
       const result = removeFiles(dir, ['.codex/AGENTS.md']);
       expect(result.skipped).toEqual(['.codex/AGENTS.md']);
       expect(result.deleted).toHaveLength(0);
+      expect(result.cleaned).toHaveLength(0);
       expect(existsSync(join(dir, '.codex/AGENTS.md'))).toBe(true);
+    } finally {
+      cleanup();
+    }
+  });
+
+  it('append된 파일 (ai-ops 섹션 포함) → 섹션만 제거, 사용자 내용 보존', () => {
+    const { dir, cleanup } = setup();
+    const META = { sourceHash: 'a1b2c3', generatedAt: '2026-02-28T00:00:00.000Z' };
+    try {
+      const absPath = join(dir, 'AGENTS.md');
+      const section = wrapWithSection('# ai-ops rules', META);
+      writeFileSync(absPath, `# User content\n\n${section}\n`, 'utf-8');
+
+      const result = removeFiles(dir, ['AGENTS.md']);
+      expect(result.cleaned).toEqual(['AGENTS.md']);
+      expect(result.deleted).toHaveLength(0);
+      expect(result.skipped).toHaveLength(0);
+      expect(existsSync(absPath)).toBe(true);
+
+      const content = readFileSync(absPath, 'utf-8');
+      expect(content).toContain('# User content');
+      expect(content).not.toContain('<!-- ai-ops:start -->');
+      expect(content).not.toContain('<!-- ai-ops:end -->');
     } finally {
       cleanup();
     }

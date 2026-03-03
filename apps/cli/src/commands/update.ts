@@ -54,6 +54,7 @@ export const updateCommand = async (opts: { scope: Scope; force: boolean }): Pro
   const allRules = loadAllRules(rulesDir);
   const meta = { sourceHash, generatedAt: new Date().toISOString() };
   const allInstalledFiles: string[] = [];
+  const allAppended: string[] = [];
 
   if (manifest.workspaces) {
     // 모노레포: workspaces 기반 재설치
@@ -71,7 +72,9 @@ export const updateCommand = async (opts: { scope: Scope; force: boolean }): Pro
         }));
         const renderResult = renderForTool('claude-code', rulesToInstall, workspaceMappings);
         const actions = buildInstallPlan({ toolId: 'claude-code', renderResult, meta });
-        allInstalledFiles.push(...installFiles(basePath, actions).written);
+        const r = installFiles(basePath, actions, meta);
+        allInstalledFiles.push(...r.written);
+        allAppended.push(...r.appended);
       } else {
         // codex/gemini: global → 루트, domain → 워크스페이스별
         const config = TOOL_OUTPUT_MAP[toolId];
@@ -85,7 +88,9 @@ export const updateCommand = async (opts: { scope: Scope; force: boolean }): Pro
             relativePath: join(config.dir, config.rootFileName),
             content: wrapWithHeader(renderRulesToMarkdown(global), meta),
           };
-          allInstalledFiles.push(...installFiles(basePath, [rootAction]).written);
+          const r = installFiles(basePath, [rootAction], meta);
+          allInstalledFiles.push(...r.written);
+          allAppended.push(...r.appended);
         }
 
         for (const [ws, entry] of workspaceEntries) {
@@ -98,7 +103,9 @@ export const updateCommand = async (opts: { scope: Scope; force: boolean }): Pro
             relativePath: join(ws, config.domainFileName),
             content: wrapWithHeader(renderRulesToMarkdown(domain), meta),
           };
-          allInstalledFiles.push(...installFiles(basePath, [domainAction]).written);
+          const r = installFiles(basePath, [domainAction], meta);
+          allInstalledFiles.push(...r.written);
+          allAppended.push(...r.appended);
         }
       }
     }
@@ -111,7 +118,9 @@ export const updateCommand = async (opts: { scope: Scope; force: boolean }): Pro
       const toolId = toolIdStr as ToolId;
       const renderResult = renderForTool(toolId, rulesToInstall);
       const actions = buildInstallPlan({ toolId, renderResult, meta });
-      allInstalledFiles.push(...installFiles(basePath, actions).written);
+      const r = installFiles(basePath, actions, meta);
+      allInstalledFiles.push(...r.written);
+      allAppended.push(...r.appended);
     }
   }
 
@@ -122,6 +131,7 @@ export const updateCommand = async (opts: { scope: Scope; force: boolean }): Pro
     workspaces: manifest.workspaces,
     installedRules: manifest.installed_rules,
     installedFiles: allInstalledFiles.length > 0 ? allInstalledFiles : manifest.installed_files,
+    appendedFiles: allAppended.length > 0 ? allAppended : manifest.appended_files,
     sourceHash,
   });
   writeManifest(manifestPath, newManifest);

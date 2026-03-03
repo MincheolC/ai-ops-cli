@@ -31,6 +31,8 @@ type WorkspacePresetMapping = {
   finalRules: Rule[];
 };
 
+type InstallStats = { written: string[]; appended: string[] };
+
 const TOOL_OPTIONS = [
   { value: 'claude-code' as ToolId, label: 'Claude Code' },
   { value: 'codex' as ToolId, label: 'Codex' },
@@ -93,9 +95,10 @@ const installHierarchicalMonorepo = (
   mappings: readonly WorkspacePresetMapping[],
   basePath: string,
   meta: { sourceHash: string; generatedAt: string },
-): string[] => {
+): InstallStats => {
   const config = TOOL_OUTPUT_MAP[toolId];
   const written: string[] = [];
+  const appended: string[] = [];
 
   const allRules = deduplicateRules(mappings.flatMap((m) => m.finalRules));
   const { global } = partitionRules(allRules);
@@ -105,7 +108,9 @@ const installHierarchicalMonorepo = (
       relativePath: join(config.dir, config.rootFileName),
       content: wrapWithHeader(renderRulesToMarkdown(global), meta),
     };
-    written.push(...installFiles(basePath, [rootAction]).written);
+    const r = installFiles(basePath, [rootAction], meta);
+    written.push(...r.written);
+    appended.push(...r.appended);
   }
 
   for (const mapping of mappings) {
@@ -116,17 +121,19 @@ const installHierarchicalMonorepo = (
       relativePath: join(mapping.workspace, config.domainFileName),
       content: wrapWithHeader(renderRulesToMarkdown(domain), meta),
     };
-    written.push(...installFiles(basePath, [domainAction]).written);
+    const r = installFiles(basePath, [domainAction], meta);
+    written.push(...r.written);
+    appended.push(...r.appended);
   }
 
-  return written;
+  return { written, appended };
 };
 
 const installClaudeCodeMonorepo = (
   mappings: readonly WorkspacePresetMapping[],
   basePath: string,
   meta: { sourceHash: string; generatedAt: string },
-): string[] => {
+): InstallStats => {
   const allRules = deduplicateRules(mappings.flatMap((m) => m.finalRules));
   const workspaceMappings: WorkspaceMapping[] = mappings.map((m) => ({
     path: m.workspace,
@@ -134,7 +141,8 @@ const installClaudeCodeMonorepo = (
   }));
   const renderResult = renderForTool('claude-code', allRules, workspaceMappings);
   const actions = buildInstallPlan({ toolId: 'claude-code', renderResult, meta });
-  return installFiles(basePath, actions).written;
+  const r = installFiles(basePath, actions, meta);
+  return { written: r.written, appended: r.appended };
 };
 
 export const initCommand = async (opts: { scope: Scope }): Promise<void> => {
@@ -211,22 +219,26 @@ export const initCommand = async (opts: { scope: Scope }): Promise<void> => {
   s.start('규칙 설치 중...');
 
   const meta = { sourceHash, generatedAt: new Date().toISOString() };
-  const allSkipped: string[] = [];
   const allInstalledFiles: string[] = [];
+  const allAppended: string[] = [];
 
   for (const toolId of selectedTools as ToolId[]) {
     if (isMonorepo) {
       if (toolId === 'claude-code') {
-        allInstalledFiles.push(...installClaudeCodeMonorepo(mappings, basePath, meta));
+        const stats = installClaudeCodeMonorepo(mappings, basePath, meta);
+        allInstalledFiles.push(...stats.written);
+        allAppended.push(...stats.appended);
       } else {
-        allInstalledFiles.push(...installHierarchicalMonorepo(toolId, mappings, basePath, meta));
+        const stats = installHierarchicalMonorepo(toolId, mappings, basePath, meta);
+        allInstalledFiles.push(...stats.written);
+        allAppended.push(...stats.appended);
       }
     } else {
       const renderResult = renderForTool(toolId, mappings[0].finalRules);
       const actions = buildInstallPlan({ toolId, renderResult, meta });
-      const result = installFiles(basePath, actions);
-      allSkipped.push(...result.skipped);
+      const result = installFiles(basePath, actions, meta);
       allInstalledFiles.push(...result.written);
+      allAppended.push(...result.appended);
     }
   }
 
@@ -253,13 +265,14 @@ export const initCommand = async (opts: { scope: Scope }): Promise<void> => {
     workspaces: workspacesRecord,
     installedRules: allInstalledRuleIds,
     installedFiles: allInstalledFiles,
+    appendedFiles: allAppended,
     sourceHash,
   });
   writeManifest(resolveManifestPath(basePath), manifest);
 
   // 7. 결과 요약
-  if (allSkipped.length > 0) {
-    p.log.warn(`충돌(non-managed) 파일 건너뜀:\n${allSkipped.map((f) => `  ${f}`).join('\n')}`);
+  if (allAppended.length > 0) {
+    p.log.info(`기존 파일에 섹션 추가됨 (내용 보존):\n${allAppended.map((f) => `  ${f}`).join('\n')}`);
   }
   p.log.success(`설치된 규칙: ${allInstalledRuleIds.length}개`);
   p.outro('ai-ops init 완료');

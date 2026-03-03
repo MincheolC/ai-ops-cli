@@ -1,15 +1,17 @@
-import { existsSync, readFileSync, rmSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, rmSync, readdirSync, writeFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
-import { isManagedFile } from 'ai-ops-compiler';
+import { isManagedFile, hasAiOpsSection, stripAiOpsSection } from 'ai-ops-compiler';
 
 export type UninstallResult = {
   deleted: string[];
+  cleaned: string[]; // 섹션만 제거된 파일 (append 되었던 파일)
   skipped: string[]; // non-managed 파일 (사용자 파일 보호)
   notFound: string[]; // 이미 삭제됨
 };
 
 export const removeFiles = (basePath: string, relativePaths: readonly string[]): UninstallResult => {
   const deleted: string[] = [];
+  const cleaned: string[] = [];
   const skipped: string[] = [];
   const notFound: string[] = [];
 
@@ -22,8 +24,16 @@ export const removeFiles = (basePath: string, relativePaths: readonly string[]):
     }
 
     const content = readFileSync(absPath, 'utf-8');
+
     if (!isManagedFile(content)) {
-      skipped.push(rel);
+      if (hasAiOpsSection(content)) {
+        // append된 파일 → 섹션만 제거, 사용자 콘텐츠 보존
+        const stripped = stripAiOpsSection(content);
+        writeFileSync(absPath, stripped, 'utf-8');
+        cleaned.push(rel);
+      } else {
+        skipped.push(rel);
+      }
       continue;
     }
 
@@ -31,7 +41,7 @@ export const removeFiles = (basePath: string, relativePaths: readonly string[]):
     deleted.push(rel);
   }
 
-  return { deleted, skipped, notFound };
+  return { deleted, cleaned, skipped, notFound };
 };
 
 /** 대상 디렉토리가 비어 있으면 삭제하고, 삭제한 경로 배열 반환 */

@@ -84,10 +84,10 @@ describe('E2E: single-project install flow', () => {
       // claude-code
       const renderResult = renderForTool('claude-code', rules);
       const actions = buildInstallPlan({ toolId: 'claude-code', renderResult, meta });
-      const result = installFiles(dir, actions);
+      const result = installFiles(dir, actions, meta);
 
       expect(result.written.length).toBeGreaterThan(0);
-      expect(result.skipped).toHaveLength(0);
+      expect(result.appended).toHaveLength(0);
 
       // 파일 존재 + managed header 검증
       for (const rel of result.written) {
@@ -130,11 +130,11 @@ describe('E2E: single-project install flow', () => {
       const renderResult = renderForTool('claude-code', rules);
       const actions = buildInstallPlan({ toolId: 'claude-code', renderResult, meta });
 
-      installFiles(dir, actions);
+      installFiles(dir, actions, meta);
       const firstContents = actions.map((a) => readFileSync(join(dir, a.relativePath), 'utf-8'));
 
       // 2nd install (same meta → content identical)
-      installFiles(dir, actions);
+      installFiles(dir, actions, meta);
       const secondContents = actions.map((a) => readFileSync(join(dir, a.relativePath), 'utf-8'));
 
       expect(firstContents).toEqual(secondContents);
@@ -143,7 +143,7 @@ describe('E2E: single-project install flow', () => {
     }
   });
 
-  it('managed file protection: non-managed 파일은 skip', () => {
+  it('non-managed 파일 → append (사용자 내용 보존 + 섹션 추가)', () => {
     const { dir, cleanup } = setup();
     try {
       const presets = loadPresets(presetsPath);
@@ -156,18 +156,21 @@ describe('E2E: single-project install flow', () => {
       const actions = buildInstallPlan({ toolId: 'claude-code', renderResult, meta });
       const firstAction = actions[0];
 
-      // 사용자가 직접 작성한 파일로 덮어쓰기
+      // 사용자가 직접 작성한 파일
       const absPath = join(dir, firstAction.relativePath);
       mkdirSync(dirname(absPath), { recursive: true });
       writeFileSync(absPath, '# User content (not managed)', 'utf-8');
 
-      const result = installFiles(dir, [firstAction]);
-      expect(result.skipped).toContain(firstAction.relativePath);
+      const result = installFiles(dir, [firstAction], meta);
+      expect(result.appended).toContain(firstAction.relativePath);
       expect(result.written).not.toContain(firstAction.relativePath);
+      expect(result.skipped).toHaveLength(0);
 
-      // 파일 내용이 보존됐는지 확인
+      // 사용자 내용 보존 + 섹션 마커 포함 확인
       const content = readFileSync(absPath, 'utf-8');
-      expect(content).toBe('# User content (not managed)');
+      expect(content).toContain('# User content (not managed)');
+      expect(content).toContain('<!-- ai-ops:start -->');
+      expect(content).toContain('<!-- ai-ops:end -->');
     } finally {
       cleanup();
     }
@@ -253,7 +256,7 @@ describe('E2E: uninstall flow', () => {
       // install
       const renderResult = renderForTool('claude-code', rules);
       const actions = buildInstallPlan({ toolId: 'claude-code', renderResult, meta });
-      const installResult = installFiles(dir, actions);
+      const installResult = installFiles(dir, actions, meta);
       expect(installResult.written.length).toBeGreaterThan(0);
 
       const manifest = buildManifest({

@@ -25,6 +25,7 @@ export const buildManifest = (params: {
   workspaces?: Record<string, { preset: string; rules: string[] }>;
   installedRules: readonly string[];
   installedFiles?: readonly string[];
+  appendedFiles?: readonly string[];
   sourceHash: string;
 }): Manifest =>
   ManifestSchema.parse({
@@ -34,6 +35,7 @@ export const buildManifest = (params: {
     workspaces: params.workspaces,
     installed_rules: [...params.installedRules],
     installed_files: params.installedFiles ? [...params.installedFiles] : undefined,
+    appended_files: params.appendedFiles && params.appendedFiles.length > 0 ? [...params.appendedFiles] : undefined,
     sourceHash: params.sourceHash,
     generatedAt: new Date().toISOString(),
   });

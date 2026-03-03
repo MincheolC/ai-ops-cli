@@ -18,8 +18,11 @@ export const uninstallCommand = async (opts: { scope: Scope }): Promise<void> =>
     process.exit(1);
   }
 
-  // 2. 삭제 대상 결정
-  const targetFiles = manifest.installed_files ?? inferInstalledFiles(manifest);
+  // 2. 삭제 대상 결정 (managed 파일 + append된 파일)
+  const targetFiles = [
+    ...(manifest.installed_files ?? inferInstalledFiles(manifest)),
+    ...(manifest.appended_files ?? []),
+  ];
 
   if (targetFiles.length === 0) {
     p.log.warn('삭제할 파일이 없습니다.');
@@ -53,6 +56,11 @@ export const uninstallCommand = async (opts: { scope: Scope }): Promise<void> =>
   // 8. 결과 요약
   if (result.deleted.length > 0) {
     p.log.success(`삭제 완료 (${result.deleted.length}개):\n${result.deleted.map((f) => `  ${f}`).join('\n')}`);
+  }
+  if (result.cleaned.length > 0) {
+    p.log.success(
+      `섹션 제거 완료 (사용자 내용 보존, ${result.cleaned.length}개):\n${result.cleaned.map((f) => `  ${f}`).join('\n')}`,
+    );
   }
   if (result.skipped.length > 0) {
     p.log.warn(
