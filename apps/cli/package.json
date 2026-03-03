@@ -1,6 +1,6 @@
 {
   "name": "ai-ops-cli",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "description": "CLI for ai-ops scaffolding — manage AI tool rules and presets",
   "license": "MIT",
   "type": "module",
@@ -29,6 +29,7 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@types/node": "^25.3.3",
     "tsup": "^8.4.0",
     "vitest": "^3.0.8"
   }
