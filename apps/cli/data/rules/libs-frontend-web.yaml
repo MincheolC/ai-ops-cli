@@ -15,8 +15,6 @@ content:
     - 'DO NOT install parallel UI kits (MUI, Ant, Chakra) alongside shadcn/ui.'
     - 'DO NOT use Redux/Recoil/MobX for local UI state. Use zustand for client UI state.'
   guidelines:
-    - 'Use @apollo/client with @apollo/experimental-nextjs-app-support for GraphQL in App Router.'
-    - 'Use GraphQL Codegen client-preset to generate TypedDocumentNode types at build time.'
     - 'Keep styling on Tailwind + design tokens (CSS variables) and cva variants.'
     - 'Use next-intl for i18n and next-themes for theme switching.'
     - 'Render Recharts inside client components only.'
@@ -24,9 +22,6 @@ content:
     - 'Sanitize user HTML with isomorphic-dompurify before dangerouslySetInnerHTML.'
     - 'Use Vitest + Testing Library; prefer userEvent over fireEvent.'
   decision_table:
-    - when: 'GraphQL data fetching is needed in App Router'
-      then: 'Use ApolloNextAppProvider with @apollo/client'
-      avoid: 'Ad-hoc raw fetch cache wiring'
     - when: 'Date handling is needed'
       then: 'Use date-fns named imports'
       avoid: 'moment/dayjs'

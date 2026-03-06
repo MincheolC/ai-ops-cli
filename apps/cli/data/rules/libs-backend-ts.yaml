@@ -15,8 +15,6 @@ content:
     - 'DO NOT use winston/morgan/console.log for app logs. Use pino via nestjs-pino.'
   guidelines:
     - 'Use class-validator + class-transformer DTO validation with ValidationPipe({ whitelist: true }).'
-    - 'Use @nestjs/graphql + @nestjs/apollo code-first for GraphQL APIs.'
-    - 'Use GraphQL Codegen for operation/result type generation.'
     - 'Use jose for JWT sign/verify and JWKS workflows.'
     - 'Use pino + nestjs-pino as the default structured logger.'
     - 'Use rxjs operators for NestJS interceptors, guards, and event streams.'

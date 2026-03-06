@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import {
   sortRulesByPriority,
   parseRawPresets,
+  resolvePresetRuleGroups,
   resolvePresetRules,
   excludeRules,
   loadAllRules,
@@ -92,6 +93,10 @@ describe('excludeRules', () => {
 describe('resolvePresetRules', () => {
   const ruleA = makeRule('typescript', 65);
   const ruleB = makeRule('react-typescript', 60);
+  const graphqlCore = makeRule('graphql-core', 48);
+  const graphqlWeb = makeRule('graphql-client-web', 47);
+  const graphqlApp = makeRule('graphql-client-app', 46);
+  const graphqlServer = makeRule('graphql-server', 44);
 
   it('정상 매칭 + priority 정렬', () => {
     const preset = { id: 'test', description: 'test', rules: ['react-typescript', 'typescript'] };
@@ -99,16 +104,55 @@ describe('resolvePresetRules', () => {
     expect(resolved.map((r) => r.id)).toEqual(['typescript', 'react-typescript']);
   });
 
+  it('논리 rule(graphql)를 preset별 실제 rule로 확장한다', () => {
+    const webPreset = { id: 'frontend-web', description: 'test', rules: ['graphql'] };
+    const appPreset = { id: 'frontend-app', description: 'test', rules: ['graphql'] };
+    const backendPreset = { id: 'backend-ts', description: 'test', rules: ['graphql'] };
+    const allRules = [graphqlCore, graphqlWeb, graphqlApp, graphqlServer];
+
+    expect(resolvePresetRules(webPreset, allRules).map((r) => r.id)).toEqual(['graphql-core', 'graphql-client-web']);
+    expect(resolvePresetRules(appPreset, allRules).map((r) => r.id)).toEqual(['graphql-core', 'graphql-client-app']);
+    expect(resolvePresetRules(backendPreset, allRules).map((r) => r.id)).toEqual(['graphql-core', 'graphql-server']);
+  });
+
+  it('확장 결과 중복 rule은 제거한다', () => {
+    const preset = { id: 'frontend-web', description: 'test', rules: ['graphql', 'graphql-client-web'] };
+    const resolved = resolvePresetRules(preset, [graphqlCore, graphqlWeb]);
+    expect(resolved.map((r) => r.id)).toEqual(['graphql-core', 'graphql-client-web']);
+  });
+
   it('missing rule → Error', () => {
     const preset = { id: 'test', description: 'test', rules: ['missing-rule'] };
     expect(() => resolvePresetRules(preset, [ruleA])).toThrow('Rule not found: missing-rule');
   });
+
+  it('번들 확장 중 누락된 rule은 context 포함 에러를 던진다', () => {
+    const preset = { id: 'frontend-web', description: 'test', rules: ['graphql'] };
+    expect(() => resolvePresetRules(preset, [graphqlCore])).toThrow(
+      'Rule not found: graphql-client-web (from frontend-web:graphql)',
+    );
+  });
+});
+
+describe('resolvePresetRuleGroups', () => {
+  const graphqlCore = makeRule('graphql-core', 48);
+  const graphqlWeb = makeRule('graphql-client-web', 47);
+  const typescript = makeRule('typescript', 65);
+
+  it('논리 rule ID를 그룹 단위로 유지한다', () => {
+    const preset = { id: 'frontend-web', description: 'test', rules: ['graphql', 'typescript'] };
+    const groups = resolvePresetRuleGroups(preset, [graphqlCore, graphqlWeb, typescript]);
+
+    expect(groups.map((group) => group.id)).toEqual(['graphql', 'typescript']);
+    expect(groups[0]?.rules.map((rule) => rule.id)).toEqual(['graphql-core', 'graphql-client-web']);
+    expect(groups[1]?.rules.map((rule) => rule.id)).toEqual(['typescript']);
+  });
 });
 
 describe('I/O', () => {
-  it('loadAllRules: 실제 data/rules/ 24개 로드', () => {
+  it('loadAllRules: 실제 data/rules/ 27개 로드', () => {
     const rules = loadAllRules(resolve(dataDir, 'rules'));
-    expect(rules).toHaveLength(24);
+    expect(rules).toHaveLength(27);
   });
 
   it('loadPresets: 실제 data/presets.yaml 4개 로드', () => {

@@ -1,0 +1,31 @@
+id: graphql-core
+category: api
+tags:
+  - graphql
+  - api
+  - schema-contract
+priority: 48
+content:
+  constraints:
+    - 'DO NOT rely on implicit nullability. Mark every field intentionally (prefer non-null by default).'
+    - 'DO NOT return unbounded lists. Every collection must provide pagination arguments and a stable cursor.'
+    - 'DO NOT expose internal implementation details in enum values. Use semantic SCREAMING_SNAKE_CASE names that remain stable across refactors.'
+    - 'DO NOT rename/remove published fields or types in the same release. Deprecate first, then remove in the next major.'
+  guidelines:
+    - 'Follow naming conventions: PascalCase for types/enums, camelCase for fields/arguments, SCREAMING_SNAKE_CASE for enum values.'
+    - 'Prefer cursor pagination (first/after) for user-facing lists; use offset only for bounded admin tables.'
+    - 'Define typed FilterInput/OrderByInput for filtering and sorting instead of JSON-like free-form arguments.'
+    - 'Document scalar contracts (DateTime, UUID, JSON) with accepted formats and timezone policy.'
+  decision_table:
+    - when: 'A field returns a collection'
+      then: 'Use cursor pagination with a stable cursor and deterministic ordering'
+      avoid: 'Returning unbounded [Node!]! lists'
+    - when: 'A field or type must be renamed/removed'
+      then: 'Mark it as @deprecated with a migration reason, keep compatibility for at least one release, remove in next major'
+      avoid: 'Immediate rename/removal that breaks existing client operations'
+    - when: 'A schema change is high-risk (widely used field, auth/payment domain)'
+      then: 'Add pre-release usage checks (operation usage, top callers), publish rollback criteria, and keep a revert path that restores the previous contract'
+      avoid: 'Shipping a contract change without usage visibility or rollback plan'
+    - when: 'Filtering or sorting is complex'
+      then: 'Define typed FilterInput/OrderByInput types'
+      avoid: 'Accepting raw JSON blobs or ad-hoc string filters'

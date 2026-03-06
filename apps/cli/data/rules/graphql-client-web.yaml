@@ -1,0 +1,30 @@
+id: graphql-client-web
+category: api
+tags:
+  - graphql
+  - frontend
+  - nextjs
+  - apollo
+priority: 47
+content:
+  constraints:
+    - 'DO NOT call /graphql with ad-hoc fetch wrappers in Next.js App Router features. Use the shared Apollo client stack to preserve auth links and normalized cache behavior.'
+    - 'DO NOT handwrite GraphQL operation/result types or cast payloads with as assertions. Use generated TypedDocumentNode artifacts.'
+    - 'DO NOT treat HTTP 200 as success when GraphQL errors[] exists. Handle partial-success responses explicitly.'
+    - 'DO NOT create per-feature ApolloClient instances. Reuse one configured provider to preserve auth/cache/link behavior.'
+  guidelines:
+    - 'Use @apollo/client with @apollo/experimental-nextjs-app-support and mount ApolloNextAppProvider once at the app root.'
+    - 'Use GraphQL Codegen client-preset and import generated graphql(...) documents from feature modules.'
+    - 'Set fetchPolicy explicitly per operation (cache-first, network-only, no-cache) based on freshness requirements.'
+    - 'Co-locate .graphql documents and fragments with feature code, and keep fragment names feature-prefixed.'
+    - 'Normalize GraphQL errors/extensions into a shared UI error model before rendering.'
+  decision_table:
+    - when: 'GraphQL data fetching is needed in App Router'
+      then: 'Use the shared ApolloNextAppProvider + generated documents'
+      avoid: 'Ad-hoc raw fetch cache wiring in components'
+    - when: 'A mutation can return both data and business errors'
+      then: 'Render partial-success data and surface typed errors from the same response'
+      avoid: 'Throwing away data whenever errors[] is present'
+    - when: 'A new query document is added'
+      then: 'Regenerate codegen artifacts before committing'
+      avoid: 'Shipping stale generated types/documents'

@@ -93,7 +93,7 @@ tech stack you are working on.
 - **Python / Backend**: Read `python.yaml`, `fastapi.yaml`, `libs-backend-python.yaml`
 - **React / Frontend**: Read `react-typescript.yaml`, `nextjs.yaml`, `shadcn-ui.yaml`
 - **Database**: Read `sqlalchemy.yaml` or `prisma-postgresql.yaml`
-- **GraphQL**: Read `graphql.yaml`, `nestjs-graphql.yaml`
+- **GraphQL**: Read `graphql-core.yaml` + one of (`graphql-client-web.yaml`, `graphql-client-app.yaml`, `graphql-server.yaml`) + `nestjs-graphql.yaml`(NestJS일 때)
 ```
 
 ## Decision Matrix

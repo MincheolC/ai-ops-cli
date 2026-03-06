@@ -5,7 +5,7 @@ import {
   loadAllRules,
   loadPresets,
   resolvePresetRules,
-  excludeRules,
+  resolvePresetRuleGroups,
   isGlobalRule,
   partitionRules,
   renderForTool,
@@ -62,31 +62,37 @@ const selectPresetAndFineTune = async (
   });
   if (p.isCancel(preset)) return null;
 
-  const presetRules = resolvePresetRules(preset, allRules);
-  const globalRules = presetRules.filter(isGlobalRule);
-  const domainRules = presetRules.filter((r) => !isGlobalRule(r));
+  const presetRuleGroups = resolvePresetRuleGroups(preset, allRules);
+  const globalGroups = presetRuleGroups.filter((group) => group.rules.every(isGlobalRule));
+  const domainGroups = presetRuleGroups.filter((group) => !group.rules.every(isGlobalRule));
+  const globalGroupIds = globalGroups.map((group) => group.id);
+  const globalRules =
+    globalGroupIds.length > 0 ? resolvePresetRules({ ...preset, rules: globalGroupIds }, allRules) : [];
 
   // Global rules: locked (항상 포함)
   if (globalRules.length > 0) {
     p.note(globalRules.map((r) => `  ✓ ${r.id}`).join('\n'), `[${workspaceName}] 기본 규칙 (잠금)`);
   }
 
-  if (domainRules.length === 0) {
-    return { workspace: workspaceName, preset, finalRules: presetRules };
+  if (domainGroups.length === 0) {
+    return { workspace: workspaceName, preset, finalRules: resolvePresetRules(preset, allRules) };
   }
 
   // Domain rules: 제외 가능
   const selectedDomain = await p.multiselect<string>({
     message: `[${workspaceName}] 도메인 규칙 선택 (해제하여 제외)`,
-    options: domainRules.map((r) => ({ value: r.id, label: r.id })),
-    initialValues: domainRules.map((r) => r.id),
+    options: domainGroups.map((group) => ({ value: group.id, label: group.id })),
+    initialValues: domainGroups.map((group) => group.id),
     required: false,
   });
   if (p.isCancel(selectedDomain)) return null;
 
-  const excludeIds = domainRules.map((r) => r.id).filter((id) => !(selectedDomain as string[]).includes(id));
-
-  return { workspace: workspaceName, preset, finalRules: excludeRules(presetRules, excludeIds) };
+  const selectedLogicalRuleIds = [...globalGroupIds, ...(selectedDomain as string[])];
+  return {
+    workspace: workspaceName,
+    preset,
+    finalRules: resolvePresetRules({ ...preset, rules: selectedLogicalRuleIds }, allRules),
+  };
 };
 
 const installHierarchicalMonorepo = (

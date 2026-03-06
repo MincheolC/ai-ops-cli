@@ -11,6 +11,7 @@ frontend-web:
     - react-typescript
     - shadcn-ui
     - nextjs
+    - graphql
     - libs-frontend-web
 
 frontend-app:
@@ -23,6 +24,7 @@ frontend-app:
     - naming-convention
     - engineering-standards
     - flutter
+    - graphql
     - libs-frontend-app
 
 backend-ts:

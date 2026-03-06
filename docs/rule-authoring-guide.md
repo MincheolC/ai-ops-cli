@@ -46,8 +46,11 @@ Priority는 **0~100 정수이며 전체 rule 파일 간 유일**해야 한다.
 | 60       | react-typescript      |
 | 55       | python                |
 | 50       | nextjs                |
-| 48       | graphql               |
+| 48       | graphql-core          |
+| 47       | graphql-client-web    |
+| 46       | graphql-client-app    |
 | 45       | nestjs                |
+| 44       | graphql-server        |
 | 43       | nestjs-graphql        |
 | 42       | fastapi               |
 | 40       | prisma-postgresql     |

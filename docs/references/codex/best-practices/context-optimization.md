@@ -88,7 +88,7 @@ Mapping:
 - Python/Backend: `python.yaml`, `fastapi.yaml`, `libs-backend-python.yaml`
 - React/Frontend: `react-typescript.yaml`, `nextjs.yaml`, `shadcn-ui.yaml`
 - Database: `sqlalchemy.yaml` or `prisma-postgresql.yaml`
-- GraphQL: `graphql.yaml`, `nestjs-graphql.yaml`
+- GraphQL: `graphql-core.yaml` + one of (`graphql-client-web.yaml`, `graphql-client-app.yaml`, `graphql-server.yaml`) + `nestjs-graphql.yaml`(NestJS일 때)
 ```
 
 This preserves a small base context while still enforcing domain rules when needed.

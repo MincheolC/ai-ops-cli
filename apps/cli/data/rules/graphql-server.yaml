@@ -1,0 +1,33 @@
+id: graphql-server
+category: api
+tags:
+  - graphql
+  - api
+  - backend
+priority: 44
+content:
+  constraints:
+    - 'DO NOT perform mutations in Query resolvers. Reads belong to Query, writes belong to Mutation.'
+    - 'DO NOT throw top-level GraphQL errors for expected business failures. Return typed domain errors in payloads.'
+    - 'DO NOT issue per-parent DB queries from field resolvers. Use request-scoped batching (DataLoader or equivalent).'
+    - 'DO NOT accept multiple scalar mutation arguments. Standardize on one input object (mutation X($input: XInput!)).'
+    - 'DO NOT expose unauthenticated subscription/live update endpoints in production.'
+  guidelines:
+    - 'Keep resolvers thin and delegate business logic to service/use-case layers.'
+    - 'Use payload types that carry both success data and typed userErrors for partial success handling.'
+    - 'Apply query depth/complexity limits and operation timeout guards to prevent expensive nested queries.'
+    - 'Record operationName and requestId in structured logs for mutation/subscription debugging.'
+    - 'Document idempotency expectations for side-effecting mutations (payment, provisioning, outbound integrations).'
+  decision_table:
+    - when: 'A mutation can fail due to business validation'
+      then: 'Return payload data + typed userErrors and keep top-level errors for unexpected faults only'
+      avoid: 'Throwing generic Error for expected business branches'
+    - when: 'A field resolver loads related entities'
+      then: 'Batch and cache per-request with DataLoader (or equivalent)'
+      avoid: 'Repository call per parent row (N+1)'
+    - when: 'A new subscription is introduced'
+      then: 'Require auth/tenant checks and choose production-safe PubSub transport'
+      avoid: 'Unauthenticated or in-memory-only subscription setup in production'
+    - when: 'A mutation triggers irreversible side effects (billing, provisioning, partner API)'
+      then: 'Verify pre-conditions first, require idempotency keys, and define compensating/rollback actions before execution'
+      avoid: 'Calling external side effects before validation or without replay/rollback strategy'

@@ -1,0 +1,29 @@
+id: graphql-client-app
+category: api
+tags:
+  - graphql
+  - frontend
+  - flutter
+priority: 46
+content:
+  constraints:
+    - 'DO NOT call GraphQL endpoints directly from widgets. Route operations through provider/repository layers to avoid rebuild-driven duplicate requests and side effects.'
+    - 'DO NOT parse GraphQL response maps in UI code. Convert payloads to typed freezed/json_serializable models in the data layer to prevent runtime cast/null errors.'
+    - 'DO NOT treat HTTP 200 as success when GraphQL errors[] exists. Map GraphQL errors to typed domain failures.'
+    - 'DO NOT create ad-hoc Dio instances for GraphQL calls. Reuse the shared DI-injected client with auth interceptors.'
+  guidelines:
+    - 'Use Riverpod providers as the boundary between presentation and GraphQL data access.'
+    - 'Generate GraphQL DTO/union models with the same build_runner pipeline used for other app models.'
+    - 'Map __typename-based unions to freezed union types to force exhaustive handling.'
+    - 'Keep optimistic update and cache invalidation logic in repositories/providers, not in widgets.'
+    - 'Log operationName with redacted variables for debugging failed GraphQL operations.'
+  decision_table:
+    - when: 'A widget needs GraphQL data'
+      then: 'Read a Riverpod provider that delegates to repository/use-case'
+      avoid: 'Calling Dio/GraphQL requests directly inside build() or event handlers'
+    - when: 'A mutation returns data plus business errors'
+      then: 'Preserve successful fields and map typed errors into UI state'
+      avoid: 'Treating the full response as fatal failure'
+    - when: 'New GraphQL documents are added'
+      then: 'Run build_runner to regenerate typed models before commit'
+      avoid: 'Manual map access against dynamic JSON payloads'
