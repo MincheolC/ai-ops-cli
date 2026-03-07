@@ -1,8 +1,22 @@
 import { createHash } from 'node:crypto';
 import { readFileSync, readdirSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { ManifestSchema } from './schemas/index.js';
 import type { Manifest } from './schemas/index.js';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+// dist/bin/index.js(bundle) 기준: ../../package.json = apps/cli/package.json
+export const getCliVersion = (): string => {
+  try {
+    const pkgPath = resolve(__dirname, '..', '..', 'package.json');
+    const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8')) as { version: string };
+    return pkg.version;
+  } catch {
+    return 'unknown';
+  }
+};
 
 // 문자열 배열 → SHA-256 → 6-hex (caller가 정렬 책임)
 export const computeHash = (contents: readonly string[]): string =>
@@ -27,6 +41,7 @@ export const buildManifest = (params: {
   installedFiles?: readonly string[];
   appendedFiles?: readonly string[];
   settings?: { claude?: readonly string[]; gemini?: readonly string[] };
+  cliVersion?: string;
   sourceHash: string;
 }): Manifest =>
   ManifestSchema.parse({
@@ -43,6 +58,7 @@ export const buildManifest = (params: {
           gemini: params.settings.gemini ? [...params.settings.gemini] : undefined,
         }
       : undefined,
+    cliVersion: params.cliVersion,
     sourceHash: params.sourceHash,
     generatedAt: new Date().toISOString(),
   });

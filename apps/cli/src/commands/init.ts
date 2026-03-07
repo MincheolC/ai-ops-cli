@@ -13,6 +13,7 @@ import {
   buildInstallPlan,
   buildManifest,
   computeSourceHash,
+  getCliVersion,
   resolveManifestPath,
   writeManifest,
   wrapWithHeader,
@@ -289,6 +290,7 @@ export const initCommand = async (): Promise<void> => {
             gemini: geminiSettingValues ? [...geminiSettingValues] : undefined,
           }
         : undefined,
+    cliVersion: getCliVersion(),
     sourceHash,
   });
   writeManifest(resolveManifestPath(basePath), manifest);

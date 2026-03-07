@@ -86,6 +86,14 @@ describe('ManifestSchema', () => {
         ManifestSchema.parse({ ...validManifest, settings: { gemini: ['plan'] } }),
       ).not.toThrow();
     });
+
+    it('cliVersion 포함', () => {
+      expect(() => ManifestSchema.parse({ ...validManifest, cliVersion: '0.1.14' })).not.toThrow();
+    });
+
+    it('cliVersion 생략 (레거시 호환)', () => {
+      expect(() => ManifestSchema.parse(validManifest)).not.toThrow();
+    });
   });
 
   describe('invalid', () => {

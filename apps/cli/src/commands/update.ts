@@ -10,6 +10,7 @@ import {
   writeManifest,
   computeSourceHash,
   computeDiff,
+  getCliVersion,
   partitionRules,
   renderRulesToMarkdown,
   wrapWithHeader,
@@ -36,11 +37,13 @@ export const updateCommand = async (opts: { force: boolean }): Promise<void> => 
 
   const rulesDir = resolveRulesDir();
   const sourceHash = computeSourceHash(rulesDir);
+  const cliVersion = getCliVersion();
 
   const diffResult = computeDiff({
     previous: manifest,
     currentRules: manifest.installed_rules,
     currentSourceHash: sourceHash,
+    currentCliVersion: cliVersion,
   });
 
   if (diffResult.status === 'up-to-date' && !opts.force) {
@@ -147,6 +150,7 @@ export const updateCommand = async (opts: { force: boolean }): Promise<void> => 
           gemini: manifest.settings.gemini,
         }
       : undefined,
+    cliVersion,
     sourceHash,
   });
   writeManifest(manifestPath, newManifest);

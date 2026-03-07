@@ -42,6 +42,8 @@ export const ManifestSchema = z
     appended_files: z.array(z.string().min(1)).optional(),
     /** init 시 선택된 settings 항목 — update 시 재생성에 사용 */
     settings: SettingsConfigSchema.optional(),
+    /** init/update 실행 시점의 CLI 패키지 버전 — 버전 변경 감지에 사용 */
+    cliVersion: z.string().optional(),
     /** SSOT 데이터 파일들의 deterministic SHA-256 해시 (6자리 hex). diff/update 판단 기준 */
     sourceHash: z.string().regex(/^[a-f0-9]{6}$/, 'sourceHash must be 6 lowercase hex chars'),
     generatedAt: z.string().datetime({ offset: true }),

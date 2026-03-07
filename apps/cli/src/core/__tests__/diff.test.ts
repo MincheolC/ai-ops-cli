@@ -22,6 +22,7 @@ describe('computeDiff', () => {
     expect(result.added).toHaveLength(0);
     expect(result.removed).toHaveLength(0);
     expect(result.sourceChanged).toBe(false);
+    expect(result.versionChanged).toBe(false);
   });
 
   it('detects added rules', () => {
@@ -56,6 +57,40 @@ describe('computeDiff', () => {
     expect(result.sourceChanged).toBe(true);
     expect(result.added).toHaveLength(0);
     expect(result.removed).toHaveLength(0);
+  });
+
+  it('detects versionChanged when cliVersion differs', () => {
+    const result = computeDiff({
+      previous: makeManifest({ cliVersion: '0.1.0' }),
+      currentRules: ['typescript', 'react-typescript'],
+      currentSourceHash: 'abc123',
+      currentCliVersion: '0.2.0',
+    });
+    expect(result.status).toBe('changed');
+    expect(result.versionChanged).toBe(true);
+    expect(result.sourceChanged).toBe(false);
+  });
+
+  it('does not flag versionChanged when cliVersion is same', () => {
+    const result = computeDiff({
+      previous: makeManifest({ cliVersion: '0.2.0' }),
+      currentRules: ['typescript', 'react-typescript'],
+      currentSourceHash: 'abc123',
+      currentCliVersion: '0.2.0',
+    });
+    expect(result.status).toBe('up-to-date');
+    expect(result.versionChanged).toBe(false);
+  });
+
+  it('does not flag versionChanged for legacy manifest without cliVersion', () => {
+    const result = computeDiff({
+      previous: makeManifest(),
+      currentRules: ['typescript', 'react-typescript'],
+      currentSourceHash: 'abc123',
+      currentCliVersion: '0.2.0',
+    });
+    expect(result.status).toBe('up-to-date');
+    expect(result.versionChanged).toBe(false);
   });
 
   it('handles combined added + removed + hash change', () => {
