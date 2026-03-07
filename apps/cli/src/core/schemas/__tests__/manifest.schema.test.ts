@@ -61,6 +61,31 @@ describe('ManifestSchema', () => {
     it('installed_files 생략 (기존 manifest 호환)', () => {
       expect(() => ManifestSchema.parse(validManifest)).not.toThrow();
     });
+
+    it('settings claude + gemini 포함', () => {
+      expect(() =>
+        ManifestSchema.parse({
+          ...validManifest,
+          settings: { claude: ['model', 'plansDirectory'], gemini: ['plan', 'ui'] },
+        }),
+      ).not.toThrow();
+    });
+
+    it('settings 생략 (레거시 호환)', () => {
+      expect(() => ManifestSchema.parse(validManifest)).not.toThrow();
+    });
+
+    it('settings claude만 포함', () => {
+      expect(() =>
+        ManifestSchema.parse({ ...validManifest, settings: { claude: ['model'] } }),
+      ).not.toThrow();
+    });
+
+    it('settings gemini만 포함', () => {
+      expect(() =>
+        ManifestSchema.parse({ ...validManifest, settings: { gemini: ['plan'] } }),
+      ).not.toThrow();
+    });
   });
 
   describe('invalid', () => {
@@ -121,6 +146,24 @@ describe('ManifestSchema', () => {
 
     it('preset 빈 문자열', () => {
       expect(() => ManifestSchema.parse({ ...validManifest, preset: '' })).toThrow();
+    });
+
+    it('settings unknown 필드 (.strict())', () => {
+      expect(() =>
+        ManifestSchema.parse({ ...validManifest, settings: { claude: ['model'], unknown: 'field' } }),
+      ).toThrow();
+    });
+
+    it('settings.claude 빈 문자열 포함', () => {
+      expect(() =>
+        ManifestSchema.parse({ ...validManifest, settings: { claude: [''] } }),
+      ).toThrow();
+    });
+
+    it('settings.gemini 빈 문자열 포함', () => {
+      expect(() =>
+        ManifestSchema.parse({ ...validManifest, settings: { gemini: [''] } }),
+      ).toThrow();
     });
   });
 });

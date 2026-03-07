@@ -60,8 +60,8 @@ describe('buildInstallPlan - codex', () => {
       domainContent: '',
     };
     const actions = buildInstallPlan({ toolId: 'codex', renderResult, meta: META });
-    expect(actions[0].content).toContain('## Plan');
-    expect(actions[0].content).toContain('.codex/plans/<timestamp>-<topic>.md');
+    expect(actions[0].content).toContain('## Plan Snapshot');
+    expect(actions[0].content).toContain('.codex/plans/YYYYMMDD_<topic>.md');
   });
 
   it('includes managed header in all content', () => {

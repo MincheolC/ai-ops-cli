@@ -26,6 +26,7 @@ export const buildManifest = (params: {
   installedRules: readonly string[];
   installedFiles?: readonly string[];
   appendedFiles?: readonly string[];
+  settings?: { claude?: readonly string[]; gemini?: readonly string[] };
   sourceHash: string;
 }): Manifest =>
   ManifestSchema.parse({
@@ -36,6 +37,12 @@ export const buildManifest = (params: {
     installed_rules: [...params.installedRules],
     installed_files: params.installedFiles ? [...params.installedFiles] : undefined,
     appended_files: params.appendedFiles && params.appendedFiles.length > 0 ? [...params.appendedFiles] : undefined,
+    settings: params.settings
+      ? {
+          claude: params.settings.claude ? [...params.settings.claude] : undefined,
+          gemini: params.settings.gemini ? [...params.settings.gemini] : undefined,
+        }
+      : undefined,
     sourceHash: params.sourceHash,
     generatedAt: new Date().toISOString(),
   });

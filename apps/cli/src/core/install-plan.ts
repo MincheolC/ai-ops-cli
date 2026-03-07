@@ -6,7 +6,10 @@ import type { ToolRenderResult } from './renderer.js';
 
 // Codex has no settings.json — plan directory convention must live in AGENTS.md
 const CODEX_PLAN_SECTION =
-  '\n\n---\n\n## Plan\n\nSave plans to `.codex/plans/<timestamp>-<topic>.md` when creating or updating plans in plan mode.';
+  '\n\n---\n\n## Plan Snapshot\n\n' +
+  'Before implementation, save the latest `<proposed_plan>` to `.codex/plans/YYYYMMDD_<topic>.md` (`<topic>` = kebab-case title, fallback `task`).\n' +
+  'Ensure `.codex/plans` exists; if the filename exists, append `-v2`, `-v3`, ...\n' +
+  'Do not start any mutating implementation step until this file is written.';
 
 export type FileAction = {
   relativePath: string;

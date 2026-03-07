@@ -7,6 +7,16 @@ export const SCOPES = {
   PROJECT: 'project',
 } as const;
 
+/** init/update 시 선택된 settings 항목 추적 */
+const SettingsConfigSchema = z
+  .object({
+    claude: z.array(z.string().min(1)).optional(),
+    gemini: z.array(z.string().min(1)).optional(),
+  })
+  .strict();
+
+export type SettingsConfig = z.infer<typeof SettingsConfigSchema>;
+
 /** 모노레포 워크스페이스별 preset + rules 추적 */
 const WorkspaceEntrySchema = z
   .object({
@@ -30,6 +40,8 @@ export const ManifestSchema = z
     installed_files: z.array(z.string().min(1)).optional(),
     /** non-managed 파일에 섹션을 append한 경우 추적 (uninstall 시 섹션만 제거) */
     appended_files: z.array(z.string().min(1)).optional(),
+    /** init 시 선택된 settings 항목 — update 시 재생성에 사용 */
+    settings: SettingsConfigSchema.optional(),
     /** SSOT 데이터 파일들의 deterministic SHA-256 해시 (6자리 hex). diff/update 판단 기준 */
     sourceHash: z.string().regex(/^[a-f0-9]{6}$/, 'sourceHash must be 6 lowercase hex chars'),
     generatedAt: z.string().datetime({ offset: true }),

@@ -23,6 +23,7 @@ import { resolveBasePath, resolveRulesDir, resolvePresetsPath } from '../lib/pat
 import { listWorkspaceCandidates } from '../lib/workspace.js';
 import { installFiles } from '../lib/install.js';
 import { promptGeminiSettings, installGeminiSettings } from '../lib/gemini-settings.js';
+import { promptClaudeSettings, installClaudeSettings } from '../lib/claude-settings.js';
 
 type WorkspacePresetMapping = {
   workspace: string;
@@ -219,6 +220,11 @@ export const initCommand = async (): Promise<void> => {
     ? await promptGeminiSettings()
     : null;
 
+  // 4.6. Claude 설정 (claude-code 선택 시)
+  const claudeSettingValues: readonly string[] | null = (selectedTools as ToolId[]).includes('claude-code')
+    ? await promptClaudeSettings()
+    : null;
+
   // 5. 설치
   const s = p.spinner();
   s.start('규칙 설치 중...');
@@ -252,6 +258,11 @@ export const initCommand = async (): Promise<void> => {
     allInstalledFiles.push('.gemini/settings.json');
   }
 
+  if (claudeSettingValues && claudeSettingValues.length > 0) {
+    installClaudeSettings(basePath, claudeSettingValues);
+    allInstalledFiles.push('.claude/settings.local.json');
+  }
+
   s.stop('규칙 설치 완료');
 
   // 6. Manifest 저장
@@ -271,6 +282,13 @@ export const initCommand = async (): Promise<void> => {
     installedRules: allInstalledRuleIds,
     installedFiles: allInstalledFiles,
     appendedFiles: allAppended,
+    settings:
+      claudeSettingValues || geminiSettingValues
+        ? {
+            claude: claudeSettingValues ? [...claudeSettingValues] : undefined,
+            gemini: geminiSettingValues ? [...geminiSettingValues] : undefined,
+          }
+        : undefined,
     sourceHash,
   });
   writeManifest(resolveManifestPath(basePath), manifest);

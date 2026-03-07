@@ -19,6 +19,8 @@ import type { FileAction } from '@/core/index.js';
 import { join } from 'node:path';
 import { resolveBasePath, resolveRulesDir } from '../lib/paths.js';
 import { installFiles } from '../lib/install.js';
+import { installClaudeSettings } from '../lib/claude-settings.js';
+import { installGeminiSettings } from '../lib/gemini-settings.js';
 
 export const updateCommand = async (opts: { force: boolean }): Promise<void> => {
   const basePath = resolveBasePath();
@@ -123,6 +125,14 @@ export const updateCommand = async (opts: { force: boolean }): Promise<void> => 
     }
   }
 
+  if (manifest.settings?.claude) {
+    installClaudeSettings(basePath, manifest.settings.claude);
+  }
+
+  if (manifest.settings?.gemini) {
+    installGeminiSettings(basePath, manifest.settings.gemini);
+  }
+
   const newManifest = buildManifest({
     tools: manifest.tools,
     scope: manifest.scope,
@@ -131,6 +141,12 @@ export const updateCommand = async (opts: { force: boolean }): Promise<void> => 
     installedRules: manifest.installed_rules,
     installedFiles: allInstalledFiles.length > 0 ? allInstalledFiles : manifest.installed_files,
     appendedFiles: allAppended.length > 0 ? allAppended : manifest.appended_files,
+    settings: manifest.settings
+      ? {
+          claude: manifest.settings.claude,
+          gemini: manifest.settings.gemini,
+        }
+      : undefined,
     sourceHash,
   });
   writeManifest(manifestPath, newManifest);
