@@ -11,13 +11,7 @@ import {
   computeSourceHash,
   computeDiff,
   getCliVersion,
-  partitionRules,
-  renderRulesToMarkdown,
-  wrapWithSection,
-  TOOL_OUTPUT_MAP,
 } from '@/core/index.js';
-import type { FileAction } from '@/core/index.js';
-import { join } from 'node:path';
 import { resolveBasePath, resolveRulesDir } from '../lib/paths.js';
 import { installFiles } from '../lib/install.js';
 import { installClaudeSettings } from '../lib/claude-settings.js';
@@ -67,52 +61,17 @@ export const updateCommand = async (opts: { force: boolean }): Promise<void> => 
 
     for (const toolIdStr of manifest.tools) {
       const toolId = toolIdStr as ToolId;
-
-      if (toolId === 'claude-code') {
-        const allInstalledRuleSet = new Set(manifest.installed_rules);
-        const rulesToInstall = allRules.filter((r) => allInstalledRuleSet.has(r.id));
-        const workspaceMappings = workspaceEntries.map(([path, entry]) => ({
-          path,
-          ruleIds: entry.rules,
-        }));
-        const renderResult = renderForTool('claude-code', rulesToInstall, workspaceMappings);
-        const actions = buildInstallPlan({ toolId: 'claude-code', renderResult, meta });
-        const r = installFiles(basePath, actions, meta);
-        allInstalledFiles.push(...r.written);
-        allAppended.push(...r.appended);
-      } else {
-        // codex/gemini: global → 루트, domain → 워크스페이스별
-        const config = TOOL_OUTPUT_MAP[toolId];
-
-        const allInstalledRuleSet = new Set(manifest.installed_rules);
-        const allRulesToInstall = allRules.filter((r) => allInstalledRuleSet.has(r.id));
-        const { global } = partitionRules(allRulesToInstall);
-
-        if (global.length > 0) {
-          const rootAction: FileAction = {
-            relativePath: join(config.dir, config.rootFileName),
-            content: wrapWithSection(renderRulesToMarkdown(global), meta),
-          };
-          const r = installFiles(basePath, [rootAction], meta);
-          allInstalledFiles.push(...r.written);
-          allAppended.push(...r.appended);
-        }
-
-        for (const [ws, entry] of workspaceEntries) {
-          const wsRuleSet = new Set(entry.rules);
-          const wsRules = allRules.filter((r) => wsRuleSet.has(r.id));
-          const { domain } = partitionRules(wsRules);
-          if (domain.length === 0) continue;
-
-          const domainAction: FileAction = {
-            relativePath: join(ws, config.domainFileName),
-            content: wrapWithSection(renderRulesToMarkdown(domain), meta),
-          };
-          const r = installFiles(basePath, [domainAction], meta);
-          allInstalledFiles.push(...r.written);
-          allAppended.push(...r.appended);
-        }
-      }
+      const allInstalledRuleSet = new Set(manifest.installed_rules);
+      const rulesToInstall = allRules.filter((r) => allInstalledRuleSet.has(r.id));
+      const workspaceMappings = workspaceEntries.map(([path, entry]) => ({
+        path,
+        ruleIds: entry.rules,
+      }));
+      const renderResult = renderForTool(toolId, rulesToInstall, workspaceMappings);
+      const actions = buildInstallPlan({ toolId, renderResult, meta });
+      const r = installFiles(basePath, actions, meta);
+      allInstalledFiles.push(...r.written);
+      allAppended.push(...r.appended);
     }
   } else {
     // 단일 프로젝트: installed_rules 기반 재설치
