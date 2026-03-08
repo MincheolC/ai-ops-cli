@@ -5,6 +5,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.1.22] - 2026-03-08
+
+- `fix`: gemini root 파일 위치를 `.gemini/GEMINI.md`에서 루트 `GEMINI.md`로 변경 — 단일레포·모노레포 모두 동일하게 적용. `tool-output.ts`의 `gemini.dir`을 `''`으로 수정하여 `buildInstallPlan`·`inferInstalledFiles` 자동 반영
+
 ## [0.1.21] - 2026-03-08
 
 - `refactor`: 단일 프로젝트에서 codex/gemini 룰을 단일 파일로 통합 — `renderForTool`이 단일 프로젝트 분기 시 global+domain을 `partitionRules` 없이 `rootContent` 하나로 합치고 `domainFiles: []`를 반환. codex는 `AGENTS.md`, gemini는 `.gemini/GEMINI.md` 하나만 생성됨
