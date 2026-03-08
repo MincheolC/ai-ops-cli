@@ -45,8 +45,8 @@ export const TOOL_OUTPUT_MAP = {
   },
   gemini: {
     mode: 'multi-file' as const,
-    dir: '.gemini',
-    rootFileName: 'GEMINI.md', // global 룰
+    dir: '',
+    rootFileName: 'GEMINI.md', // global 룰 (루트)
     domainFileName: 'GEMINI.md', // domain 룰 (하위 폴더)
     contextStrategy: 'hierarchical' as const, // 루트 + 하위 폴더 JIT
   },

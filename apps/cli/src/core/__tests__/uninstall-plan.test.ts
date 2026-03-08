@@ -62,14 +62,14 @@ describe('inferInstalledFiles - codex', () => {
 });
 
 describe('inferInstalledFiles - gemini', () => {
-  it('비모노: .gemini/GEMINI.md', () => {
+  it('비모노: GEMINI.md (루트)', () => {
     const manifest: Manifest = { ...BASE_MANIFEST, tools: ['gemini'] };
     const files = inferInstalledFiles(manifest);
-    expect(files).toContain('.gemini/GEMINI.md');
+    expect(files).toContain('GEMINI.md');
     expect(files).toHaveLength(1);
   });
 
-  it('모노레포: .gemini/GEMINI.md + {workspace}/GEMINI.md', () => {
+  it('모노레포: GEMINI.md (루트) + {workspace}/GEMINI.md', () => {
     const manifest: Manifest = {
       ...BASE_MANIFEST,
       tools: ['gemini'],
@@ -79,7 +79,7 @@ describe('inferInstalledFiles - gemini', () => {
       },
     };
     const files = inferInstalledFiles(manifest);
-    expect(files).toContain('.gemini/GEMINI.md');
+    expect(files).toContain('GEMINI.md');
     expect(files).toContain('apps/web/GEMINI.md');
     expect(files).toContain('services/api/GEMINI.md');
     expect(files).toHaveLength(3);
