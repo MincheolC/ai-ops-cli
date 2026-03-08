@@ -5,6 +5,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.1.18] - 2026-03-08
+
 ### Fixed
 
 - `uninstall`: `.prettierignore` ai-ops 섹션이 `manifest.settings.prettierignore` 필드 없이도 항상 제거되도록 수정 (이전 버전 manifest 호환성 포함)
