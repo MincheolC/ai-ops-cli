@@ -1,8 +1,9 @@
-<!-- managed by ai-ops -->
-<!-- sourceHash: d53af8 | generatedAt: 2026-03-03T02:59:36.622Z -->
+<!-- ai-ops:start -->
+<!-- sourceHash: d32d57 | generatedAt: 2026-03-08T05:43:34.833Z -->
 
 # Naming Convention
 
 ## Guidelines
 
 - Use kebab-case for directory names.
+<!-- ai-ops:end -->

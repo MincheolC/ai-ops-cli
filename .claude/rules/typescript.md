@@ -1,13 +1,10 @@
-<!-- managed by ai-ops -->
-<!-- sourceHash: d53af8 | generatedAt: 2026-03-03T02:59:36.622Z -->
+<!-- ai-ops:start -->
+<!-- sourceHash: d32d57 | generatedAt: 2026-03-08T05:43:34.833Z -->
 
 ---
-
 paths:
-
-- "\*_/_.ts"
-- "\*_/_.tsx"
-
+  - "**/*.ts"
+  - "**/*.tsx"
 ---
 
 # Typescript
@@ -26,10 +23,11 @@ paths:
 - Use arrow functions only. Annotate return types for exported functions.
 - Use import type for type-only imports. Use absolute paths (@/...) only.
 - Use as const for static config objects.
-- Keep business logic in _.logic.ts and stateless helpers in _.util.ts.
+- Keep business logic in *.logic.ts and stateless helpers in *.util.ts.
 
 ## Decision Table
 
-| When                                   | Then                                                          | Avoid                                               |
-| -------------------------------------- | ------------------------------------------------------------- | --------------------------------------------------- |
+| When | Then | Avoid |
+|------|------|-------|
 | You feel forced to use an as assertion | Prefer schema parse (e.g., Zod) or explicit type guards first | Bypassing the type system with unchecked assertions |
+<!-- ai-ops:end -->

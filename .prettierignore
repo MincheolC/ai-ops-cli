@@ -1,0 +1,14 @@
+# ai-ops:start
+# CLAUDE
+.claude/rules/
+**/CLAUDE.md
+
+# GEMINI
+**/GEMINI.md
+
+# CODEX
+**/AGENTS.md
+**/AGENTS.override.md
+
+.ai-ops-manifest.json
+# ai-ops:end

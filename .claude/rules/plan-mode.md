@@ -1,12 +1,11 @@
-<!-- managed by ai-ops -->
-<!-- sourceHash: d53af8 | generatedAt: 2026-03-03T02:59:36.622Z -->
+<!-- ai-ops:start -->
+<!-- sourceHash: d32d57 | generatedAt: 2026-03-08T05:43:34.833Z -->
 
 # Plan Mode
 
 ## Constraints
 
 - DO NOT mix Mermaid diagram types arbitrarily. Pick the type that matches the information structure.
-- DO NOT use unquoted node or edge labels in Mermaid when they contain special characters (/, (, ), :, --, #, etc.). Always wrap such labels in double quotes to prevent parse errors.
 
 ## Guidelines
 
@@ -19,10 +18,10 @@
 
 ## Decision Table
 
-| When                                     | Then                     | Avoid                           |
-| ---------------------------------------- | ------------------------ | ------------------------------- |
-| Describing user journey or UI navigation | Use flowchart (LR or TD) | Text-only step lists            |
-| Describing API or service interactions   | Use sequenceDiagram      | Plain text arrows only          |
-| Describing schema relationships          | Use erDiagram            | Unstructured table bullet lists |
-| Describing state transitions             | Use stateDiagram-v2      | Flat textual state lists        |
-| Node/edge label contains / ( ) : -- #   | Wrap label in `"..."`    | Bare unquoted text              |
+| When | Then | Avoid |
+|------|------|-------|
+| Describing user journey or UI navigation | Use flowchart (LR or TD) | Text-only step lists |
+| Describing API or service interactions | Use sequenceDiagram | Plain text arrows only |
+| Describing schema relationships | Use erDiagram | Unstructured table bullet lists |
+| Describing state transitions | Use stateDiagram-v2 | Flat textual state lists |
+<!-- ai-ops:end -->
