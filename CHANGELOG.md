@@ -5,6 +5,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.1.20] - 2026-03-08
+
+- `refactor`: `update` 커맨드의 모노레포 분기에서 codex/gemini별 우회 로직 제거 — 모든 toolId가 `renderForTool → buildInstallPlan → installFiles` 파이프라인을 사용하도록 통합. codex 모노레포 update 시 Plan Snapshot 섹션 누락 버그 수정
+
 ## [0.1.19] - 2026-03-08
 
 - `refactor`: codex/gemini 모노레포 설치를 `buildInstallPlan` 파이프라인으로 통합 — `installHierarchicalMonorepo`, `installClaudeCodeMonorepo` 제거. `renderForTool`이 `workspaceMappings`를 받아 workspace별 `domainFiles[]`를 생성하고, `buildInstallPlan`이 이를 순회하여 파일을 생성함으로써 모든 도구가 동일한 파이프라인을 사용
