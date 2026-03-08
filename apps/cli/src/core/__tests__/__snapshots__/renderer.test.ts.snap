@@ -66,20 +66,7 @@ paths:
 
 exports[`Snapshot: renderForTool > codex snapshot 1`] = `
 {
-  "domainFiles": [
-    {
-      "content": "# Typescript
-
-## Constraints
-
-- No any
-
-## Guidelines
-
-- Use arrow functions",
-      "workspacePath": ".",
-    },
-  ],
+  "domainFiles": [],
   "rootContent": "# Communication
 
 ## Constraints
@@ -88,27 +75,26 @@ exports[`Snapshot: renderForTool > codex snapshot 1`] = `
 
 ## Guidelines
 
-- Use Korean",
+- Use Korean
+
+---
+
+# Typescript
+
+## Constraints
+
+- No any
+
+## Guidelines
+
+- Use arrow functions",
   "tool": "codex",
 }
 `;
 
 exports[`Snapshot: renderForTool > gemini snapshot 1`] = `
 {
-  "domainFiles": [
-    {
-      "content": "# Typescript
-
-## Constraints
-
-- No any
-
-## Guidelines
-
-- Use arrow functions",
-      "workspacePath": ".",
-    },
-  ],
+  "domainFiles": [],
   "rootContent": "# Communication
 
 ## Constraints
@@ -117,7 +103,19 @@ exports[`Snapshot: renderForTool > gemini snapshot 1`] = `
 
 ## Guidelines
 
-- Use Korean",
+- Use Korean
+
+---
+
+# Typescript
+
+## Constraints
+
+- No any
+
+## Guidelines
+
+- Use arrow functions",
   "tool": "gemini",
 }
 `;

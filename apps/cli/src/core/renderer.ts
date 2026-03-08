@@ -156,23 +156,23 @@ export const renderForTool = (
     return { tool: 'claude-code', files: [...globalFiles, ...workspaceFiles] };
   }
 
+  if (!workspaceMappings || workspaceMappings.length === 0) {
+    // 단일 프로젝트: 모든 룰(global + domain)을 rootContent 하나로 합침
+    const rootContent = renderRulesToMarkdown(rules);
+    const domainFiles: { workspacePath: string; content: string }[] = [];
+
+    if (toolId === 'codex') return { tool: 'codex', rootContent, domainFiles };
+    return { tool: 'gemini', rootContent, domainFiles };
+  }
+
+  // 모노레포: global → rootContent, domain → workspace별 파일
   const { global, domain } = partitionRules(rules);
   const rootContent = renderRulesToMarkdown(global);
-
-  let domainFiles: { workspacePath: string; content: string }[];
-
-  if (!workspaceMappings || workspaceMappings.length === 0) {
-    // 단일 프로젝트: 모든 domain 룰을 루트 경로에 단일 파일로
-    const domainMarkdown = renderRulesToMarkdown(domain);
-    domainFiles = domainMarkdown ? [{ workspacePath: '.', content: domainMarkdown }] : [];
-  } else {
-    // 모노레포: workspace별로 해당 domain 룰만 필터
-    domainFiles = [];
-    for (const ws of workspaceMappings) {
-      const wsRules = domain.filter((r) => ws.ruleIds.includes(r.id));
-      if (wsRules.length === 0) continue;
-      domainFiles.push({ workspacePath: ws.path, content: renderRulesToMarkdown(wsRules) });
-    }
+  const domainFiles: { workspacePath: string; content: string }[] = [];
+  for (const ws of workspaceMappings) {
+    const wsRules = domain.filter((r) => ws.ruleIds.includes(r.id));
+    if (wsRules.length === 0) continue;
+    domainFiles.push({ workspacePath: ws.path, content: renderRulesToMarkdown(wsRules) });
   }
 
   if (toolId === 'codex') {

@@ -107,16 +107,15 @@ describe('buildInstallPlan - codex', () => {
 });
 
 describe('buildInstallPlan - gemini', () => {
-  it('maps to .gemini/GEMINI.md for root and domain path for single-repo', () => {
+  it('maps to .gemini/GEMINI.md only for single-repo (domainFiles empty)', () => {
     const renderResult: ToolRenderResult = {
       tool: 'gemini',
-      rootContent: '# Global Rules',
-      domainFiles: [{ workspacePath: '.', content: '# Domain Rules' }],
+      rootContent: '# All Rules',
+      domainFiles: [],
     };
     const actions = buildInstallPlan({ toolId: 'gemini', renderResult, meta: META });
-    expect(actions).toHaveLength(2);
+    expect(actions).toHaveLength(1);
     expect(actions[0].relativePath).toBe('.gemini/GEMINI.md');
-    expect(actions[1].relativePath).toBe('GEMINI.md');
   });
 
   it('omits empty rootContent', () => {
