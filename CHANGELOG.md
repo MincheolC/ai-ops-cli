@@ -5,6 +5,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.1.21] - 2026-03-08
+
+- `refactor`: 단일 프로젝트에서 codex/gemini 룰을 단일 파일로 통합 — `renderForTool`이 단일 프로젝트 분기 시 global+domain을 `partitionRules` 없이 `rootContent` 하나로 합치고 `domainFiles: []`를 반환. codex는 `AGENTS.md`, gemini는 `.gemini/GEMINI.md` 하나만 생성됨
+
 ## [0.1.20] - 2026-03-08
 
 - `refactor`: `update` 커맨드의 모노레포 분기에서 codex/gemini별 우회 로직 제거 — 모든 toolId가 `renderForTool → buildInstallPlan → installFiles` 파이프라인을 사용하도록 통합. codex 모노레포 update 시 Plan Snapshot 섹션 누락 버그 수정
