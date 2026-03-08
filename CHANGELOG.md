@@ -5,6 +5,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.1.17] - 2026-03-08
+
 - fix(core): sort rules by priority in `loadAllRules` so init and update produce consistent ordering
 - fix(core): add `prettierignore` field to `buildManifest` settings type
 - fix(core): update Codex plan section wording to scope plan-saving to Plan mode only
