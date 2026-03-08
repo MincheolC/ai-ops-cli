@@ -5,8 +5,8 @@ import type { ToolId } from './tool-output.js';
 import type { ToolRenderResult } from './renderer.js';
 
 // Codex has no settings.json — plan directory convention must live in AGENTS.md
-const CODEX_PLAN_SECTION =
-  '\n\n---\n\n## Plan Snapshot (Plan mode only)\n\n' +
+const CODEX_PLAN_BODY =
+  '## Plan Snapshot (Plan mode only)\n\n' +
   '- This rule applies only when `collaboration_mode=Plan`.\n' +
   '- Before implementation (file edits/creates, installs, commits), save the latest plan content to `.codex/plans/YYYYMMDD_<topic>.md`.\n' +
   '- In `Default` mode, do not automatically create or update plan files.';
@@ -30,18 +30,38 @@ export const buildInstallPlan = (params: {
     }));
   }
 
-  if (
-    (toolId === 'codex' && renderResult.tool === 'codex') ||
-    (toolId === 'gemini' && renderResult.tool === 'gemini')
-  ) {
-    const config = TOOL_OUTPUT_MAP[toolId];
+  if (toolId === 'codex' && renderResult.tool === 'codex') {
+    const config = TOOL_OUTPUT_MAP['codex'];
+    const actions: FileAction[] = [];
+
+    // CODEX_PLAN_BODY is always written to root AGENTS.md regardless of whether global rules exist
+    const rootContent = renderResult.rootContent
+      ? renderResult.rootContent + '\n\n---\n\n' + CODEX_PLAN_BODY
+      : CODEX_PLAN_BODY;
+
+    actions.push({
+      relativePath: join(config.dir, config.rootFileName),
+      content: wrapWithSection(rootContent, meta),
+    });
+
+    if (renderResult.domainContent) {
+      actions.push({
+        relativePath: join(config.dir, config.domainFileName),
+        content: wrapWithSection(renderResult.domainContent, meta),
+      });
+    }
+
+    return actions;
+  }
+
+  if (toolId === 'gemini' && renderResult.tool === 'gemini') {
+    const config = TOOL_OUTPUT_MAP['gemini'];
     const actions: FileAction[] = [];
 
     if (renderResult.rootContent) {
-      const rootContent = toolId === 'codex' ? renderResult.rootContent + CODEX_PLAN_SECTION : renderResult.rootContent;
       actions.push({
         relativePath: join(config.dir, config.rootFileName),
-        content: wrapWithSection(rootContent, meta),
+        content: wrapWithSection(renderResult.rootContent, meta),
       });
     }
 

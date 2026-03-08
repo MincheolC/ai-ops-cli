@@ -59,11 +59,9 @@ export const uninstallCommand = async (): Promise<void> => {
     if (status === 'deleted') settingsMessages.push('삭제: .gemini/settings.json');
     else if (status === 'cleaned') settingsMessages.push('ai-ops 키 제거 (사용자 설정 보존): .gemini/settings.json');
   }
-  if (manifest.settings?.prettierignore) {
-    const status = uninstallPrettierIgnore(basePath);
-    if (status === 'deleted') settingsMessages.push('삭제: .prettierignore');
-    else if (status === 'cleaned') settingsMessages.push('ai-ops 섹션 제거 (사용자 내용 보존): .prettierignore');
-  }
+  const prettierStatus = uninstallPrettierIgnore(basePath);
+  if (prettierStatus === 'deleted') settingsMessages.push('삭제: .prettierignore');
+  else if (prettierStatus === 'cleaned') settingsMessages.push('ai-ops 섹션 제거 (사용자 내용 보존): .prettierignore');
 
   // 6. 파일 삭제
   const result = removeFiles(basePath, targetFiles);

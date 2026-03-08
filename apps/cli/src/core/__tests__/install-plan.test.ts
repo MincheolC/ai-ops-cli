@@ -53,6 +53,19 @@ describe('buildInstallPlan - codex', () => {
     expect(actions[0].relativePath).toBe('AGENTS.md');
   });
 
+  it('always produces AGENTS.md even when rootContent is empty', () => {
+    const renderResult: ToolRenderResult = {
+      tool: 'codex',
+      rootContent: '',
+      domainContent: '',
+    };
+    const actions = buildInstallPlan({ toolId: 'codex', renderResult, meta: META });
+    expect(actions).toHaveLength(1);
+    expect(actions[0].relativePath).toBe('AGENTS.md');
+    expect(actions[0].content).toContain('## Plan Snapshot');
+    expect(actions[0].content).toContain('.codex/plans/YYYYMMDD_<topic>.md');
+  });
+
   it('appends plan section to AGENTS.md root content', () => {
     const renderResult: ToolRenderResult = {
       tool: 'codex',

@@ -5,6 +5,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- `uninstall`: `.prettierignore` ai-ops 섹션이 `manifest.settings.prettierignore` 필드 없이도 항상 제거되도록 수정 (이전 버전 manifest 호환성 포함)
+- `install-plan`: global 룰이 없어 `rootContent`가 비어 있어도 Codex 루트 `AGENTS.md`에 Plan Snapshot 섹션이 항상 포함되도록 수정
+
 ## [0.1.17] - 2026-03-08
 
 - fix(core): sort rules by priority in `loadAllRules` so init and update produce consistent ordering
