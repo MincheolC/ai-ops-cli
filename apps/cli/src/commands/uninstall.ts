@@ -3,6 +3,10 @@ import { rmSync } from 'node:fs';
 import { readManifest, resolveManifestPath, inferInstalledFiles, MANIFEST_FILENAME } from '@/core/index.js';
 import { resolveBasePath } from '../lib/paths.js';
 import { removeFiles, cleanEmptyDirs, collectManagedDirs } from '../lib/uninstall.js';
+import { uninstallClaudeSettings } from '../lib/claude-settings.js';
+import { uninstallGeminiSettings } from '../lib/gemini-settings.js';
+
+const SETTINGS_PATHS = new Set(['.claude/settings.local.json', '.gemini/settings.json']);
 
 export const uninstallCommand = async (): Promise<void> => {
   const basePath = resolveBasePath();
@@ -17,11 +21,11 @@ export const uninstallCommand = async (): Promise<void> => {
     process.exit(1);
   }
 
-  // 2. 삭제 대상 결정 (managed 파일 + append된 파일)
+  // 2. 삭제 대상 결정 (managed 파일 + append된 파일, settings 파일 제외)
   const targetFiles = [
     ...(manifest.installed_files ?? inferInstalledFiles(manifest)),
     ...(manifest.appended_files ?? []),
-  ];
+  ].filter((f) => !SETTINGS_PATHS.has(f));
 
   if (targetFiles.length === 0) {
     p.log.warn('삭제할 파일이 없습니다.');
@@ -42,17 +46,30 @@ export const uninstallCommand = async (): Promise<void> => {
     process.exit(0);
   }
 
-  // 5. 파일 삭제
+  // 5. settings 파일 별도 처리
+  const settingsMessages: string[] = [];
+  if (manifest.settings?.claude) {
+    const status = uninstallClaudeSettings(basePath, manifest.settings.claude);
+    if (status === 'deleted') settingsMessages.push('삭제: .claude/settings.local.json');
+    else if (status === 'cleaned') settingsMessages.push('ai-ops 키 제거 (사용자 설정 보존): .claude/settings.local.json');
+  }
+  if (manifest.settings?.gemini) {
+    const status = uninstallGeminiSettings(basePath, manifest.settings.gemini);
+    if (status === 'deleted') settingsMessages.push('삭제: .gemini/settings.json');
+    else if (status === 'cleaned') settingsMessages.push('ai-ops 키 제거 (사용자 설정 보존): .gemini/settings.json');
+  }
+
+  // 6. 파일 삭제
   const result = removeFiles(basePath, targetFiles);
 
-  // 6. 빈 디렉토리 정리
+  // 7. 빈 디렉토리 정리
   const dirs = collectManagedDirs(targetFiles);
   const removedDirs = cleanEmptyDirs(basePath, dirs);
 
-  // 7. manifest 삭제
+  // 8. manifest 삭제
   rmSync(manifestPath, { force: true });
 
-  // 8. 결과 요약
+  // 9. 결과 요약
   if (result.deleted.length > 0) {
     p.log.success(`삭제 완료 (${result.deleted.length}개):\n${result.deleted.map((f) => `  ${f}`).join('\n')}`);
   }
@@ -71,6 +88,9 @@ export const uninstallCommand = async (): Promise<void> => {
   }
   if (removedDirs.length > 0) {
     p.log.info(`빈 디렉토리 정리 (${removedDirs.length}개):\n${removedDirs.map((d) => `  ${d}`).join('\n')}`);
+  }
+  if (settingsMessages.length > 0) {
+    p.log.success(`설정 파일 처리:\n${settingsMessages.map((m) => `  ${m}`).join('\n')}`);
   }
 
   p.log.success(`manifest 삭제: ${MANIFEST_FILENAME}`);

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { buildInstallPlan } from '../install-plan.js';
-import { isManagedFile } from '../managed-header.js';
+import { hasAiOpsSection } from '../managed-header.js';
 import type { ToolRenderResult } from '../renderer.js';
 
 const META = { sourceHash: 'a1b2c3', generatedAt: '2026-02-27T00:00:00.000Z' };
@@ -24,7 +24,7 @@ describe('buildInstallPlan - claude-code', () => {
   it('includes managed header in content', () => {
     const actions = buildInstallPlan({ toolId: 'claude-code', renderResult, meta: META });
     for (const action of actions) {
-      expect(isManagedFile(action.content)).toBe(true);
+      expect(hasAiOpsSection(action.content)).toBe(true);
     }
   });
 });
@@ -72,7 +72,7 @@ describe('buildInstallPlan - codex', () => {
     };
     const actions = buildInstallPlan({ toolId: 'codex', renderResult, meta: META });
     for (const action of actions) {
-      expect(isManagedFile(action.content)).toBe(true);
+      expect(hasAiOpsSection(action.content)).toBe(true);
     }
   });
 });

@@ -1,5 +1,5 @@
 import { join } from 'node:path';
-import { wrapWithHeader } from './managed-header.js';
+import { wrapWithSection } from './managed-header.js';
 import { TOOL_OUTPUT_MAP } from './tool-output.js';
 import type { ToolId } from './tool-output.js';
 import type { ToolRenderResult } from './renderer.js';
@@ -26,7 +26,7 @@ export const buildInstallPlan = (params: {
   if (toolId === 'claude-code' && renderResult.tool === 'claude-code') {
     return renderResult.files.map(({ relativePath, content }) => ({
       relativePath,
-      content: wrapWithHeader(content, meta),
+      content: wrapWithSection(content, meta),
     }));
   }
 
@@ -41,14 +41,14 @@ export const buildInstallPlan = (params: {
       const rootContent = toolId === 'codex' ? renderResult.rootContent + CODEX_PLAN_SECTION : renderResult.rootContent;
       actions.push({
         relativePath: join(config.dir, config.rootFileName),
-        content: wrapWithHeader(rootContent, meta),
+        content: wrapWithSection(rootContent, meta),
       });
     }
 
     if (renderResult.domainContent) {
       actions.push({
         relativePath: join(config.dir, config.domainFileName),
-        content: wrapWithHeader(renderResult.domainContent, meta),
+        content: wrapWithSection(renderResult.domainContent, meta),
       });
     }
 

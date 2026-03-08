@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync, existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { wrapWithHeader, wrapWithSection } from '@/core/index.js';
+import { wrapWithSection } from '@/core/index.js';
 import { removeFiles, cleanEmptyDirs, collectManagedDirs } from '../lib/uninstall.js';
 
 const META = { sourceHash: 'a1b2c3', generatedAt: '2026-02-28T00:00:00.000Z' };
@@ -15,7 +15,7 @@ const setup = () => {
 const writeManaged = (dir: string, rel: string): void => {
   const absPath = join(dir, rel);
   mkdirSync(join(dir, rel, '..'), { recursive: true });
-  writeFileSync(absPath, wrapWithHeader('# content', META), 'utf-8');
+  writeFileSync(absPath, wrapWithSection('# content', META) + '\n', 'utf-8');
 };
 
 const writeUser = (dir: string, rel: string): void => {
@@ -25,7 +25,7 @@ const writeUser = (dir: string, rel: string): void => {
 };
 
 describe('removeFiles', () => {
-  it('managed 파일 삭제 → deleted', () => {
+  it('섹션만 있는 파일 → deleted', () => {
     const { dir, cleanup } = setup();
     try {
       writeManaged(dir, '.claude/rules/typescript.md');
@@ -54,9 +54,8 @@ describe('removeFiles', () => {
     }
   });
 
-  it('append된 파일 (ai-ops 섹션 포함) → 섹션만 제거, 사용자 내용 보존', () => {
+  it('섹션 + 사용자 콘텐츠 → 섹션만 제거, 사용자 내용 보존 (cleaned)', () => {
     const { dir, cleanup } = setup();
-    const META = { sourceHash: 'a1b2c3', generatedAt: '2026-02-28T00:00:00.000Z' };
     try {
       const absPath = join(dir, 'AGENTS.md');
       const section = wrapWithSection('# ai-ops rules', META);
@@ -72,6 +71,27 @@ describe('removeFiles', () => {
       expect(content).toContain('# User content');
       expect(content).not.toContain('<!-- ai-ops:start -->');
       expect(content).not.toContain('<!-- ai-ops:end -->');
+    } finally {
+      cleanup();
+    }
+  });
+
+  it('레거시 헤더 파일 → deleted', () => {
+    const { dir, cleanup } = setup();
+    try {
+      const absPath = join(dir, '.claude/rules/typescript.md');
+      mkdirSync(join(dir, '.claude/rules'), { recursive: true });
+      writeFileSync(
+        absPath,
+        '<!-- managed by ai-ops -->\n<!-- sourceHash: aabbcc | generatedAt: 2026-01-01T00:00:00.000Z -->\n\n# Old content',
+        'utf-8',
+      );
+
+      const result = removeFiles(dir, ['.claude/rules/typescript.md']);
+      expect(result.deleted).toEqual(['.claude/rules/typescript.md']);
+      expect(result.cleaned).toHaveLength(0);
+      expect(result.skipped).toHaveLength(0);
+      expect(existsSync(absPath)).toBe(false);
     } finally {
       cleanup();
     }

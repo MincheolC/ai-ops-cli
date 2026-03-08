@@ -15,7 +15,7 @@ import {
   resolveManifestPath,
   computeSourceHash,
   computeDiff,
-  isManagedFile,
+  hasAiOpsSection,
 } from '@/core/index.js';
 import { installFiles } from '../lib/install.js';
 import { removeFiles } from '../lib/uninstall.js';
@@ -103,7 +103,7 @@ describe('E2E: single-project install flow', () => {
         const absPath = join(dir, rel);
         expect(existsSync(absPath)).toBe(true);
         const content = readFileSync(absPath, 'utf-8');
-        expect(isManagedFile(content)).toBe(true);
+        expect(hasAiOpsSection(content)).toBe(true);
       }
 
       // manifest 저장 + 재로드

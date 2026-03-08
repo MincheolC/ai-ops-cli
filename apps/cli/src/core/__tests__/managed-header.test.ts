@@ -1,9 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
-  wrapWithHeader,
-  isManagedFile,
-  parseManagedHeader,
-  stripManagedHeader,
+  hasLegacyHeader,
+  parseAiOpsMeta,
   wrapWithSection,
   hasAiOpsSection,
   stripAiOpsSection,
@@ -12,61 +10,21 @@ import {
 
 const META = { sourceHash: 'a1b2c3', generatedAt: '2026-02-27T00:00:00.000Z' };
 
-describe('wrapWithHeader', () => {
-  it('produces marker + meta + blank line + content', () => {
-    const result = wrapWithHeader('# Hello', META);
-    const lines = result.split('\n');
-    expect(lines[0]).toBe('<!-- managed by ai-ops -->');
-    expect(lines[1]).toBe(`<!-- sourceHash: a1b2c3 | generatedAt: 2026-02-27T00:00:00.000Z -->`);
-    expect(lines[2]).toBe('');
-    expect(lines[3]).toBe('# Hello');
-  });
-});
-
-describe('isManagedFile', () => {
-  it('returns true for managed file', () => {
-    expect(isManagedFile(wrapWithHeader('content', META))).toBe(true);
+describe('hasLegacyHeader', () => {
+  it('managed by ai-ops 마커 포함 시 true', () => {
+    expect(hasLegacyHeader('<!-- managed by ai-ops -->\n# content')).toBe(true);
   });
 
-  it('returns false for plain content', () => {
-    expect(isManagedFile('# Not managed')).toBe(false);
+  it('파일 중간에 마커가 있어도 true', () => {
+    expect(hasLegacyHeader('# User\n\n<!-- managed by ai-ops -->\n# content')).toBe(true);
   });
 
-  it('returns false for empty string', () => {
-    expect(isManagedFile('')).toBe(false);
-  });
-});
-
-describe('parseManagedHeader', () => {
-  it('extracts sourceHash and generatedAt', () => {
-    const wrapped = wrapWithHeader('body', META);
-    expect(parseManagedHeader(wrapped)).toEqual(META);
+  it('마커 없으면 false', () => {
+    expect(hasLegacyHeader('# Not managed')).toBe(false);
   });
 
-  it('returns null for non-managed content', () => {
-    expect(parseManagedHeader('# plain')).toBeNull();
-  });
-
-  it('returns null when meta line format is broken', () => {
-    const broken = '<!-- managed by ai-ops -->\nbad meta line\n\ncontent';
-    expect(parseManagedHeader(broken)).toBeNull();
-  });
-});
-
-describe('stripManagedHeader', () => {
-  it('removes header and returns content', () => {
-    const wrapped = wrapWithHeader('# Rule', META);
-    expect(stripManagedHeader(wrapped)).toBe('# Rule');
-  });
-
-  it('returns original content for non-managed file', () => {
-    const plain = '# Not managed';
-    expect(stripManagedHeader(plain)).toBe(plain);
-  });
-
-  it('idempotency: wrap → strip = original', () => {
-    const original = '# Title\n\nSome content\n- item';
-    expect(stripManagedHeader(wrapWithHeader(original, META))).toBe(original);
+  it('빈 문자열 → false', () => {
+    expect(hasLegacyHeader('')).toBe(false);
   });
 });
 
@@ -118,10 +76,11 @@ describe('stripAiOpsSection', () => {
     expect(stripAiOpsSection(plain)).toBe(plain);
   });
 
-  it('섹션만 있을 때 빈 내용이 아닌 줄바꿈 포함 문자열 반환', () => {
+  it('섹션만 있을 때 trim 후 빈 문자열', () => {
     const sectionOnly = wrapWithSection('rules', META);
     const result = stripAiOpsSection(sectionOnly);
     expect(result).not.toContain('<!-- ai-ops:start -->');
+    expect(result.trim()).toBe('');
   });
 });
 
@@ -144,5 +103,42 @@ describe('replaceAiOpsSection', () => {
   it('마커 없으면 원본 반환', () => {
     const plain = '# plain';
     expect(replaceAiOpsSection(plain, wrapWithSection('new', META))).toBe(plain);
+  });
+
+  it('before가 빈 경우 선행 빈 줄 없이 반환', () => {
+    const sectionOnly = wrapWithSection('old', META);
+    const META2 = { sourceHash: 'ff1122', generatedAt: '2026-03-01T00:00:00.000Z' };
+    const newSection = wrapWithSection('new', META2);
+    const result = replaceAiOpsSection(sectionOnly, newSection);
+    expect(result.startsWith('\n')).toBe(false);
+    expect(result).toContain('new');
+    expect(result).not.toContain('old');
+  });
+
+  it('idempotency: section-only 파일에 동일 섹션 교체 → 내용 동일', () => {
+    const sectionOnly = wrapWithSection('content', META) + '\n';
+    const result = replaceAiOpsSection(sectionOnly, wrapWithSection('content', META));
+    expect(result).toBe(sectionOnly);
+  });
+});
+
+describe('parseAiOpsMeta', () => {
+  it('섹션 내 sourceHash/generatedAt 추출', () => {
+    const section = wrapWithSection('# Rules', META);
+    expect(parseAiOpsMeta(section)).toEqual(META);
+  });
+
+  it('파일 앞에 사용자 콘텐츠가 있어도 추출 가능', () => {
+    const full = '# User\n\n' + wrapWithSection('rules', META);
+    expect(parseAiOpsMeta(full)).toEqual(META);
+  });
+
+  it('섹션 없으면 null', () => {
+    expect(parseAiOpsMeta('# plain content')).toBeNull();
+  });
+
+  it('meta line 형식이 잘못되면 null', () => {
+    const broken = '<!-- ai-ops:start -->\nbad meta line\n\ncontent\n<!-- ai-ops:end -->';
+    expect(parseAiOpsMeta(broken)).toBeNull();
   });
 });

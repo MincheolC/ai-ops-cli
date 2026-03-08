@@ -1,6 +1,7 @@
 import * as p from '@clack/prompts';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { deepMerge, deepRemoveKeys } from './deep-merge.util.js';
 
 type GeminiSettings = {
   ui?: { showLineNumbers?: boolean };
@@ -44,24 +45,6 @@ const SETTING_GROUPS: readonly SettingGroup[] = [
     patch: { experimental: { jitContext: true, plan: true } },
   },
 ];
-
-const deepMerge = (base: Record<string, unknown>, patch: Record<string, unknown>): Record<string, unknown> => {
-  const result = { ...base };
-  for (const [key, value] of Object.entries(patch)) {
-    if (
-      value !== null &&
-      typeof value === 'object' &&
-      !Array.isArray(value) &&
-      typeof result[key] === 'object' &&
-      result[key] !== null
-    ) {
-      result[key] = deepMerge(result[key] as Record<string, unknown>, value as Record<string, unknown>);
-    } else {
-      result[key] = value;
-    }
-  }
-  return result;
-};
 
 // null → 건너뜀 (취소 또는 "No"), string[] → 선택된 항목
 export const promptGeminiSettings = async (): Promise<readonly string[] | null> => {
@@ -109,4 +92,35 @@ export const installGeminiSettings = (basePath: string, selectedValues: readonly
 
   mkdirSync(settingsDir, { recursive: true });
   writeFileSync(settingsPath, JSON.stringify(merged, null, 2) + '\n', 'utf-8');
+};
+
+export type SettingsUninstallStatus = 'deleted' | 'cleaned' | 'notFound';
+
+export const uninstallGeminiSettings = (basePath: string, selectedValues: readonly string[]): SettingsUninstallStatus => {
+  const settingsPath = join(basePath, '.gemini', 'settings.json');
+
+  if (!existsSync(settingsPath)) return 'notFound';
+
+  let existing: GeminiSettings = {};
+  try {
+    existing = JSON.parse(readFileSync(settingsPath, 'utf-8')) as GeminiSettings;
+  } catch {
+    rmSync(settingsPath, { force: true });
+    return 'deleted';
+  }
+
+  let result: GeminiSettings = existing;
+  for (const val of selectedValues) {
+    const group = SETTING_GROUPS.find((g) => g.value === val);
+    if (!group) continue;
+    result = deepRemoveKeys(result as Record<string, unknown>, group.patch as Record<string, unknown>) as GeminiSettings;
+  }
+
+  if (Object.keys(result).length === 0) {
+    rmSync(settingsPath, { force: true });
+    return 'deleted';
+  }
+
+  writeFileSync(settingsPath, JSON.stringify(result, null, 2) + '\n', 'utf-8');
+  return 'cleaned';
 };

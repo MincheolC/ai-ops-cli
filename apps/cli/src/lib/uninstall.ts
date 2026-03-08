@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, rmSync, readdirSync, writeFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
-import { isManagedFile, hasAiOpsSection, stripAiOpsSection } from '@/core/index.js';
+import { hasAiOpsSection, stripAiOpsSection, hasLegacyHeader } from '@/core/index.js';
 
 export type UninstallResult = {
   deleted: string[];
@@ -25,20 +25,21 @@ export const removeFiles = (basePath: string, relativePaths: readonly string[]):
 
     const content = readFileSync(absPath, 'utf-8');
 
-    if (!isManagedFile(content)) {
-      if (hasAiOpsSection(content)) {
-        // append된 파일 → 섹션만 제거, 사용자 콘텐츠 보존
-        const stripped = stripAiOpsSection(content);
+    if (hasAiOpsSection(content)) {
+      const stripped = stripAiOpsSection(content);
+      if (stripped.trim().length === 0) {
+        rmSync(absPath);
+        deleted.push(rel);
+      } else {
         writeFileSync(absPath, stripped, 'utf-8');
         cleaned.push(rel);
-      } else {
-        skipped.push(rel);
       }
-      continue;
+    } else if (hasLegacyHeader(content)) {
+      rmSync(absPath);
+      deleted.push(rel);
+    } else {
+      skipped.push(rel);
     }
-
-    rmSync(absPath);
-    deleted.push(rel);
   }
 
   return { deleted, cleaned, skipped, notFound };

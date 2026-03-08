@@ -16,7 +16,7 @@ import {
   getCliVersion,
   resolveManifestPath,
   writeManifest,
-  wrapWithHeader,
+  wrapWithSection,
   TOOL_OUTPUT_MAP,
 } from '@/core/index.js';
 import type { FileAction } from '@/core/index.js';
@@ -113,7 +113,7 @@ const installHierarchicalMonorepo = (
   if (global.length > 0) {
     const rootAction: FileAction = {
       relativePath: join(config.dir, config.rootFileName),
-      content: wrapWithHeader(renderRulesToMarkdown(global), meta),
+      content: wrapWithSection(renderRulesToMarkdown(global), meta),
     };
     const r = installFiles(basePath, [rootAction], meta);
     written.push(...r.written);
@@ -126,7 +126,7 @@ const installHierarchicalMonorepo = (
 
     const domainAction: FileAction = {
       relativePath: join(mapping.workspace, config.domainFileName),
-      content: wrapWithHeader(renderRulesToMarkdown(domain), meta),
+      content: wrapWithSection(renderRulesToMarkdown(domain), meta),
     };
     const r = installFiles(basePath, [domainAction], meta);
     written.push(...r.written);
@@ -256,12 +256,10 @@ export const initCommand = async (): Promise<void> => {
 
   if (geminiSettingValues && geminiSettingValues.length > 0) {
     installGeminiSettings(basePath, geminiSettingValues);
-    allInstalledFiles.push('.gemini/settings.json');
   }
 
   if (claudeSettingValues && claudeSettingValues.length > 0) {
     installClaudeSettings(basePath, claudeSettingValues);
-    allInstalledFiles.push('.claude/settings.local.json');
   }
 
   s.stop('규칙 설치 완료');

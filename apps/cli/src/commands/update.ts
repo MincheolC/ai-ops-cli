@@ -13,7 +13,7 @@ import {
   getCliVersion,
   partitionRules,
   renderRulesToMarkdown,
-  wrapWithHeader,
+  wrapWithSection,
   TOOL_OUTPUT_MAP,
 } from '@/core/index.js';
 import type { FileAction } from '@/core/index.js';
@@ -90,7 +90,7 @@ export const updateCommand = async (opts: { force: boolean }): Promise<void> => 
         if (global.length > 0) {
           const rootAction: FileAction = {
             relativePath: join(config.dir, config.rootFileName),
-            content: wrapWithHeader(renderRulesToMarkdown(global), meta),
+            content: wrapWithSection(renderRulesToMarkdown(global), meta),
           };
           const r = installFiles(basePath, [rootAction], meta);
           allInstalledFiles.push(...r.written);
@@ -105,7 +105,7 @@ export const updateCommand = async (opts: { force: boolean }): Promise<void> => 
 
           const domainAction: FileAction = {
             relativePath: join(ws, config.domainFileName),
-            content: wrapWithHeader(renderRulesToMarkdown(domain), meta),
+            content: wrapWithSection(renderRulesToMarkdown(domain), meta),
           };
           const r = installFiles(basePath, [domainAction], meta);
           allInstalledFiles.push(...r.written);

@@ -4,32 +4,7 @@ const META_PATTERN = /^<!-- sourceHash: ([a-f0-9]{6}) \| generatedAt: (.+) -->$/
 const SECTION_START = '<!-- ai-ops:start -->';
 const SECTION_END = '<!-- ai-ops:end -->';
 
-export const wrapWithHeader = (content: string, meta: { sourceHash: string; generatedAt: string }): string => {
-  const metaLine = `<!-- sourceHash: ${meta.sourceHash} | generatedAt: ${meta.generatedAt} -->`;
-  return `${MANAGED_MARKER}\n${metaLine}\n\n${content}`;
-};
-
-export const isManagedFile = (content: string): boolean => content.startsWith(MANAGED_MARKER);
-
-export const parseManagedHeader = (content: string): { sourceHash: string; generatedAt: string } | null => {
-  if (!isManagedFile(content)) return null;
-
-  const lines = content.split('\n');
-  const metaLine = lines[1] ?? '';
-  const match = META_PATTERN.exec(metaLine);
-  if (!match) return null;
-
-  return { sourceHash: match[1], generatedAt: match[2] };
-};
-
-export const stripManagedHeader = (content: string): string => {
-  if (!isManagedFile(content)) return content;
-
-  const lines = content.split('\n');
-  // marker line + meta line + blank line = 3 lines
-  const stripped = lines.slice(3).join('\n');
-  return stripped;
-};
+export const hasLegacyHeader = (content: string): boolean => content.includes(MANAGED_MARKER);
 
 export const wrapWithSection = (content: string, meta: { sourceHash: string; generatedAt: string }): string => {
   const metaLine = `<!-- sourceHash: ${meta.sourceHash} | generatedAt: ${meta.generatedAt} -->`;
@@ -56,5 +31,20 @@ export const replaceAiOpsSection = (existing: string, newSection: string): strin
 
   const before = existing.slice(0, startIdx).trimEnd();
   const after = existing.slice(endIdx + SECTION_END.length).trimStart();
-  return before + '\n\n' + newSection + (after ? '\n\n' + after : '') + '\n';
+
+  // filter(Boolean)으로 빈 before/after 제거 → 불필요한 선행 \n\n 방지
+  return [before, newSection, after].filter(Boolean).join('\n\n') + '\n';
+};
+
+export const parseAiOpsMeta = (content: string): { sourceHash: string; generatedAt: string } | null => {
+  const startIdx = content.indexOf(SECTION_START);
+  if (startIdx === -1) return null;
+
+  const lines = content.slice(startIdx).split('\n');
+  // lines[0] = '<!-- ai-ops:start -->', lines[1] = meta line
+  const metaLine = lines[1] ?? '';
+  const match = META_PATTERN.exec(metaLine);
+  if (!match) return null;
+
+  return { sourceHash: match[1], generatedAt: match[2] };
 };
