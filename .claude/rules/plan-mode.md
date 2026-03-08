@@ -6,6 +6,7 @@
 ## Constraints
 
 - DO NOT mix Mermaid diagram types arbitrarily. Pick the type that matches the information structure.
+- DO NOT use unquoted node or edge labels in Mermaid when they contain special characters (/, (, ), :, --, #, etc.). Always wrap such labels in double quotes to prevent parse errors.
 
 ## Guidelines
 
@@ -24,3 +25,4 @@
 | Describing API or service interactions   | Use sequenceDiagram      | Plain text arrows only          |
 | Describing schema relationships          | Use erDiagram            | Unstructured table bullet lists |
 | Describing state transitions             | Use stateDiagram-v2      | Flat textual state lists        |
+| Node/edge label contains / ( ) : -- #   | Wrap label in `"..."`    | Bare unquoted text              |

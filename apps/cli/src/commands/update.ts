@@ -22,6 +22,7 @@ import { resolveBasePath, resolveRulesDir } from '../lib/paths.js';
 import { installFiles } from '../lib/install.js';
 import { installClaudeSettings } from '../lib/claude-settings.js';
 import { installGeminiSettings } from '../lib/gemini-settings.js';
+import { installPrettierIgnore } from '../lib/prettier-ignore.js';
 
 export const updateCommand = async (opts: { force: boolean }): Promise<void> => {
   const basePath = resolveBasePath();
@@ -136,6 +137,10 @@ export const updateCommand = async (opts: { force: boolean }): Promise<void> => 
     installGeminiSettings(basePath, manifest.settings.gemini);
   }
 
+  if (manifest.settings?.prettierignore) {
+    installPrettierIgnore(basePath);
+  }
+
   const newManifest = buildManifest({
     tools: manifest.tools,
     scope: manifest.scope,
@@ -148,6 +153,7 @@ export const updateCommand = async (opts: { force: boolean }): Promise<void> => 
       ? {
           claude: manifest.settings.claude,
           gemini: manifest.settings.gemini,
+          prettierignore: manifest.settings.prettierignore,
         }
       : undefined,
     cliVersion,

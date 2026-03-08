@@ -25,6 +25,7 @@ import { listWorkspaceCandidates } from '../lib/workspace.js';
 import { installFiles } from '../lib/install.js';
 import { promptGeminiSettings, installGeminiSettings } from '../lib/gemini-settings.js';
 import { promptClaudeSettings, installClaudeSettings } from '../lib/claude-settings.js';
+import { promptPrettierIgnore, installPrettierIgnore } from '../lib/prettier-ignore.js';
 
 type WorkspacePresetMapping = {
   workspace: string;
@@ -226,6 +227,9 @@ export const initCommand = async (): Promise<void> => {
     ? await promptClaudeSettings()
     : null;
 
+  // 4.7. .prettierignore 설치 여부
+  const wantPrettierIgnore = await promptPrettierIgnore();
+
   // 5. 설치
   const s = p.spinner();
   s.start('규칙 설치 중...');
@@ -262,6 +266,10 @@ export const initCommand = async (): Promise<void> => {
     installClaudeSettings(basePath, claudeSettingValues);
   }
 
+  if (wantPrettierIgnore) {
+    installPrettierIgnore(basePath);
+  }
+
   s.stop('규칙 설치 완료');
 
   // 6. Manifest 저장
@@ -282,10 +290,11 @@ export const initCommand = async (): Promise<void> => {
     installedFiles: allInstalledFiles,
     appendedFiles: allAppended,
     settings:
-      claudeSettingValues || geminiSettingValues
+      claudeSettingValues || geminiSettingValues || wantPrettierIgnore
         ? {
             claude: claudeSettingValues ? [...claudeSettingValues] : undefined,
             gemini: geminiSettingValues ? [...geminiSettingValues] : undefined,
+            prettierignore: wantPrettierIgnore || undefined,
           }
         : undefined,
     cliVersion: getCliVersion(),

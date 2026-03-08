@@ -12,6 +12,7 @@ const SettingsConfigSchema = z
   .object({
     claude: z.array(z.string().min(1)).optional(),
     gemini: z.array(z.string().min(1)).optional(),
+    prettierignore: z.boolean().optional(),
   })
   .strict();
 

@@ -5,6 +5,7 @@ import { resolveBasePath } from '../lib/paths.js';
 import { removeFiles, cleanEmptyDirs, collectManagedDirs } from '../lib/uninstall.js';
 import { uninstallClaudeSettings } from '../lib/claude-settings.js';
 import { uninstallGeminiSettings } from '../lib/gemini-settings.js';
+import { uninstallPrettierIgnore } from '../lib/prettier-ignore.js';
 
 const SETTINGS_PATHS = new Set(['.claude/settings.local.json', '.gemini/settings.json']);
 
@@ -57,6 +58,11 @@ export const uninstallCommand = async (): Promise<void> => {
     const status = uninstallGeminiSettings(basePath, manifest.settings.gemini);
     if (status === 'deleted') settingsMessages.push('삭제: .gemini/settings.json');
     else if (status === 'cleaned') settingsMessages.push('ai-ops 키 제거 (사용자 설정 보존): .gemini/settings.json');
+  }
+  if (manifest.settings?.prettierignore) {
+    const status = uninstallPrettierIgnore(basePath);
+    if (status === 'deleted') settingsMessages.push('삭제: .prettierignore');
+    else if (status === 'cleaned') settingsMessages.push('ai-ops 섹션 제거 (사용자 내용 보존): .prettierignore');
   }
 
   // 6. 파일 삭제
