@@ -5,6 +5,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.1.19] - 2026-03-08
+
+### Changed
+
+- `refactor`: codex/gemini 모노레포 설치를 `buildInstallPlan` 파이프라인으로 통합 — `installHierarchicalMonorepo`, `installClaudeCodeMonorepo` 제거. `renderForTool`이 `workspaceMappings`를 받아 workspace별 `domainFiles[]`를 생성하고, `buildInstallPlan`이 이를 순회하여 파일을 생성함으로써 모든 도구가 동일한 파이프라인을 사용
+
 ## [0.1.18] - 2026-03-08
 
 ### Fixed
