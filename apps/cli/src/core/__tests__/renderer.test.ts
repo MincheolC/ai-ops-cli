@@ -232,26 +232,28 @@ describe('renderForTool', () => {
     expect(result.files.find((f) => f.relativePath === '.claude/rules/typescript.md')).toBeUndefined();
   });
 
-  it('codex: rootContent에 global만, domainContent에 domain만', () => {
+  it('codex: rootContent에 global만, domainFiles에 domain만', () => {
     const result = renderForTool('codex', rules);
     expect(result.tool).toBe('codex');
     if (result.tool !== 'codex') return;
 
     expect(result.rootContent).toContain('# Role Persona');
     expect(result.rootContent).not.toContain('# Typescript');
-    expect(result.domainContent).toContain('# Typescript');
-    expect(result.domainContent).not.toContain('# Role Persona');
+    expect(result.domainFiles).toHaveLength(1);
+    expect(result.domainFiles[0].content).toContain('# Typescript');
+    expect(result.domainFiles[0].content).not.toContain('# Role Persona');
   });
 
-  it('gemini: rootContent에 global만, domainContent에 domain만', () => {
+  it('gemini: rootContent에 global만, domainFiles에 domain만', () => {
     const result = renderForTool('gemini', rules);
     expect(result.tool).toBe('gemini');
     if (result.tool !== 'gemini') return;
 
     expect(result.rootContent).toContain('# Role Persona');
     expect(result.rootContent).not.toContain('# Typescript');
-    expect(result.domainContent).toContain('# Typescript');
-    expect(result.domainContent).not.toContain('# Role Persona');
+    expect(result.domainFiles).toHaveLength(1);
+    expect(result.domainFiles[0].content).toContain('# Typescript');
+    expect(result.domainFiles[0].content).not.toContain('# Role Persona');
   });
 });
 

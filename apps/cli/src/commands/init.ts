@@ -1,5 +1,4 @@
 import * as p from '@clack/prompts';
-import { join } from 'node:path';
 import type { Rule, Preset, ToolId, WorkspaceMapping } from '@/core/index.js';
 import {
   loadAllRules,
@@ -7,19 +6,14 @@ import {
   resolvePresetRules,
   resolvePresetRuleGroups,
   isGlobalRule,
-  partitionRules,
   renderForTool,
-  renderRulesToMarkdown,
   buildInstallPlan,
   buildManifest,
   computeSourceHash,
   getCliVersion,
   resolveManifestPath,
   writeManifest,
-  wrapWithSection,
-  TOOL_OUTPUT_MAP,
 } from '@/core/index.js';
-import type { FileAction } from '@/core/index.js';
 import { resolveBasePath, resolveRulesDir, resolvePresetsPath } from '../lib/paths.js';
 import { listWorkspaceCandidates } from '../lib/workspace.js';
 import { installFiles } from '../lib/install.js';
@@ -32,8 +26,6 @@ type WorkspacePresetMapping = {
   preset: Preset;
   finalRules: Rule[];
 };
-
-type InstallStats = { written: string[]; appended: string[] };
 
 const TOOL_OPTIONS = [
   { value: 'claude-code' as ToolId, label: 'Claude Code' },
@@ -96,61 +88,6 @@ const selectPresetAndFineTune = async (
     preset,
     finalRules: resolvePresetRules({ ...preset, rules: selectedLogicalRuleIds }, allRules),
   };
-};
-
-const installHierarchicalMonorepo = (
-  toolId: 'codex' | 'gemini',
-  mappings: readonly WorkspacePresetMapping[],
-  basePath: string,
-  meta: { sourceHash: string; generatedAt: string },
-): InstallStats => {
-  const config = TOOL_OUTPUT_MAP[toolId];
-  const written: string[] = [];
-  const appended: string[] = [];
-
-  const allRules = deduplicateRules(mappings.flatMap((m) => m.finalRules));
-  const { global } = partitionRules(allRules);
-
-  if (global.length > 0) {
-    const rootAction: FileAction = {
-      relativePath: join(config.dir, config.rootFileName),
-      content: wrapWithSection(renderRulesToMarkdown(global), meta),
-    };
-    const r = installFiles(basePath, [rootAction], meta);
-    written.push(...r.written);
-    appended.push(...r.appended);
-  }
-
-  for (const mapping of mappings) {
-    const { domain } = partitionRules(mapping.finalRules);
-    if (domain.length === 0) continue;
-
-    const domainAction: FileAction = {
-      relativePath: join(mapping.workspace, config.domainFileName),
-      content: wrapWithSection(renderRulesToMarkdown(domain), meta),
-    };
-    const r = installFiles(basePath, [domainAction], meta);
-    written.push(...r.written);
-    appended.push(...r.appended);
-  }
-
-  return { written, appended };
-};
-
-const installClaudeCodeMonorepo = (
-  mappings: readonly WorkspacePresetMapping[],
-  basePath: string,
-  meta: { sourceHash: string; generatedAt: string },
-): InstallStats => {
-  const allRules = deduplicateRules(mappings.flatMap((m) => m.finalRules));
-  const workspaceMappings: WorkspaceMapping[] = mappings.map((m) => ({
-    path: m.workspace,
-    ruleIds: m.finalRules.map((r) => r.id),
-  }));
-  const renderResult = renderForTool('claude-code', allRules, workspaceMappings);
-  const actions = buildInstallPlan({ toolId: 'claude-code', renderResult, meta });
-  const r = installFiles(basePath, actions, meta);
-  return { written: r.written, appended: r.appended };
 };
 
 export const initCommand = async (): Promise<void> => {
@@ -240,15 +177,16 @@ export const initCommand = async (): Promise<void> => {
 
   for (const toolId of selectedTools as ToolId[]) {
     if (isMonorepo) {
-      if (toolId === 'claude-code') {
-        const stats = installClaudeCodeMonorepo(mappings, basePath, meta);
-        allInstalledFiles.push(...stats.written);
-        allAppended.push(...stats.appended);
-      } else {
-        const stats = installHierarchicalMonorepo(toolId, mappings, basePath, meta);
-        allInstalledFiles.push(...stats.written);
-        allAppended.push(...stats.appended);
-      }
+      const allRules = deduplicateRules(mappings.flatMap((m) => m.finalRules));
+      const workspaceMappings: WorkspaceMapping[] = mappings.map((m) => ({
+        path: m.workspace,
+        ruleIds: m.finalRules.map((r) => r.id),
+      }));
+      const renderResult = renderForTool(toolId, allRules, workspaceMappings);
+      const actions = buildInstallPlan({ toolId, renderResult, meta });
+      const result = installFiles(basePath, actions, meta);
+      allInstalledFiles.push(...result.written);
+      allAppended.push(...result.appended);
     } else {
       const renderResult = renderForTool(toolId, mappings[0].finalRules);
       const actions = buildInstallPlan({ toolId, renderResult, meta });

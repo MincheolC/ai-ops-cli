@@ -104,13 +104,13 @@ export type ClaudeCodeRenderResult = {
 export type CodexRenderResult = {
   tool: 'codex';
   rootContent: string;
-  domainContent: string;
+  domainFiles: { workspacePath: string; content: string }[];
 };
 
 export type GeminiRenderResult = {
   tool: 'gemini';
   rootContent: string;
-  domainContent: string;
+  domainFiles: { workspacePath: string; content: string }[];
 };
 
 export type ToolRenderResult = ClaudeCodeRenderResult | CodexRenderResult | GeminiRenderResult;
@@ -158,12 +158,27 @@ export const renderForTool = (
 
   const { global, domain } = partitionRules(rules);
   const rootContent = renderRulesToMarkdown(global);
-  const domainContent = renderRulesToMarkdown(domain);
+
+  let domainFiles: { workspacePath: string; content: string }[];
+
+  if (!workspaceMappings || workspaceMappings.length === 0) {
+    // 단일 프로젝트: 모든 domain 룰을 루트 경로에 단일 파일로
+    const domainMarkdown = renderRulesToMarkdown(domain);
+    domainFiles = domainMarkdown ? [{ workspacePath: '.', content: domainMarkdown }] : [];
+  } else {
+    // 모노레포: workspace별로 해당 domain 룰만 필터
+    domainFiles = [];
+    for (const ws of workspaceMappings) {
+      const wsRules = domain.filter((r) => ws.ruleIds.includes(r.id));
+      if (wsRules.length === 0) continue;
+      domainFiles.push({ workspacePath: ws.path, content: renderRulesToMarkdown(wsRules) });
+    }
+  }
 
   if (toolId === 'codex') {
-    return { tool: 'codex', rootContent, domainContent };
+    return { tool: 'codex', rootContent, domainFiles };
   }
 
   // gemini
-  return { tool: 'gemini', rootContent, domainContent };
+  return { tool: 'gemini', rootContent, domainFiles };
 };

@@ -44,10 +44,10 @@ export const buildInstallPlan = (params: {
       content: wrapWithSection(rootContent, meta),
     });
 
-    if (renderResult.domainContent) {
+    for (const df of renderResult.domainFiles) {
       actions.push({
-        relativePath: join(config.dir, config.domainFileName),
-        content: wrapWithSection(renderResult.domainContent, meta),
+        relativePath: join(df.workspacePath, config.domainFileName),
+        content: wrapWithSection(df.content, meta),
       });
     }
 
@@ -65,10 +65,10 @@ export const buildInstallPlan = (params: {
       });
     }
 
-    if (renderResult.domainContent) {
+    for (const df of renderResult.domainFiles) {
       actions.push({
-        relativePath: join(config.dir, config.domainFileName),
-        content: wrapWithSection(renderResult.domainContent, meta),
+        relativePath: join(df.workspacePath, config.domainFileName),
+        content: wrapWithSection(df.content, meta),
       });
     }
 

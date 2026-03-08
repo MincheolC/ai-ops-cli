@@ -34,7 +34,7 @@ describe('buildInstallPlan - codex', () => {
     const renderResult: ToolRenderResult = {
       tool: 'codex',
       rootContent: '# Global Rules',
-      domainContent: '# Domain Rules',
+      domainFiles: [{ workspacePath: '.', content: '# Domain Rules' }],
     };
     const actions = buildInstallPlan({ toolId: 'codex', renderResult, meta: META });
     expect(actions).toHaveLength(2);
@@ -42,11 +42,11 @@ describe('buildInstallPlan - codex', () => {
     expect(actions[1].relativePath).toBe('AGENTS.override.md');
   });
 
-  it('produces 1 FileAction when domainContent is empty', () => {
+  it('produces 1 FileAction when domainFiles is empty', () => {
     const renderResult: ToolRenderResult = {
       tool: 'codex',
       rootContent: '# Global Rules',
-      domainContent: '',
+      domainFiles: [],
     };
     const actions = buildInstallPlan({ toolId: 'codex', renderResult, meta: META });
     expect(actions).toHaveLength(1);
@@ -57,7 +57,7 @@ describe('buildInstallPlan - codex', () => {
     const renderResult: ToolRenderResult = {
       tool: 'codex',
       rootContent: '',
-      domainContent: '',
+      domainFiles: [],
     };
     const actions = buildInstallPlan({ toolId: 'codex', renderResult, meta: META });
     expect(actions).toHaveLength(1);
@@ -70,7 +70,7 @@ describe('buildInstallPlan - codex', () => {
     const renderResult: ToolRenderResult = {
       tool: 'codex',
       rootContent: '# Global Rules',
-      domainContent: '',
+      domainFiles: [],
     };
     const actions = buildInstallPlan({ toolId: 'codex', renderResult, meta: META });
     expect(actions[0].content).toContain('## Plan Snapshot');
@@ -81,36 +81,68 @@ describe('buildInstallPlan - codex', () => {
     const renderResult: ToolRenderResult = {
       tool: 'codex',
       rootContent: '# Global',
-      domainContent: '# Domain',
+      domainFiles: [{ workspacePath: '.', content: '# Domain' }],
     };
     const actions = buildInstallPlan({ toolId: 'codex', renderResult, meta: META });
     for (const action of actions) {
       expect(hasAiOpsSection(action.content)).toBe(true);
     }
   });
+
+  it('produces per-workspace AGENTS.override.md for monorepo', () => {
+    const renderResult: ToolRenderResult = {
+      tool: 'codex',
+      rootContent: '# Global Rules',
+      domainFiles: [
+        { workspacePath: 'apps/backend', content: '# Backend Rules' },
+        { workspacePath: 'apps/frontend', content: '# Frontend Rules' },
+      ],
+    };
+    const actions = buildInstallPlan({ toolId: 'codex', renderResult, meta: META });
+    expect(actions).toHaveLength(3);
+    expect(actions[0].relativePath).toBe('AGENTS.md');
+    expect(actions[1].relativePath).toBe('apps/backend/AGENTS.override.md');
+    expect(actions[2].relativePath).toBe('apps/frontend/AGENTS.override.md');
+  });
 });
 
 describe('buildInstallPlan - gemini', () => {
-  it('maps to .gemini/GEMINI.md for both root and domain', () => {
+  it('maps to .gemini/GEMINI.md for root and domain path for single-repo', () => {
     const renderResult: ToolRenderResult = {
       tool: 'gemini',
       rootContent: '# Global Rules',
-      domainContent: '# Domain Rules',
+      domainFiles: [{ workspacePath: '.', content: '# Domain Rules' }],
     };
     const actions = buildInstallPlan({ toolId: 'gemini', renderResult, meta: META });
     expect(actions).toHaveLength(2);
     expect(actions[0].relativePath).toBe('.gemini/GEMINI.md');
-    expect(actions[1].relativePath).toBe('.gemini/GEMINI.md');
+    expect(actions[1].relativePath).toBe('GEMINI.md');
   });
 
   it('omits empty rootContent', () => {
     const renderResult: ToolRenderResult = {
       tool: 'gemini',
       rootContent: '',
-      domainContent: '# Domain',
+      domainFiles: [{ workspacePath: '.', content: '# Domain' }],
     };
     const actions = buildInstallPlan({ toolId: 'gemini', renderResult, meta: META });
     expect(actions).toHaveLength(1);
+    expect(actions[0].relativePath).toBe('GEMINI.md');
+  });
+
+  it('produces per-workspace GEMINI.md for monorepo', () => {
+    const renderResult: ToolRenderResult = {
+      tool: 'gemini',
+      rootContent: '# Global Rules',
+      domainFiles: [
+        { workspacePath: 'apps/backend', content: '# Backend Rules' },
+        { workspacePath: 'apps/frontend', content: '# Frontend Rules' },
+      ],
+    };
+    const actions = buildInstallPlan({ toolId: 'gemini', renderResult, meta: META });
+    expect(actions).toHaveLength(3);
     expect(actions[0].relativePath).toBe('.gemini/GEMINI.md');
+    expect(actions[1].relativePath).toBe('apps/backend/GEMINI.md');
+    expect(actions[2].relativePath).toBe('apps/frontend/GEMINI.md');
   });
 });
