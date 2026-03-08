@@ -40,7 +40,7 @@ export const buildManifest = (params: {
   installedRules: readonly string[];
   installedFiles?: readonly string[];
   appendedFiles?: readonly string[];
-  settings?: { claude?: readonly string[]; gemini?: readonly string[] };
+  settings?: { claude?: readonly string[]; gemini?: readonly string[]; prettierignore?: boolean };
   cliVersion?: string;
   sourceHash: string;
 }): Manifest =>

@@ -80,12 +80,13 @@ export const loadRuleFile = (filePath: string): Rule => {
   return RuleSchema.parse(parse(raw));
 };
 
-// readdirSync + .yaml 필터 + sort
+// readdirSync + .yaml 필터 + 파일명 sort(결정적 로딩) → priority 내림차순
 export const loadAllRules = (rulesDir: string): Rule[] => {
   const files = readdirSync(rulesDir)
     .filter((f) => f.endsWith('.yaml'))
     .sort();
-  return files.map((f) => loadRuleFile(resolve(rulesDir, f)));
+  const rules = files.map((f) => loadRuleFile(resolve(rulesDir, f)));
+  return sortRulesByPriority(rules);
 };
 
 export const loadPresets = (presetsPath: string): Preset[] => {
