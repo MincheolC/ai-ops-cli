@@ -4,53 +4,45 @@ CLI for managing AI tool rules and presets across projects.
 
 ## Why this exists
 
-`ai-ops-cli` was created to reduce configuration drift across AI coding tools in a team.
+`ai-ops-cli` reduces configuration drift across AI coding tools.
 
-- Different tools (Claude Code, Codex, Gemini CLI) require different file locations and prompt layouts.
-- Tool conventions evolve over time, so manually maintained setup files become inconsistent quickly.
-- Teams need a single, repeatable way to install and maintain AI rule scaffolding.
+- Different tools use different file layouts and loading models.
+- Manual sync across tools is error-prone over time.
+- Teams need a deterministic, repeatable setup for AI pair-programming rules.
 
-This project uses a centralized rule source (SSOT) and scaffolds tool-native files into the current project.
-For the full product background and architecture intent, see [`docs/plan.md`](../../docs/plan.md).
+The CLI uses centralized YAML rules as SSOT and renders tool-native files into the current project.
 
-### What this library provides
+> **📌 Core Concept**
+>
+> Instead of directly managing platform-specific files, manage **abstract metadata** as SSOT and achieve **Asset Centralization** across multiple AI environments.
 
-- Interactive installation flow for supported AI tools (`ai-ops init`)
-- Managed updates based on installed manifest (`ai-ops update`)
-- Drift detection against current source hash (`ai-ops diff`)
-- Safe cleanup of installed managed files + manifest (`ai-ops uninstall`)
-- Project-local installation and management
+## What this CLI provides
 
-### What this library does not provide
+- Interactive installation (`ai-ops init`)
+- Source drift checks (`ai-ops diff`)
+- Deterministic re-apply (`ai-ops update`)
+- Managed cleanup (`ai-ops uninstall`)
+- Project-only operation (no global scope)
 
-- A hosted backend or remote state service
-- Rule authoring workflow inside the CLI itself
-- IDE-specific plugin management
+## What this CLI does not provide
 
-## Supported AI tools and installation model
+- Hosted backend or remote state
+- In-CLI rule authoring UI
+- IDE plugin management
 
-`ai-ops-cli` currently supports:
+## Supported tools and output layout
 
-- Claude Code (`claude-code`)
-- Codex (`codex`)
-- Gemini CLI (`gemini`)
+| Tool | Single project output | Monorepo output |
+| --- | --- | --- |
+| Claude Code (`claude-code`) | `.claude/rules/<rule-id>.md` | Shared rules in `.claude/rules/*.md`, domain rules in `<workspace>/CLAUDE.md` |
+| Codex (`codex`) | `AGENTS.md` and `AGENTS.override.md` | Root `AGENTS.md` and `<workspace>/AGENTS.override.md` |
+| Gemini CLI (`gemini`) | `GEMINI.md` | Root `GEMINI.md` and `<workspace>/GEMINI.md` |
 
-### Tool-specific installation layout
+Optional settings files:
 
-| Tool        | Single project                        | Monorepo                                                                      | Why this layout (JIT rationale)                                                                      |
-| ----------- | ------------------------------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| Claude Code | `.claude/rules/<rule-id>.md` per rule | Shared rules in `.claude/rules/*.md`, domain rules in `<workspace>/CLAUDE.md` | Keeps always-on rules stable while loading domain rules only for matching paths/workspaces.          |
-| Codex       | `AGENTS.md` + `AGENTS.override.md`    | Root `AGENTS.md` + `<workspace>/AGENTS.override.md`                           | Uses root baseline + local override so only relevant workspace context is applied at execution time. |
-| Gemini CLI  | `.gemini/GEMINI.md`                   | Root `.gemini/GEMINI.md` + `<workspace>/GEMINI.md`                            | Splits shared defaults and workspace-local context to reduce irrelevant prompt context.              |
-
-Gemini CLI can also install optional runtime settings to `.gemini/settings.json`.
-
-### Installation behavior details
-
-- Rules are split into shared and domain categories and rendered per tool with tool-native file shapes.
-- Existing managed files are replaced safely using ai-ops metadata headers.
-- Existing non-managed files are preserved and receive an `ai-ops` managed section block instead of full overwrite.
-- `update`, `diff`, and `uninstall` operate from the manifest to keep changes deterministic and idempotent.
+- Claude Code: `.claude/settings.local.json`
+- Gemini CLI: `.gemini/settings.json`
+- Formatting protection section: `.prettierignore`
 
 ## Install
 
@@ -64,32 +56,83 @@ npm install -g ai-ops-cli
 # Initialize rules for the current project
 ai-ops init
 
-# Check for updates
+# Check drift against current source hash
 ai-ops diff
 
-# Apply updates
+# Re-apply installed rules (or force)
 ai-ops update
+ai-ops update --force
 
-# Remove installed managed files and manifest
+# Remove installed files and manifest
 ai-ops uninstall
 ```
 
-## Options
+## CLI surface
 
-```
-ai-ops [command] [options]
+```text
+ai-ops [command]
 
 Commands:
-  init     Initialize AI tool rules for a project
-  update   Update installed rules
-  diff     Show diff between installed and current rules
-  uninstall Remove installed rules and manifest
+  init       Initialize AI tool rules for a project
+  update     Update installed rules
+  diff       Show diff between installed and current rules
+  uninstall  Remove installed rules and manifest
 
 Options:
-  --force          Force update even when no changes detected
-  -V, --version    Output the version number
-  -h, --help       Display help
+  --force        Force update even when no changes are detected (update only)
+  -V, --version  Output version number
+  -h, --help     Display help
 ```
+
+Notes:
+
+- `--scope` is deprecated and explicitly rejected. The CLI is project-only.
+- The installation state is tracked in `.ai-ops-manifest.json` at project root.
+
+## How install/update/uninstall behave
+
+- Managed files are wrapped in an `ai-ops` section with metadata (`sourceHash`, `generatedAt`).
+- If a file already has an `ai-ops` section, only that section is replaced.
+- If a file has no managed section, generated content is appended and user content is preserved.
+- `uninstall` removes only managed sections for appended files and keeps user-authored content.
+
+## Init flow summary
+
+`ai-ops init` prompts for:
+
+1. Tool selection (`claude-code`, `codex`, `gemini`)
+2. Monorepo confirmation
+3. Preset selection per workspace
+4. Domain rule fine-tuning per workspace
+5. Optional settings installation
+
+Preset and rules are loaded from:
+
+- `apps/cli/data/presets.yaml`
+- `apps/cli/data/rules/*.yaml`
+
+## Local development
+
+From repo root:
+
+```bash
+npm install
+npm run build
+npm run compile
+npm test
+```
+
+From `apps/cli` workspace:
+
+```bash
+npm run build --workspace=apps/cli
+npm run test --workspace=apps/cli
+```
+
+## Related docs
+
+- Master blueprint: [`docs/plan.md`](../../docs/plan.md)
+- Implementation playbook: [`docs/implementation-playbook.md`](../../docs/implementation-playbook.md)
 
 ## License
 
