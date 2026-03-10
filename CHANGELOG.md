@@ -5,6 +5,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.1.24] - 2026-03-10
+
 - `docs(rules)`: `plan-mode` YAML 소스 수정 — `constraints` 항목 제거 후 다이어그램 타입 규칙을 `guidelines` 인라인으로 흡수; `YYYYMMDD_<topic>.md` 파일 네이밍 규칙을 `decision_table`에 추가
 
 ## [0.1.23] - 2026-03-10
