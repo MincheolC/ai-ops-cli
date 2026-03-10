@@ -6,10 +6,9 @@ tags:
   - mermaid
 priority: 71
 content:
-  constraints:
-    - 'DO NOT mix Mermaid diagram types arbitrarily. Pick the type that matches the information structure.'
   guidelines:
     - 'Prefer Mermaid diagrams over long bullet lists when explaining flow, sequence, state, or structure.'
+    - 'Pick the diagram type that matches the information structure; do not mix types arbitrarily.'
     - 'Use flowchart for UX/control flows and decision trees.'
     - 'Use sequenceDiagram for request/response and service interaction flows.'
     - 'Use erDiagram for entities and schema relationships.'
@@ -28,3 +27,6 @@ content:
     - when: 'Describing state transitions'
       then: 'Use stateDiagram-v2'
       avoid: 'Flat textual state lists'
+    - when: 'Saving a plan document to disk'
+      then: 'Name as YYYYMMDD_<topic>.md with kebab-case topic'
+      avoid: 'Arbitrary names like plan.md or notes.md'
