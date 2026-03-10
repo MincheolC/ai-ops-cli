@@ -15,7 +15,7 @@ export const DecisionTableEntrySchema = z
 export const RuleContentSchema = z
   .object({
     /** Anti-pattern 규칙 ('하지 마라'). guidelines보다 항상 상단 렌더링 */
-    constraints: z.array(z.string().min(1)),
+    constraints: z.array(z.string().min(1)).default([]),
     /** Positive 규칙 ('해라') */
     guidelines: z.array(z.string().min(1)),
     /** 조건부 규칙. when→then→avoid 구조 */
