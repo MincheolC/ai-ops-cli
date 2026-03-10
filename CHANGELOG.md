@@ -5,6 +5,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+- `docs(rules)`: `plan-mode` 규칙 개선 — 플랜 파일 저장 시 `YYYYMMDD_<topic>.md` 네이밍 컨벤션 추가(Decision Table); Constraints 섹션 제거 후 다이어그램 타입 규칙을 Guidelines 인라인으로 흡수; 중복 항목 3곳 → 1곳으로 정리
+
 ## [0.1.22] - 2026-03-08
 
 - `fix`: gemini root 파일 위치를 `.gemini/GEMINI.md`에서 루트 `GEMINI.md`로 변경 — 단일레포·모노레포 모두 동일하게 적용. `tool-output.ts`의 `gemini.dir`을 `''`으로 수정하여 `buildInstallPlan`·`inferInstalledFiles` 자동 반영
