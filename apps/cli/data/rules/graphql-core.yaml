@@ -5,6 +5,11 @@ tags:
   - api
   - schema-contract
 priority: 48
+delivery: reference-skill
+reference_skill_id: graphql-contract
+core_excerpt:
+  - 'Treat GraphQL schema changes as contract changes: deprecate first, remove later.'
+  - 'Every collection field needs bounded pagination and explicit nullability.'
 content:
   constraints:
     - 'DO NOT rely on implicit nullability. Mark every field intentionally (prefer non-null by default).'

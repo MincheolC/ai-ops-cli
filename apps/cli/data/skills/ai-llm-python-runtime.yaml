@@ -1,0 +1,16 @@
+id: ai-llm-python-runtime
+kind: reference
+description: Use when implementing LLM workflows in Python, especially structured outputs, retries, prompt versioning, and cost controls.
+supported_tools:
+  - claude-code
+  - codex
+  - gemini
+allow_implicit_invocation: true
+install_scopes:
+  - project
+  - user
+instructions: |
+  Load this skill for Python LLM runtime work so structured outputs, prompt storage,
+  retries, fallback chains, token budgets, and logging constraints are applied consistently.
+source_rules:
+  - ai-llm-python

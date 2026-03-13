@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { computeHash, computeSourceHash, buildManifest } from '../source-hash.js';
+import { computeHash, computeSourceHash, computeInstalledSkillHash, buildManifest } from '../source-hash.js';
 import { ManifestSchema } from '../schemas/index.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const rulesDir = resolve(__dirname, '../../../data/rules');
+const dataDir = resolve(__dirname, '../../../data');
 
 afterEach(() => {
   vi.useRealTimers();
@@ -30,8 +30,32 @@ describe('computeHash', () => {
 });
 
 describe('computeSourceHash', () => {
-  it('실제 data/rules/ 대상 2회 호출 동일 결과', () => {
-    expect(computeSourceHash(rulesDir)).toBe(computeSourceHash(rulesDir));
+  it('실제 data/ 대상 2회 호출 동일 결과', () => {
+    expect(computeSourceHash(dataDir)).toBe(computeSourceHash(dataDir));
+  });
+});
+
+describe('computeInstalledSkillHash', () => {
+  it('동일 skill 입력은 동일 해시', () => {
+    expect(
+      computeInstalledSkillHash({
+        kind: 'task',
+        description: 'desc',
+        instructions: 'body',
+        tools: ['codex'],
+        sourceRules: [],
+        scripts: ["console.log('A Skill loaded')"],
+      }),
+    ).toBe(
+      computeInstalledSkillHash({
+        kind: 'task',
+        description: 'desc',
+        instructions: 'body',
+        tools: ['codex'],
+        sourceRules: [],
+        scripts: ["console.log('A Skill loaded')"],
+      }),
+    );
   });
 });
 
@@ -95,11 +119,22 @@ describe('buildManifest', () => {
       scope: 'project',
       installedRules: ['typescript'],
       installedFiles: ['.claude/rules/typescript.md'],
+      installedSkills: [
+        {
+          id: 'graphql-contract',
+          kind: 'reference',
+          tools: ['codex'],
+          scope: 'project',
+          installed_paths: ['.agents/skills/graphql-contract'],
+          sourceHash: 'abc123',
+        },
+      ],
       sourceHash: 'abc123',
     });
 
     expect(() => ManifestSchema.parse(manifest)).not.toThrow();
     expect(manifest.installed_files).toEqual(['.claude/rules/typescript.md']);
+    expect(manifest.installed_skills).toHaveLength(1);
   });
 
   it('installedFiles 생략 시 installed_files undefined', () => {

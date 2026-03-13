@@ -5,6 +5,11 @@ tags:
   - api
   - backend
 priority: 44
+delivery: reference-skill
+reference_skill_id: graphql-server-runtime
+core_excerpt:
+  - 'Keep resolvers thin, avoid N+1, and return typed business errors in payloads.'
+  - 'Protect subscriptions and high-cost operations with auth and execution limits.'
 content:
   constraints:
     - 'DO NOT perform mutations in Query resolvers. Reads belong to Query, writes belong to Mutation.'

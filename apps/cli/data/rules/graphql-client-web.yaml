@@ -6,6 +6,11 @@ tags:
   - nextjs
   - apollo
 priority: 47
+delivery: reference-skill
+reference_skill_id: graphql-client-integration
+core_excerpt:
+  - 'Use generated GraphQL documents/types and shared client wiring instead of ad-hoc fetch wrappers.'
+  - 'Handle GraphQL partial success explicitly instead of treating HTTP 200 as success.'
 content:
   constraints:
     - 'DO NOT call /graphql with ad-hoc fetch wrappers in Next.js App Router features. Use the shared Apollo client stack to preserve auth links and normalized cache behavior.'

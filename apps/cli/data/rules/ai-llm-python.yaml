@@ -5,6 +5,11 @@ tags:
   - llm
   - ai
 priority: 28
+delivery: reference-skill
+reference_skill_id: ai-llm-python-runtime
+core_excerpt:
+  - 'Use schema-first structured output for LLM responses instead of regex parsing.'
+  - 'Version prompts, track token budgets, and avoid leaking raw PII in logs.'
 content:
   constraints:
     - 'DO NOT parse model outputs with regex/split when schema output is required. Use structured output (Pydantic + response_format/function calling/instructor).'

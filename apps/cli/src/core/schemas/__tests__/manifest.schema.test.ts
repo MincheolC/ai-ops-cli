@@ -58,6 +58,24 @@ describe('ManifestSchema', () => {
       ).not.toThrow();
     });
 
+    it('installed_skills optional 포함', () => {
+      expect(() =>
+        ManifestSchema.parse({
+          ...validManifest,
+          installed_skills: [
+            {
+              id: 'graphql-contract',
+              kind: 'reference',
+              tools: ['codex'],
+              scope: 'project',
+              installed_paths: ['.agents/skills/graphql-contract'],
+              sourceHash: 'a1b2c3',
+            },
+          ],
+        }),
+      ).not.toThrow();
+    });
+
     it('installed_files 생략 (기존 manifest 호환)', () => {
       expect(() => ManifestSchema.parse(validManifest)).not.toThrow();
     });

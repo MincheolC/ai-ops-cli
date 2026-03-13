@@ -2,6 +2,7 @@
  * Manifest = 설치 추적 메타데이터. CLI가 이전 설치 상태를 기억하기 위한 JSON.
  */
 import { z } from 'zod';
+import { InstalledSkillSchema } from './skill.schema.js';
 
 export const SCOPES = {
   PROJECT: 'project',
@@ -39,6 +40,8 @@ export const ManifestSchema = z
     installed_rules: z.array(z.string().min(1)),
     /** 실제 디스크에 쓰여진 파일 상대 경로 목록 (uninstall용). 기존 manifest 호환성 위해 optional */
     installed_files: z.array(z.string().min(1)).optional(),
+    /** skill 설치 루트 디렉토리 목록 */
+    installed_skills: z.array(InstalledSkillSchema).optional(),
     /** non-managed 파일에 섹션을 append한 경우 추적 (uninstall 시 섹션만 제거) */
     appended_files: z.array(z.string().min(1)).optional(),
     /** init 시 선택된 settings 항목 — update 시 재생성에 사용 */

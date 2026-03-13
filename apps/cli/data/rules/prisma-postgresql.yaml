@@ -5,6 +5,11 @@ tags:
   - prisma
   - postgresql
 priority: 40
+delivery: reference-skill
+reference_skill_id: db-prisma-postgresql
+core_excerpt:
+  - 'Use parameterized raw SQL only and never ship schema changes without migrations.'
+  - 'Prefer explicit select/DTO mapping, indexes, and bounded transaction settings.'
 content:
   constraints:
     - 'DO NOT interpolate strings in $queryRawUnsafe. Use $queryRaw tagged templates or parameterized placeholders.'

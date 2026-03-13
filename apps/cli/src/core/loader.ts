@@ -1,8 +1,8 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { parse } from 'yaml';
-import { RuleSchema, PresetSchema } from './schemas/index.js';
-import type { Rule, Preset } from './schemas/index.js';
+import { RuleSchema, PresetSchema, SkillSchema } from './schemas/index.js';
+import type { Rule, Preset, Skill } from './schemas/index.js';
 
 type PresetRuleBundles = Readonly<Record<string, Readonly<Record<string, readonly string[]>>>>;
 
@@ -80,6 +80,11 @@ export const loadRuleFile = (filePath: string): Rule => {
   return RuleSchema.parse(parse(raw));
 };
 
+export const loadSkillFile = (filePath: string): Skill => {
+  const raw = readFileSync(filePath, 'utf-8');
+  return SkillSchema.parse(parse(raw));
+};
+
 // readdirSync + .yaml 필터 + 파일명 sort(결정적 로딩) → priority 내림차순
 export const loadAllRules = (rulesDir: string): Rule[] => {
   const files = readdirSync(rulesDir)
@@ -89,8 +94,28 @@ export const loadAllRules = (rulesDir: string): Rule[] => {
   return sortRulesByPriority(rules);
 };
 
+export const loadAllSkills = (skillsDir: string): Skill[] => {
+  const files = readdirSync(skillsDir)
+    .filter((f) => f.endsWith('.yaml'))
+    .sort();
+  return files.map((f) => loadSkillFile(resolve(skillsDir, f)));
+};
+
 export const loadPresets = (presetsPath: string): Preset[] => {
   const raw = readFileSync(presetsPath, 'utf-8');
   const data = parse(raw) as Record<string, { description: string; rules: string[] }>;
   return parseRawPresets(data);
+};
+
+export const resolveReferenceSkills = (params: {
+  selectedRules: readonly Rule[];
+  allSkills: readonly Skill[];
+}): Skill[] => {
+  const selectedRuleIds = new Set(params.selectedRules.map((rule) => rule.id));
+
+  return params.allSkills.filter((skill) => {
+    if (skill.kind !== 'reference') return false;
+    if (skill.source_rules === undefined || skill.source_rules.length === 0) return false;
+    return skill.source_rules.some((ruleId) => selectedRuleIds.has(ruleId));
+  });
 };

@@ -4,11 +4,13 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse } from 'yaml';
 import { RuleSchema } from '../rule.schema.js';
+import { SkillSchema } from '../skill.schema.js';
 import type { Rule } from '../rule.schema.js';
 import { parseRawPresets, resolvePresetRules } from '../../loader.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const rulesDir = resolve(__dirname, '../../../../data/rules');
+const skillsDir = resolve(__dirname, '../../../../data/skills');
 
 const loadYaml = (filename: string): unknown => {
   const raw = readFileSync(resolve(rulesDir, filename), 'utf-8');
@@ -16,6 +18,7 @@ const loadYaml = (filename: string): unknown => {
 };
 
 const ruleFiles = readdirSync(rulesDir).filter((f) => f.endsWith('.yaml'));
+const skillFiles = readdirSync(skillsDir).filter((f) => f.endsWith('.yaml'));
 
 describe('rule data files', () => {
   describe('각 YAML이 RuleSchema를 통과한다', () => {
@@ -39,6 +42,17 @@ describe('rule data files', () => {
     const priorities = rules.map((r) => r.priority);
     const unique = new Set(priorities);
     expect(unique.size).toBe(priorities.length);
+  });
+});
+
+describe('skill data files', () => {
+  describe('각 YAML이 SkillSchema를 통과한다', () => {
+    for (const filename of skillFiles) {
+      it(filename, () => {
+        const raw = readFileSync(resolve(skillsDir, filename), 'utf-8');
+        expect(() => SkillSchema.parse(parse(raw))).not.toThrow();
+      });
+    }
   });
 });
 

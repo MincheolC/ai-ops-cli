@@ -8,9 +8,11 @@ import {
   resolvePresetRules,
   excludeRules,
   loadAllRules,
+  loadAllSkills,
   loadPresets,
+  resolveReferenceSkills,
 } from '../loader.js';
-import type { Rule } from '../schemas/index.js';
+import type { Rule, Skill } from '../schemas/index.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const dataDir = resolve(__dirname, '../../../data');
@@ -20,7 +22,19 @@ const makeRule = (id: string, priority: number): Rule => ({
   category: 'test',
   tags: [],
   priority,
+  supported_tools: ['claude-code', 'codex', 'gemini'],
   content: { constraints: [], guidelines: [] },
+});
+
+const makeSkill = (id: string, sourceRules: readonly string[]): Skill => ({
+  id,
+  kind: 'reference',
+  description: `${id} description`,
+  supported_tools: ['claude-code', 'codex', 'gemini'],
+  allow_implicit_invocation: true,
+  install_scopes: ['project', 'user'],
+  instructions: `${id} instructions`,
+  source_rules: [...sourceRules],
 });
 
 describe('sortRulesByPriority', () => {
@@ -155,8 +169,25 @@ describe('I/O', () => {
     expect(rules).toHaveLength(27);
   });
 
+  it('loadAllSkills: 실제 data/skills/ 9개 로드', () => {
+    const skills = loadAllSkills(resolve(dataDir, 'skills'));
+    expect(skills).toHaveLength(9);
+  });
+
   it('loadPresets: 실제 data/presets.yaml 4개 로드', () => {
     const presets = loadPresets(resolve(dataDir, 'presets.yaml'));
     expect(presets).toHaveLength(4);
+  });
+});
+
+describe('resolveReferenceSkills', () => {
+  it('선택된 rule에 연결된 reference skill만 반환', () => {
+    const selectedRules = [makeRule('graphql-core', 48), makeRule('typescript', 65)];
+    const allSkills = [
+      makeSkill('graphql-contract', ['graphql-core']),
+      makeSkill('db-prisma-postgresql', ['prisma-postgresql']),
+    ];
+
+    expect(resolveReferenceSkills({ selectedRules, allSkills }).map((skill) => skill.id)).toEqual(['graphql-contract']);
   });
 });

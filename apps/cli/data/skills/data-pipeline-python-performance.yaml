@@ -1,0 +1,16 @@
+id: data-pipeline-python-performance
+kind: reference
+description: Use when building Python data pipelines that need Polars, DuckDB, schema control, or out-of-core execution.
+supported_tools:
+  - claude-code
+  - codex
+  - gemini
+allow_implicit_invocation: true
+install_scopes:
+  - project
+  - user
+instructions: |
+  Load this skill for Python data pipeline work so lazy execution, out-of-core processing,
+  partitioning, schema control, and anti-row-loop guidance are applied consistently.
+source_rules:
+  - data-pipeline-python

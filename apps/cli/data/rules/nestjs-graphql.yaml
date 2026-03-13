@@ -5,6 +5,11 @@ tags:
   - nestjs
   - graphql
 priority: 43
+delivery: reference-skill
+reference_skill_id: graphql-server-runtime
+core_excerpt:
+  - 'Keep NestJS GraphQL resolvers thin and use request-scoped DataLoaders for relation loading.'
+  - 'Protect subscriptions and reuse typed guards/context adapters instead of manual auth parsing.'
 content:
   constraints:
     - 'DO NOT put business logic in Resolvers. Keep resolvers thin and delegate to Services.'

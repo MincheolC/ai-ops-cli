@@ -3,7 +3,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ManifestSchema } from './schemas/index.js';
-import type { Manifest } from './schemas/index.js';
+import type { Manifest, InstalledSkill } from './schemas/index.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -22,14 +22,42 @@ export const getCliVersion = (): string => {
 export const computeHash = (contents: readonly string[]): string =>
   createHash('sha256').update(contents.join('')).digest('hex').slice(0, 6);
 
-// rulesDir 내 YAML 파일들을 alphabetical 정렬 후 해싱
-export const computeSourceHash = (rulesDir: string): string => {
-  const files = readdirSync(rulesDir)
+const loadSortedFileContents = (dirPath: string): string[] => {
+  const files = readdirSync(dirPath)
     .filter((f) => f.endsWith('.yaml'))
     .sort();
-  const contents = files.map((f) => readFileSync(resolve(rulesDir, f), 'utf-8'));
-  return computeHash(contents);
+
+  return files.map((f) => readFileSync(resolve(dirPath, f), 'utf-8'));
 };
+
+// compiler data 전체(rules, skills, presets) 해시
+export const computeSourceHash = (dataDir: string): string => {
+  const ruleContents = loadSortedFileContents(resolve(dataDir, 'rules'));
+  const skillContents = loadSortedFileContents(resolve(dataDir, 'skills'));
+  const presetsContent = readFileSync(resolve(dataDir, 'presets.yaml'), 'utf-8');
+  return computeHash([...ruleContents, ...skillContents, presetsContent]);
+};
+
+export const computeInstalledSkillHash = (params: {
+  kind: InstalledSkill['kind'];
+  description: string;
+  instructions: string;
+  tools: readonly string[];
+  sourceRules: readonly string[];
+  references?: readonly string[];
+  assets?: readonly string[];
+  scripts?: readonly string[];
+}): string =>
+  computeHash([
+    params.kind,
+    params.description,
+    params.instructions,
+    ...[...params.tools].sort(),
+    ...[...params.sourceRules].sort(),
+    ...(params.references ? [...params.references].sort() : []),
+    ...(params.assets ? [...params.assets].sort() : []),
+    ...(params.scripts ? [...params.scripts].sort() : []),
+  ]);
 
 // Manifest Builder (Pure, 단 generatedAt에 현재 시각 사용)
 export const buildManifest = (params: {
@@ -39,6 +67,7 @@ export const buildManifest = (params: {
   workspaces?: Record<string, { preset: string; rules: string[] }>;
   installedRules: readonly string[];
   installedFiles?: readonly string[];
+  installedSkills?: readonly InstalledSkill[];
   appendedFiles?: readonly string[];
   settings?: { claude?: readonly string[]; gemini?: readonly string[]; prettierignore?: boolean };
   cliVersion?: string;
@@ -51,11 +80,13 @@ export const buildManifest = (params: {
     workspaces: params.workspaces,
     installed_rules: [...params.installedRules],
     installed_files: params.installedFiles ? [...params.installedFiles] : undefined,
+    installed_skills: params.installedSkills ? [...params.installedSkills] : undefined,
     appended_files: params.appendedFiles && params.appendedFiles.length > 0 ? [...params.appendedFiles] : undefined,
     settings: params.settings
       ? {
           claude: params.settings.claude ? [...params.settings.claude] : undefined,
           gemini: params.settings.gemini ? [...params.settings.gemini] : undefined,
+          prettierignore: params.settings.prettierignore,
         }
       : undefined,
     cliVersion: params.cliVersion,

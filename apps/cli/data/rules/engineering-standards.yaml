@@ -6,6 +6,11 @@ tags:
   - data-format
   - cross-cutting
 priority: 70
+delivery: reference-skill
+reference_skill_id: engineering-standards-pack
+core_excerpt:
+  - 'Use consistent error envelopes and UTC timestamps in APIs and logs.'
+  - 'Use UUIDs for external identifiers and enforce bounded input at API boundaries.'
 content:
   constraints:
     - 'DO NOT use floating-point for money. Use minor-unit integers with ISO 4217 currency (e.g., { amount: 1099, currency: "USD" }).'

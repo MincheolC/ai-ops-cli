@@ -5,6 +5,11 @@ tags:
   - frontend
   - flutter
 priority: 46
+delivery: reference-skill
+reference_skill_id: graphql-client-integration
+core_excerpt:
+  - 'Use generated GraphQL operations/models and central client configuration in app code.'
+  - 'Handle GraphQL partial success and cache policy deliberately in mobile flows.'
 content:
   constraints:
     - 'DO NOT call GraphQL endpoints directly from widgets. Route operations through provider/repository layers to avoid rebuild-driven duplicate requests and side effects.'

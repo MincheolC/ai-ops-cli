@@ -6,6 +6,11 @@ tags:
   - polars
   - duckdb
 priority: 33
+delivery: reference-skill
+reference_skill_id: data-pipeline-python-performance
+core_excerpt:
+  - 'Prefer out-of-core, schema-explicit data pipelines for large datasets.'
+  - 'Avoid row-wise Python loops and in-place dataframe mutation in core transforms.'
 content:
   constraints:
     - 'DO NOT iterate DataFrame rows in Python loops for transformations.'

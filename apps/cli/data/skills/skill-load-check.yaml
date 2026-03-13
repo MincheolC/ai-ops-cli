@@ -1,0 +1,18 @@
+id: skill-load-check
+kind: task
+description: Use when validating that an installed agent skill can be discovered, loaded, and execute a sample script.
+supported_tools:
+  - claude-code
+  - codex
+  - gemini
+allow_implicit_invocation: true
+install_scopes:
+  - project
+  - user
+instructions: |
+  Use this skill only for local verification. Confirm the skill is discovered by the agent,
+  then run the sample script to verify the installed package is reachable.
+scripts:
+  - path: loaded.js
+    content: |
+      console.log('A Skill loaded');

@@ -5,6 +5,11 @@ tags:
   - sqlalchemy
   - postgresql
 priority: 38
+delivery: reference-skill
+reference_skill_id: db-sqlalchemy-postgresql
+core_excerpt:
+  - 'Use SQLAlchemy 2.x patterns, parameterized SQL, and single commit boundaries.'
+  - 'Every schema change requires an Alembic migration and reviewed loading strategy.'
 content:
   constraints:
     - 'DO NOT use legacy session.query() patterns. Use SQLAlchemy 2.x select()/insert()/update().'
