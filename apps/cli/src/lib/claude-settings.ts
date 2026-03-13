@@ -2,6 +2,7 @@ import * as p from '@clack/prompts';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { deepMerge, deepRemoveKeys } from './deep-merge.util.js';
+import { PROMPT_CANCELLED, type PromptCancelled } from './prompt-control.js';
 
 type ClaudeSettings = Record<string, unknown>;
 
@@ -27,13 +28,14 @@ const SETTING_GROUPS: readonly SettingGroup[] = [
   },
 ] as const;
 
-// null → 건너뜀 (취소 또는 "No"), string[] → 선택된 항목
-export const promptClaudeSettings = async (): Promise<readonly string[] | null> => {
+// PromptCancelled → 사용자 취소, null → "No", string[] → 선택된 항목
+export const promptClaudeSettings = async (): Promise<readonly string[] | null | PromptCancelled> => {
   const wantSettings = await p.confirm({
     message: 'Claude Code 설정 파일(.claude/settings.local.json)을 설치하시겠습니까?',
     initialValue: true,
   });
-  if (p.isCancel(wantSettings) || !wantSettings) return null;
+  if (p.isCancel(wantSettings)) return PROMPT_CANCELLED;
+  if (!wantSettings) return null;
 
   const selected = await p.multiselect<string>({
     message: '설치할 설정 항목을 선택하세요 (스페이스로 토글)',
@@ -45,7 +47,7 @@ export const promptClaudeSettings = async (): Promise<readonly string[] | null> 
     initialValues: SETTING_GROUPS.map((g) => g.value),
     required: false,
   });
-  if (p.isCancel(selected)) return null;
+  if (p.isCancel(selected)) return PROMPT_CANCELLED;
   return selected as string[];
 };
 
@@ -77,7 +79,10 @@ export const installClaudeSettings = (basePath: string, selectedValues: readonly
 
 export type SettingsUninstallStatus = 'deleted' | 'cleaned' | 'notFound';
 
-export const uninstallClaudeSettings = (basePath: string, selectedValues: readonly string[]): SettingsUninstallStatus => {
+export const uninstallClaudeSettings = (
+  basePath: string,
+  selectedValues: readonly string[],
+): SettingsUninstallStatus => {
   const settingsPath = join(basePath, '.claude', 'settings.local.json');
 
   if (!existsSync(settingsPath)) return 'notFound';
@@ -95,7 +100,10 @@ export const uninstallClaudeSettings = (basePath: string, selectedValues: readon
   for (const val of selectedValues) {
     const group = SETTING_GROUPS.find((g) => g.value === val);
     if (!group) continue;
-    result = deepRemoveKeys(result as Record<string, unknown>, group.patch as Record<string, unknown>) as ClaudeSettings;
+    result = deepRemoveKeys(
+      result as Record<string, unknown>,
+      group.patch as Record<string, unknown>,
+    ) as ClaudeSettings;
   }
 
   if (Object.keys(result).length === 0) {

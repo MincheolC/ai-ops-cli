@@ -1,6 +1,7 @@
 import * as p from '@clack/prompts';
 import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { PROMPT_CANCELLED, type PromptCancelled } from './prompt-control.js';
 
 const PRETTIER_IGNORE_CONTENT = `# CLAUDE
 .claude/rules/
@@ -20,8 +21,7 @@ const SECTION_END = '# ai-ops:end';
 
 const wrapSection = (content: string): string => `${SECTION_START}\n${content}\n${SECTION_END}`;
 
-const hasAiOpsSection = (content: string): boolean =>
-  content.includes(SECTION_START) && content.includes(SECTION_END);
+const hasAiOpsSection = (content: string): boolean => content.includes(SECTION_START) && content.includes(SECTION_END);
 
 const replaceSection = (content: string, newContent: string): string => {
   const lines = content.split('\n');
@@ -67,12 +67,12 @@ const stripAiOpsSection = (content: string): string => {
   return result.join('\n');
 };
 
-export const promptPrettierIgnore = async (): Promise<boolean> => {
+export const promptPrettierIgnore = async (): Promise<boolean | PromptCancelled> => {
   const want = await p.confirm({
     message: '.prettierignore를 설치하시겠습니까? (VSCode Prettier 자동 포맷으로부터 AI 규칙 파일 보호)',
     initialValue: false,
   });
-  if (p.isCancel(want)) return false;
+  if (p.isCancel(want)) return PROMPT_CANCELLED;
   return want;
 };
 

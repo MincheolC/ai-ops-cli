@@ -32,6 +32,7 @@ import { installSkillPackages } from '../lib/skill-install.js';
 import { promptGeminiSettings, installGeminiSettings } from '../lib/gemini-settings.js';
 import { promptClaudeSettings, installClaudeSettings } from '../lib/claude-settings.js';
 import { promptPrettierIgnore, installPrettierIgnore } from '../lib/prettier-ignore.js';
+import { isPromptCancelled } from '../lib/prompt-control.js';
 import {
   findInstalledSkill,
   mergeSkillTools,
@@ -251,219 +252,236 @@ export const initCommand = async (): Promise<void> => {
   const userBasePath = resolveUserBasePath();
   const rulesDir = resolveRulesDir();
   const skillsDir = resolveSkillsDir();
+  const spinner = p.spinner();
+  let spinnerStarted = false;
 
-  p.intro('ai-ops init');
-
-  const selectedTools = await p.multiselect<ToolId>({
-    message: 'AI 도구를 선택하세요',
-    options: TOOL_OPTIONS,
-    required: true,
-  });
-  if (p.isCancel(selectedTools)) {
-    p.cancel('취소됨');
-    process.exit(0);
-  }
-
-  const isMonorepo = await p.confirm({
-    message: '모노레포 프로젝트입니까?',
-    initialValue: false,
-  });
-  if (p.isCancel(isMonorepo)) {
-    p.cancel('취소됨');
-    process.exit(0);
-  }
-
-  const allRules = loadAllRules(rulesDir);
-  const allSkills = loadAllSkills(skillsDir);
-  const presets = loadPresets(resolvePresetsPath());
-  const sourceHash = computeSourceHash(resolveCompilerDataDir());
-  const globalInstalledSkills = readSkillRegistry(resolveSkillRegistryPath(userBasePath))?.skills ?? [];
-
-  const mappings: WorkspacePresetMapping[] = [];
-
-  if (!isMonorepo) {
-    const mapping = await selectPresetAndFineTune(
-      '.',
-      presets,
-      allRules,
-      allSkills,
-      selectedTools as ToolId[],
-      globalInstalledSkills,
-    );
-    if (!mapping) {
-      p.cancel('취소됨');
-      process.exit(0);
+  const cancelInit = (params?: { message?: string; exitCode?: number }): never => {
+    if (spinnerStarted) {
+      spinner.stop('설치 중단됨');
+      spinnerStarted = false;
     }
-    mappings.push(mapping);
-  } else {
-    const candidates = listWorkspaceCandidates(basePath);
-    const selectedWorkspaces = await p.multiselect<string>({
-      message: '워크스페이스를 선택하세요',
-      options: candidates.map((candidate) => ({ value: candidate, label: candidate })),
+
+    p.cancel(params?.message ?? '취소됨');
+    process.exit(params?.exitCode ?? 0);
+  };
+
+  const handleSigint = (): never =>
+    cancelInit({
+      message: '사용자 요청으로 init이 중단되었습니다.',
+      exitCode: 130,
+    });
+
+  process.once('SIGINT', handleSigint);
+
+  try {
+    p.intro('ai-ops init');
+
+    const selectedTools = await p.multiselect<ToolId>({
+      message: 'AI 도구를 선택하세요',
+      options: TOOL_OPTIONS,
       required: true,
     });
-    if (p.isCancel(selectedWorkspaces)) {
-      p.cancel('취소됨');
-      process.exit(0);
+    if (p.isCancel(selectedTools)) {
+      cancelInit();
     }
 
-    for (const workspace of selectedWorkspaces as string[]) {
-      const mapping = await selectPresetAndFineTune(
-        workspace,
-        presets,
-        allRules,
-        allSkills,
-        selectedTools as ToolId[],
-        globalInstalledSkills,
-      );
-      if (!mapping) {
-        p.cancel('취소됨');
-        process.exit(0);
-      }
-      mappings.push(mapping);
-    }
-  }
-
-  const selectedSkillTargets = deduplicateSkillTargets(mappings.flatMap((mapping) => mapping.finalSkillTargets));
-  const skillScope = selectedSkillTargets.length > 0 ? await selectInitSkillScope() : null;
-  if (selectedSkillTargets.length > 0 && skillScope === null) {
-    p.cancel('취소됨');
-    process.exit(0);
-  }
-
-  const geminiSettingValues: readonly string[] | null = (selectedTools as ToolId[]).includes('gemini')
-    ? await promptGeminiSettings()
-    : null;
-
-  const claudeSettingValues: readonly string[] | null = (selectedTools as ToolId[]).includes('claude-code')
-    ? await promptClaudeSettings()
-    : null;
-
-  const wantPrettierIgnore = await promptPrettierIgnore();
-
-  const s = p.spinner();
-  s.start('규칙 설치 중...');
-
-  const meta = { sourceHash, generatedAt: new Date().toISOString() };
-  const allInstalledFiles: string[] = [];
-  const allAppended: string[] = [];
-  const selectedRuleIds = deduplicateRules(mappings.flatMap((mapping) => mapping.finalRules)).map((rule) => rule.id);
-
-  let projectInstalledSkills: InstalledSkill[] = [];
-
-  if (selectedSkillTargets.length > 0 && skillScope !== null) {
-    const skillBasePath = skillScope === 'project' ? basePath : userBasePath;
-    const installedSkills = selectedSkillTargets.map(({ skill, requestedTools }) => {
-      const existingUserSkill = skillScope === 'user' ? findInstalledSkill(globalInstalledSkills, skill.id) : undefined;
-      const nextRequestedTools =
-        skillScope === 'user'
-          ? mergeSkillTools({
-              existing: existingUserSkill?.tools,
-              requested: requestedTools,
-            })
-          : requestedTools;
-      const { packages, installedSkill } = buildSkillInstallPlan({
-        skill,
-        requestedTools: nextRequestedTools,
-        scope: skillScope,
-      });
-      installSkillPackages(skillBasePath, packages);
-      return installedSkill;
+    const isMonorepo = await p.confirm({
+      message: '모노레포 프로젝트입니까?',
+      initialValue: false,
     });
+    if (p.isCancel(isMonorepo)) {
+      cancelInit();
+    }
 
-    if (skillScope === 'project') {
-      projectInstalledSkills = installedSkills;
+    const allRules = loadAllRules(rulesDir);
+    const allSkills = loadAllSkills(skillsDir);
+    const presets = loadPresets(resolvePresetsPath());
+    const sourceHash = computeSourceHash(resolveCompilerDataDir());
+    const globalInstalledSkills = readSkillRegistry(resolveSkillRegistryPath(userBasePath))?.skills ?? [];
+
+    const mappings: WorkspacePresetMapping[] = [];
+
+    if (!isMonorepo) {
+      const mapping =
+        (await selectPresetAndFineTune(
+          '.',
+          presets,
+          allRules,
+          allSkills,
+          selectedTools as ToolId[],
+          globalInstalledSkills,
+        )) ?? cancelInit();
+      mappings.push(mapping);
     } else {
-      const registryPath = resolveSkillRegistryPath(skillBasePath);
-      const previous = readSkillRegistry(registryPath);
-      const nextSkills = installedSkills.reduce<InstalledSkill[]>(
-        (acc, installedSkill) => upsertInstalledSkill(acc, installedSkill),
-        previous?.skills ?? [],
-      );
-      writeSkillRegistry(registryPath, {
-        skills: nextSkills,
-        cliVersion: getCliVersion(),
-        generatedAt: new Date().toISOString(),
+      const candidates = listWorkspaceCandidates(basePath);
+      const selectedWorkspaces = await p.multiselect<string>({
+        message: '워크스페이스를 선택하세요',
+        options: candidates.map((candidate) => ({ value: candidate, label: candidate })),
+        required: true,
       });
+      if (p.isCancel(selectedWorkspaces)) {
+        cancelInit();
+      }
+
+      for (const workspace of selectedWorkspaces as string[]) {
+        const mapping =
+          (await selectPresetAndFineTune(
+            workspace,
+            presets,
+            allRules,
+            allSkills,
+            selectedTools as ToolId[],
+            globalInstalledSkills,
+          )) ?? cancelInit();
+        mappings.push(mapping);
+      }
     }
-  }
 
-  for (const toolId of selectedTools as ToolId[]) {
-    if (isMonorepo) {
-      const allWorkspaceRules = deduplicateRules(mappings.flatMap((mapping) => mapping.finalRules));
-      const workspaceMappings: WorkspaceMapping[] = mappings.map((mapping) => ({
-        path: mapping.workspace,
-        ruleIds: mapping.finalRules.map((rule) => rule.id),
-      }));
-      const renderResult = renderForTool(toolId, allWorkspaceRules, workspaceMappings);
-      const actions = buildInstallPlan({ toolId, renderResult, meta });
-      const result = installFiles(basePath, actions, meta);
-      allInstalledFiles.push(...result.written);
-      allAppended.push(...result.appended);
-    } else {
-      const renderResult = renderForTool(toolId, mappings[0].finalRules);
-      const actions = buildInstallPlan({ toolId, renderResult, meta });
-      const result = installFiles(basePath, actions, meta);
-      allInstalledFiles.push(...result.written);
-      allAppended.push(...result.appended);
+    const selectedSkillTargets = deduplicateSkillTargets(mappings.flatMap((mapping) => mapping.finalSkillTargets));
+    const skillScope = selectedSkillTargets.length > 0 ? await selectInitSkillScope() : null;
+    if (selectedSkillTargets.length > 0 && skillScope === null) {
+      cancelInit();
     }
+
+    const geminiSettingValues = (selectedTools as ToolId[]).includes('gemini') ? await promptGeminiSettings() : null;
+    const resolvedGeminiSettingValues = isPromptCancelled(geminiSettingValues) ? cancelInit() : geminiSettingValues;
+
+    const claudeSettingValues = (selectedTools as ToolId[]).includes('claude-code')
+      ? await promptClaudeSettings()
+      : null;
+    const resolvedClaudeSettingValues = isPromptCancelled(claudeSettingValues) ? cancelInit() : claudeSettingValues;
+
+    const wantPrettierIgnore = await promptPrettierIgnore();
+    const resolvedWantPrettierIgnore = isPromptCancelled(wantPrettierIgnore) ? cancelInit() : wantPrettierIgnore;
+
+    spinner.start('규칙 설치 중...');
+    spinnerStarted = true;
+
+    const meta = { sourceHash, generatedAt: new Date().toISOString() };
+    const allInstalledFiles: string[] = [];
+    const allAppended: string[] = [];
+    const selectedRuleIds = deduplicateRules(mappings.flatMap((mapping) => mapping.finalRules)).map((rule) => rule.id);
+
+    let projectInstalledSkills: InstalledSkill[] = [];
+
+    if (selectedSkillTargets.length > 0 && skillScope !== null) {
+      const skillBasePath = skillScope === 'project' ? basePath : userBasePath;
+      const installedSkills = selectedSkillTargets.map(({ skill, requestedTools }) => {
+        const existingUserSkill =
+          skillScope === 'user' ? findInstalledSkill(globalInstalledSkills, skill.id) : undefined;
+        const nextRequestedTools =
+          skillScope === 'user'
+            ? mergeSkillTools({
+                existing: existingUserSkill?.tools,
+                requested: requestedTools,
+              })
+            : requestedTools;
+        const { packages, installedSkill } = buildSkillInstallPlan({
+          skill,
+          requestedTools: nextRequestedTools,
+          scope: skillScope,
+        });
+        installSkillPackages(skillBasePath, packages);
+        return installedSkill;
+      });
+
+      if (skillScope === 'project') {
+        projectInstalledSkills = installedSkills;
+      } else {
+        const registryPath = resolveSkillRegistryPath(skillBasePath);
+        const previous = readSkillRegistry(registryPath);
+        const nextSkills = installedSkills.reduce<InstalledSkill[]>(
+          (acc, installedSkill) => upsertInstalledSkill(acc, installedSkill),
+          previous?.skills ?? [],
+        );
+        writeSkillRegistry(registryPath, {
+          skills: nextSkills,
+          cliVersion: getCliVersion(),
+          generatedAt: new Date().toISOString(),
+        });
+      }
+    }
+
+    for (const toolId of selectedTools as ToolId[]) {
+      if (isMonorepo) {
+        const allWorkspaceRules = deduplicateRules(mappings.flatMap((mapping) => mapping.finalRules));
+        const workspaceMappings: WorkspaceMapping[] = mappings.map((mapping) => ({
+          path: mapping.workspace,
+          ruleIds: mapping.finalRules.map((rule) => rule.id),
+        }));
+        const renderResult = renderForTool(toolId, allWorkspaceRules, workspaceMappings);
+        const actions = buildInstallPlan({ toolId, renderResult, meta });
+        const result = installFiles(basePath, actions, meta);
+        allInstalledFiles.push(...result.written);
+        allAppended.push(...result.appended);
+      } else {
+        const renderResult = renderForTool(toolId, mappings[0].finalRules);
+        const actions = buildInstallPlan({ toolId, renderResult, meta });
+        const result = installFiles(basePath, actions, meta);
+        allInstalledFiles.push(...result.written);
+        allAppended.push(...result.appended);
+      }
+    }
+
+    if (resolvedGeminiSettingValues && resolvedGeminiSettingValues.length > 0) {
+      installGeminiSettings(basePath, resolvedGeminiSettingValues);
+    }
+
+    if (resolvedClaudeSettingValues && resolvedClaudeSettingValues.length > 0) {
+      installClaudeSettings(basePath, resolvedClaudeSettingValues);
+    }
+
+    if (resolvedWantPrettierIgnore) {
+      installPrettierIgnore(basePath);
+    }
+
+    spinner.stop('규칙 설치 완료');
+    spinnerStarted = false;
+
+    const workspacesRecord = isMonorepo
+      ? Object.fromEntries(
+          mappings.map((mapping) => [
+            mapping.workspace,
+            {
+              preset: mapping.preset.id,
+              rules: mapping.finalRules.map((rule) => rule.id),
+            },
+          ]),
+        )
+      : undefined;
+
+    const manifest = buildManifest({
+      tools: selectedTools as string[],
+      scope: 'project',
+      preset: !isMonorepo ? mappings[0].preset.id : undefined,
+      workspaces: workspacesRecord,
+      installedRules: selectedRuleIds,
+      installedFiles: allInstalledFiles,
+      installedSkills: projectInstalledSkills,
+      appendedFiles: allAppended,
+      settings:
+        resolvedClaudeSettingValues || resolvedGeminiSettingValues || resolvedWantPrettierIgnore
+          ? {
+              claude: resolvedClaudeSettingValues ? [...resolvedClaudeSettingValues] : undefined,
+              gemini: resolvedGeminiSettingValues ? [...resolvedGeminiSettingValues] : undefined,
+              prettierignore: resolvedWantPrettierIgnore || undefined,
+            }
+          : undefined,
+      cliVersion: getCliVersion(),
+      sourceHash,
+    });
+    writeManifest(resolveManifestPath(basePath), manifest);
+
+    if (allAppended.length > 0) {
+      p.log.info(`기존 파일에 섹션 추가됨 (내용 보존):\n${allAppended.map((file) => `  ${file}`).join('\n')}`);
+    }
+    p.log.success(`설치된 core rules: ${selectedRuleIds.length}개`);
+    p.log.success(`설치된 skills: ${selectedSkillTargets.length}개${skillScope ? ` (${skillScope})` : ''}`);
+    if (selectedSkillTargets.length > 0 && skillScope === 'user') {
+      p.log.info('global skill은 ai-ops uninstall 대상이 아닙니다. ai-ops skill uninstall으로 제거하세요.');
+    }
+    p.outro('ai-ops init 완료');
+  } finally {
+    process.off('SIGINT', handleSigint);
   }
-
-  if (geminiSettingValues && geminiSettingValues.length > 0) {
-    installGeminiSettings(basePath, geminiSettingValues);
-  }
-
-  if (claudeSettingValues && claudeSettingValues.length > 0) {
-    installClaudeSettings(basePath, claudeSettingValues);
-  }
-
-  if (wantPrettierIgnore) {
-    installPrettierIgnore(basePath);
-  }
-
-  s.stop('규칙 설치 완료');
-
-  const workspacesRecord = isMonorepo
-    ? Object.fromEntries(
-        mappings.map((mapping) => [
-          mapping.workspace,
-          {
-            preset: mapping.preset.id,
-            rules: mapping.finalRules.map((rule) => rule.id),
-          },
-        ]),
-      )
-    : undefined;
-
-  const manifest = buildManifest({
-    tools: selectedTools as string[],
-    scope: 'project',
-    preset: !isMonorepo ? mappings[0].preset.id : undefined,
-    workspaces: workspacesRecord,
-    installedRules: selectedRuleIds,
-    installedFiles: allInstalledFiles,
-    installedSkills: projectInstalledSkills,
-    appendedFiles: allAppended,
-    settings:
-      claudeSettingValues || geminiSettingValues || wantPrettierIgnore
-        ? {
-            claude: claudeSettingValues ? [...claudeSettingValues] : undefined,
-            gemini: geminiSettingValues ? [...geminiSettingValues] : undefined,
-            prettierignore: wantPrettierIgnore || undefined,
-          }
-        : undefined,
-    cliVersion: getCliVersion(),
-    sourceHash,
-  });
-  writeManifest(resolveManifestPath(basePath), manifest);
-
-  if (allAppended.length > 0) {
-    p.log.info(`기존 파일에 섹션 추가됨 (내용 보존):\n${allAppended.map((file) => `  ${file}`).join('\n')}`);
-  }
-  p.log.success(`설치된 core rules: ${selectedRuleIds.length}개`);
-  p.log.success(`설치된 skills: ${selectedSkillTargets.length}개${skillScope ? ` (${skillScope})` : ''}`);
-  if (selectedSkillTargets.length > 0 && skillScope === 'user') {
-    p.log.info('global skill은 ai-ops uninstall 대상이 아닙니다. ai-ops skill uninstall으로 제거하세요.');
-  }
-  p.outro('ai-ops init 완료');
 };
