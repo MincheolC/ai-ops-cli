@@ -31,8 +31,22 @@ export const renderDecisionTable = (entries: readonly DecisionTableEntry[]): str
 };
 
 // 단일 Rule → Markdown (빈 섹션 생략)
-export const renderRuleToMarkdown = (rule: Rule): string => {
+export const renderRuleToMarkdown = (
+  rule: Rule,
+  options: { useCoreExcerpt?: boolean } = {},
+): string => {
   const sections: string[] = [`# ${ruleIdToTitle(rule.id)}`];
+  const useCoreExcerpt =
+    options.useCoreExcerpt === true &&
+    rule.delivery === 'reference-skill' &&
+    rule.core_excerpt !== undefined &&
+    rule.core_excerpt.length > 0;
+
+  if (useCoreExcerpt) {
+    sections.push('## Guidelines');
+    sections.push(rule.core_excerpt.map((excerpt) => `- ${excerpt}`).join('\n'));
+    return sections.join('\n\n');
+  }
 
   if (rule.content.constraints.length > 0) {
     sections.push('## Constraints');
@@ -53,8 +67,10 @@ export const renderRuleToMarkdown = (rule: Rule): string => {
 };
 
 // Rule[] → 단일 Markdown (--- separator, single-file 모드용)
-export const renderRulesToMarkdown = (rules: readonly Rule[]): string =>
-  rules.map(renderRuleToMarkdown).join('\n\n---\n\n');
+export const renderRulesToMarkdown = (
+  rules: readonly Rule[],
+  options: { useCoreExcerpt?: boolean } = {},
+): string => rules.map((rule) => renderRuleToMarkdown(rule, options)).join('\n\n---\n\n');
 
 // Rule이 global 카테고리에 속하는지 판별
 export const isGlobalRule = (rule: Rule): boolean => (GLOBAL_CATEGORIES as readonly string[]).includes(rule.category);
@@ -90,9 +106,9 @@ export type WorkspaceMapping = {
 export const renderClaudeCodeRule = (rule: Rule): string => {
   const globs = CLAUDE_CODE_PATH_GLOBS[rule.id];
   if (!isGlobalRule(rule) && globs !== undefined) {
-    return `${renderFrontmatter(globs)}\n\n${renderRuleToMarkdown(rule)}`;
+    return `${renderFrontmatter(globs)}\n\n${renderRuleToMarkdown(rule, { useCoreExcerpt: true })}`;
   }
-  return renderRuleToMarkdown(rule);
+  return renderRuleToMarkdown(rule, { useCoreExcerpt: true });
 };
 
 // 도구별 렌더링 결과 타입 (tagged union)
@@ -149,7 +165,7 @@ export const renderForTool = (
       if (wsRules.length === 0) continue;
       workspaceFiles.push({
         relativePath: join(ws.path, 'CLAUDE.md'),
-        content: renderRulesToMarkdown(wsRules),
+        content: renderRulesToMarkdown(wsRules, { useCoreExcerpt: true }),
       });
     }
 
@@ -158,7 +174,7 @@ export const renderForTool = (
 
   if (!workspaceMappings || workspaceMappings.length === 0) {
     // 단일 프로젝트: 모든 룰(global + domain)을 rootContent 하나로 합침
-    const rootContent = renderRulesToMarkdown(rules);
+    const rootContent = renderRulesToMarkdown(rules, { useCoreExcerpt: true });
     const domainFiles: { workspacePath: string; content: string }[] = [];
 
     if (toolId === 'codex') return { tool: 'codex', rootContent, domainFiles };
@@ -167,12 +183,15 @@ export const renderForTool = (
 
   // 모노레포: global → rootContent, domain → workspace별 파일
   const { global, domain } = partitionRules(rules);
-  const rootContent = renderRulesToMarkdown(global);
+  const rootContent = renderRulesToMarkdown(global, { useCoreExcerpt: true });
   const domainFiles: { workspacePath: string; content: string }[] = [];
   for (const ws of workspaceMappings) {
     const wsRules = domain.filter((r) => ws.ruleIds.includes(r.id));
     if (wsRules.length === 0) continue;
-    domainFiles.push({ workspacePath: ws.path, content: renderRulesToMarkdown(wsRules) });
+    domainFiles.push({
+      workspacePath: ws.path,
+      content: renderRulesToMarkdown(wsRules, { useCoreExcerpt: true }),
+    });
   }
 
   if (toolId === 'codex') {

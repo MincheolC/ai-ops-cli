@@ -82,6 +82,24 @@ describe('renderRuleToMarkdown', () => {
     const md = renderRuleToMarkdown(rule);
     expect(md).not.toContain('Decision Table');
   });
+
+  it('reference-skill + core excerpt 사용 시 요약만 렌더링', () => {
+    const rule = makeRule({
+      id: 'engineering-standards',
+      delivery: 'reference-skill',
+      reference_skill_id: 'engineering-standards-pack',
+      core_excerpt: ['Use UTC timestamps.', 'Use UUIDs.'],
+      content: {
+        constraints: ['DO NOT use floating-point'],
+        guidelines: ['Use UUID v7'],
+        decision_table: [{ when: 'id needed', then: 'Use UUID v7' }],
+      },
+    });
+    const md = renderRuleToMarkdown(rule, { useCoreExcerpt: true });
+    expect(md).toContain('- Use UTC timestamps.');
+    expect(md).not.toContain('DO NOT use floating-point');
+    expect(md).not.toContain('Decision Table');
+  });
 });
 
 describe('renderRulesToMarkdown', () => {

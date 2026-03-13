@@ -1,6 +1,6 @@
 import * as p from '@clack/prompts';
 import { readManifest, resolveManifestPath, computeSourceHash, computeDiff } from '@/core/index.js';
-import { resolveBasePath, resolveRulesDir } from '../lib/paths.js';
+import { resolveBasePath, resolveCompilerDataDir } from '../lib/paths.js';
 
 export const diffCommand = async (): Promise<void> => {
   const basePath = resolveBasePath();
@@ -13,7 +13,7 @@ export const diffCommand = async (): Promise<void> => {
     process.exit(1);
   }
 
-  const sourceHash = computeSourceHash(resolveRulesDir());
+  const sourceHash = computeSourceHash(resolveCompilerDataDir());
 
   const result = computeDiff({
     previous: manifest,

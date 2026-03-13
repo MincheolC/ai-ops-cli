@@ -2,21 +2,25 @@ import * as p from '@clack/prompts';
 import type { Rule, Preset, ToolId, WorkspaceMapping } from '@/core/index.js';
 import {
   loadAllRules,
+  loadAllSkills,
   loadPresets,
   resolvePresetRules,
   resolvePresetRuleGroups,
+  resolveReferenceSkills,
   isGlobalRule,
   renderForTool,
   buildInstallPlan,
+  buildSkillInstallPlan,
   buildManifest,
   computeSourceHash,
   getCliVersion,
   resolveManifestPath,
   writeManifest,
 } from '@/core/index.js';
-import { resolveBasePath, resolveRulesDir, resolvePresetsPath } from '../lib/paths.js';
+import { resolveBasePath, resolveCompilerDataDir, resolvePresetsPath, resolveRulesDir, resolveSkillsDir } from '../lib/paths.js';
 import { listWorkspaceCandidates } from '../lib/workspace.js';
 import { installFiles } from '../lib/install.js';
+import { installSkillPackages } from '../lib/skill-install.js';
 import { promptGeminiSettings, installGeminiSettings } from '../lib/gemini-settings.js';
 import { promptClaudeSettings, installClaudeSettings } from '../lib/claude-settings.js';
 import { promptPrettierIgnore, installPrettierIgnore } from '../lib/prettier-ignore.js';
@@ -93,6 +97,7 @@ const selectPresetAndFineTune = async (
 export const initCommand = async (): Promise<void> => {
   const basePath = resolveBasePath();
   const rulesDir = resolveRulesDir();
+  const skillsDir = resolveSkillsDir();
 
   p.intro('ai-ops init');
 
@@ -119,8 +124,9 @@ export const initCommand = async (): Promise<void> => {
 
   // 3. 데이터 로드
   const allRules = loadAllRules(rulesDir);
+  const allSkills = loadAllSkills(skillsDir);
   const presets = loadPresets(resolvePresetsPath());
-  const sourceHash = computeSourceHash(rulesDir);
+  const sourceHash = computeSourceHash(resolveCompilerDataDir());
 
   // 4. 워크스페이스별 preset 선택 + fine-tune
   const mappings: WorkspacePresetMapping[] = [];
@@ -174,6 +180,23 @@ export const initCommand = async (): Promise<void> => {
   const meta = { sourceHash, generatedAt: new Date().toISOString() };
   const allInstalledFiles: string[] = [];
   const allAppended: string[] = [];
+  const selectedRuleSet = new Set(deduplicateRules(mappings.flatMap((mapping) => mapping.finalRules)).map((rule) => rule.id));
+  const referenceSkills = resolveReferenceSkills({
+    selectedRules: deduplicateRules(mappings.flatMap((mapping) => mapping.finalRules)),
+    allSkills,
+  });
+  const installedSkills = referenceSkills.map((skill) => {
+    const selectedSourceRuleIds = (skill.source_rules ?? []).filter((ruleId) => selectedRuleSet.has(ruleId));
+    const { packages, installedSkill } = buildSkillInstallPlan({
+      skill,
+      allRules,
+      requestedTools: selectedTools as ToolId[],
+      scope: 'project',
+      sourceRuleIds: selectedSourceRuleIds,
+    });
+    installSkillPackages(basePath, packages);
+    return installedSkill;
+  });
 
   for (const toolId of selectedTools as ToolId[]) {
     if (isMonorepo) {
@@ -226,6 +249,7 @@ export const initCommand = async (): Promise<void> => {
     workspaces: workspacesRecord,
     installedRules: allInstalledRuleIds,
     installedFiles: allInstalledFiles,
+    installedSkills,
     appendedFiles: allAppended,
     settings:
       claudeSettingValues || geminiSettingValues || wantPrettierIgnore

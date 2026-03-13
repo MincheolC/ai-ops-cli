@@ -1,6 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { existsSync } from 'node:fs';
-import { resolveCompilerDataDir, resolveRulesDir, resolvePresetsPath, resolveBasePath } from '../lib/paths.js';
+import {
+  resolveCompilerDataDir,
+  resolveRulesDir,
+  resolveSkillsDir,
+  resolvePresetsPath,
+  resolveBasePath,
+} from '../lib/paths.js';
 
 describe('resolveCompilerDataDir', () => {
   it('data/ 디렉토리가 실제 존재', () => {
@@ -9,6 +15,10 @@ describe('resolveCompilerDataDir', () => {
 
   it('data/rules/ 포함', () => {
     expect(existsSync(resolveRulesDir())).toBe(true);
+  });
+
+  it('data/skills/ 포함', () => {
+    expect(existsSync(resolveSkillsDir())).toBe(true);
   });
 
   it('data/presets.yaml 포함', () => {

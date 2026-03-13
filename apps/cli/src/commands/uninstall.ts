@@ -3,6 +3,7 @@ import { rmSync } from 'node:fs';
 import { readManifest, resolveManifestPath, inferInstalledFiles, MANIFEST_FILENAME } from '@/core/index.js';
 import { resolveBasePath } from '../lib/paths.js';
 import { removeFiles, cleanEmptyDirs, collectManagedDirs } from '../lib/uninstall.js';
+import { removeDirectories } from '../lib/skill-install.js';
 import { uninstallClaudeSettings } from '../lib/claude-settings.js';
 import { uninstallGeminiSettings } from '../lib/gemini-settings.js';
 import { uninstallPrettierIgnore } from '../lib/prettier-ignore.js';
@@ -27,15 +28,21 @@ export const uninstallCommand = async (): Promise<void> => {
     ...(manifest.installed_files ?? inferInstalledFiles(manifest)),
     ...(manifest.appended_files ?? []),
   ].filter((f) => !SETTINGS_PATHS.has(f));
+  const targetSkillDirs = (manifest.installed_skills ?? []).flatMap((skill) => skill.installed_paths);
 
-  if (targetFiles.length === 0) {
+  if (targetFiles.length === 0 && targetSkillDirs.length === 0) {
     p.log.warn('삭제할 파일이 없습니다.');
     p.outro('ai-ops uninstall 완료');
     return;
   }
 
   // 3. 삭제 대상 목록 출력
-  p.log.info(`삭제 대상 파일 (${targetFiles.length}개):\n${targetFiles.map((f) => `  ${f}`).join('\n')}`);
+  if (targetFiles.length > 0) {
+    p.log.info(`삭제 대상 파일 (${targetFiles.length}개):\n${targetFiles.map((f) => `  ${f}`).join('\n')}`);
+  }
+  if (targetSkillDirs.length > 0) {
+    p.log.info(`삭제 대상 skill 디렉토리 (${targetSkillDirs.length}개):\n${targetSkillDirs.map((f) => `  ${f}`).join('\n')}`);
+  }
 
   // 4. confirm
   const confirmed = await p.confirm({
@@ -65,6 +72,7 @@ export const uninstallCommand = async (): Promise<void> => {
 
   // 6. 파일 삭제
   const result = removeFiles(basePath, targetFiles);
+  const removedSkillDirs = removeDirectories(basePath, targetSkillDirs);
 
   // 7. 빈 디렉토리 정리
   const dirs = collectManagedDirs(targetFiles);
@@ -92,6 +100,9 @@ export const uninstallCommand = async (): Promise<void> => {
   }
   if (removedDirs.length > 0) {
     p.log.info(`빈 디렉토리 정리 (${removedDirs.length}개):\n${removedDirs.map((d) => `  ${d}`).join('\n')}`);
+  }
+  if (removedSkillDirs.length > 0) {
+    p.log.success(`skill 디렉토리 삭제 (${removedSkillDirs.length}개):\n${removedSkillDirs.map((d) => `  ${d}`).join('\n')}`);
   }
   if (settingsMessages.length > 0) {
     p.log.success(`설정 파일 처리:\n${settingsMessages.map((m) => `  ${m}`).join('\n')}`);

@@ -19,9 +19,10 @@ import {
 } from '@/core/index.js';
 import { installFiles } from '../lib/install.js';
 import { removeFiles } from '../lib/uninstall.js';
-import { resolveRulesDir, resolvePresetsPath } from '../lib/paths.js';
+import { resolveCompilerDataDir, resolveRulesDir, resolvePresetsPath } from '../lib/paths.js';
 
 const BIN_PATH = new URL('../../dist/bin/index.js', import.meta.url).pathname;
+const compilerDataDir = resolveCompilerDataDir();
 
 // dist/ 빌드가 없어도 compiler API 통합 테스트는 실행 가능
 // subprocess 테스트는 dist 존재 시에만 실행
@@ -50,12 +51,55 @@ describe.skipIf(!distExists)('bin subprocess', () => {
     expect(output).not.toContain('--scope');
   });
 
-  it('--scope exits with explicit deprecation error', () => {
+  it('--scope remains unsupported on top-level init', () => {
     const result = spawnSync(process.execPath, [BIN_PATH, 'init', '--scope', 'global'], {
       encoding: 'utf-8',
     });
     expect(result.status).toBe(1);
-    expect(result.stderr).toContain('`--scope` is no longer supported. ai-ops is now project-only.');
+    expect(result.stderr).toContain("error: unknown option '--scope'");
+  });
+});
+
+describe.skipIf(!distExists)('skill subprocess', () => {
+  it('project scope skill install writes project manifest and .agents skill dir', () => {
+    const { dir, cleanup } = setup();
+    try {
+      const result = spawnSync(process.execPath, [BIN_PATH, 'skill', 'install', 'skill-load-check', '--project', '--tool', 'codex'], {
+        cwd: dir,
+        encoding: 'utf-8',
+      });
+
+      expect(result.status).toBe(0);
+      expect(existsSync(join(dir, '.agents/skills/skill-load-check/SKILL.md'))).toBe(true);
+
+      const manifest = readManifest(resolveManifestPath(dir));
+      expect(manifest?.installed_skills?.[0]?.id).toBe('skill-load-check');
+      expect(manifest?.installed_skills?.[0]?.scope).toBe('project');
+    } finally {
+      cleanup();
+    }
+  });
+
+  it('user scope skill install writes global registry under AI_OPS_HOME', () => {
+    const { dir, cleanup } = setup();
+    const userHome = mkdtempSync(join(tmpdir(), 'ai-ops-home-'));
+    try {
+      const result = spawnSync(process.execPath, [BIN_PATH, 'skill', 'install', 'skill-load-check', '--tool', 'codex'], {
+        cwd: dir,
+        encoding: 'utf-8',
+        env: { ...process.env, AI_OPS_HOME: userHome },
+      });
+
+      expect(result.status).toBe(0);
+      expect(existsSync(join(userHome, '.agents/skills/skill-load-check/SKILL.md'))).toBe(true);
+
+      const registryRaw = readFileSync(join(userHome, '.ai-ops/skills-manifest.json'), 'utf-8');
+      expect(registryRaw).toContain('"id": "skill-load-check"');
+      expect(registryRaw).toContain('"scope": "user"');
+    } finally {
+      rmSync(userHome, { recursive: true, force: true });
+      cleanup();
+    }
   });
 });
 
@@ -87,7 +131,7 @@ describe('E2E: single-project install flow', () => {
       const presets = loadPresets(presetsPath);
       const preset = presets[0];
       const rules = resolvePresetRules(preset, allRules);
-      const sourceHash = computeSourceHash(rulesDir);
+      const sourceHash = computeSourceHash(compilerDataDir);
       const meta = { sourceHash, generatedAt: new Date().toISOString() };
 
       // claude-code
@@ -133,7 +177,7 @@ describe('E2E: single-project install flow', () => {
       const presets = loadPresets(presetsPath);
       const preset = presets[0];
       const rules = resolvePresetRules(preset, allRules);
-      const sourceHash = computeSourceHash(rulesDir);
+      const sourceHash = computeSourceHash(compilerDataDir);
       const meta = { sourceHash, generatedAt: '2026-01-01T00:00:00.000Z' };
 
       const renderResult = renderForTool('claude-code', rules);
@@ -158,7 +202,7 @@ describe('E2E: single-project install flow', () => {
       const presets = loadPresets(presetsPath);
       const preset = presets[0];
       const rules = resolvePresetRules(preset, allRules);
-      const sourceHash = computeSourceHash(rulesDir);
+      const sourceHash = computeSourceHash(compilerDataDir);
       const meta = { sourceHash, generatedAt: new Date().toISOString() };
 
       const renderResult = renderForTool('claude-code', rules);
@@ -197,7 +241,7 @@ describe('E2E: update flow', () => {
       const preset = presets[0];
       const allRules = loadAllRules(rulesDir);
       const rules = resolvePresetRules(preset, allRules);
-      const sourceHash = computeSourceHash(rulesDir);
+      const sourceHash = computeSourceHash(compilerDataDir);
 
       const manifest = buildManifest({
         tools: ['claude-code'],
@@ -226,7 +270,7 @@ describe('E2E: update flow', () => {
     const presets = loadPresets(presetsPath);
     const preset = presets[0];
     const rules = resolvePresetRules(preset, allRules);
-    const sourceHash = computeSourceHash(rulesDir);
+    const sourceHash = computeSourceHash(compilerDataDir);
 
     const manifest = buildManifest({
       tools: ['claude-code'],
@@ -259,7 +303,7 @@ describe('E2E: uninstall flow', () => {
       const preset = presets[0];
       const allRules = loadAllRules(rulesDir);
       const rules = resolvePresetRules(preset, allRules);
-      const sourceHash = computeSourceHash(rulesDir);
+      const sourceHash = computeSourceHash(compilerDataDir);
       const meta = { sourceHash, generatedAt: new Date().toISOString() };
 
       // install
@@ -307,7 +351,7 @@ describe('E2E: diff flow', () => {
     const presets = loadPresets(presetsPath);
     const preset = presets[0];
     const rules = resolvePresetRules(preset, allRules);
-    const sourceHash = computeSourceHash(rulesDir);
+    const sourceHash = computeSourceHash(compilerDataDir);
 
     const installedIds = rules.map((r) => r.id);
     const manifest = buildManifest({

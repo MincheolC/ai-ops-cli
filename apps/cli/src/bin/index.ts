@@ -3,15 +3,15 @@ import { initCommand } from '../commands/init.js';
 import { updateCommand } from '../commands/update.js';
 import { diffCommand } from '../commands/diff.js';
 import { uninstallCommand } from '../commands/uninstall.js';
+import {
+  skillDiffCommand,
+  skillInstallCommand,
+  skillListCommand,
+  skillUninstallCommand,
+  skillUpdateCommand,
+} from '../commands/skill.js';
 
 const program = new Command();
-
-const ensureNoDeprecatedScopeFlag = (argv: readonly string[]): void => {
-  if (argv.some((arg) => arg === '--scope' || arg.startsWith('--scope='))) {
-    console.error('`--scope` is no longer supported. ai-ops is now project-only.');
-    process.exit(1);
-  }
-};
 
 program.name('ai-ops').description('AI 에이전트 규칙 스캐폴더').version('0.1.0');
 
@@ -36,5 +36,33 @@ program
   .description('설치된 규칙 파일 및 manifest 제거')
   .action(() => uninstallCommand());
 
-ensureNoDeprecatedScopeFlag(process.argv);
+const skillCommand = program.command('skill').description('에이전트 skill 설치/조회/갱신');
+
+const applySkillScopeOptions = (command: Command): Command =>
+  command
+    .option('-g, --global', 'user scope에 설치/조회')
+    .option('--project', 'project scope에 설치/조회')
+    .option('--scope <scope>', 'explicit scope (user|project)')
+    .option('--tool <tool...>', '대상 도구 지정');
+
+applySkillScopeOptions(skillCommand.command('list').description('사용 가능한 skill 목록')).action((opts) =>
+  skillListCommand(opts),
+);
+
+applySkillScopeOptions(skillCommand.command('install <skillId>').description('skill 설치')).action((skillId, opts) =>
+  skillInstallCommand(skillId, opts),
+);
+
+applySkillScopeOptions(skillCommand.command('diff [skillId]').description('skill 변경 비교')).action((skillId, opts) =>
+  skillDiffCommand(skillId, opts),
+);
+
+applySkillScopeOptions(skillCommand.command('update [skillId]').description('skill 갱신')).action((skillId, opts) =>
+  skillUpdateCommand(skillId, opts),
+);
+
+applySkillScopeOptions(skillCommand.command('uninstall <skillId>').description('skill 제거')).action((skillId, opts) =>
+  skillUninstallCommand(skillId, opts),
+);
+
 program.parse();
