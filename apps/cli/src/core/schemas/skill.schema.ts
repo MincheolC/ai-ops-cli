@@ -31,24 +31,31 @@ export const SkillFileSchema = z
   })
   .strict();
 
-export const SkillSchema = z
+export const SkillFrontmatterSchema = z
   .object({
-    id: z.string().regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, 'id must be kebab-case'),
+    name: z.string().regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, 'name must be kebab-case'),
     kind: SkillKindSchema,
     description: z.string().min(1),
     supported_tools: z.array(SkillToolSchema).min(1),
     allow_implicit_invocation: z.boolean().default(true),
     install_scopes: z.array(SkillScopeSchema).min(1),
-    instructions: z.string().min(1).optional(),
     source_rules: z.array(z.string().min(1)).optional(),
-    references: z.array(SkillFileSchema).optional(),
-    assets: z.array(SkillFileSchema).optional(),
-    scripts: z.array(SkillFileSchema).optional(),
   })
   .strict();
 
 export type SkillFile = z.infer<typeof SkillFileSchema>;
-export type Skill = z.infer<typeof SkillSchema>;
+export type SkillFrontmatter = z.infer<typeof SkillFrontmatterSchema>;
+export type Skill = {
+  id: string;
+  kind: SkillFrontmatter['kind'];
+  description: string;
+  supported_tools: SkillFrontmatter['supported_tools'];
+  allow_implicit_invocation: boolean;
+  install_scopes: SkillFrontmatter['install_scopes'];
+  source_rules?: readonly string[];
+  directory: string;
+  files: SkillFile[];
+};
 
 export const InstalledSkillSchema = z
   .object({

@@ -1,25 +1,23 @@
 import { describe, expect, it } from 'vitest';
-import { SkillSchema, InstalledSkillSchema } from '../skill.schema.js';
+import { SkillFrontmatterSchema, InstalledSkillSchema } from '../skill.schema.js';
 
-const validSkill = {
-  id: 'graphql-contract',
+const validSkillFrontmatter = {
+  name: 'graphql-contract',
   kind: 'reference' as const,
   description: 'Use when editing GraphQL contracts and schema evolution rules.',
   supported_tools: ['claude-code', 'codex', 'gemini'],
   allow_implicit_invocation: true,
   install_scopes: ['project', 'user'],
-  instructions: 'Load this skill for GraphQL contract changes.',
   source_rules: ['graphql-core'],
-  scripts: [{ path: 'loaded.js', content: "console.log('A Skill loaded')" }],
 };
 
-describe('SkillSchema', () => {
+describe('SkillFrontmatterSchema', () => {
   it('parses valid skill', () => {
-    expect(SkillSchema.parse(validSkill)).toEqual(validSkill);
+    expect(SkillFrontmatterSchema.parse(validSkillFrontmatter)).toEqual(validSkillFrontmatter);
   });
 
   it('rejects unknown fields', () => {
-    expect(() => SkillSchema.parse({ ...validSkill, extra: true })).toThrow();
+    expect(() => SkillFrontmatterSchema.parse({ ...validSkillFrontmatter, extra: true })).toThrow();
   });
 });
 

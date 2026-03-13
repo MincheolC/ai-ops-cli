@@ -1,6 +1,5 @@
 import { join } from 'node:path';
 import { computeInstalledSkillHash } from './source-hash.js';
-import { renderRulesToMarkdown, ruleIdToTitle } from './renderer.js';
 import type { Rule, Skill, InstalledSkill } from './schemas/index.js';
 import type { ToolId } from './tool-output.js';
 
@@ -17,44 +16,6 @@ export type SkillPackage = {
   rootDir: string;
   files: SkillPackageFile[];
 };
-
-const buildFrontmatter = (skill: Skill): string =>
-  ['---', `name: ${skill.id}`, `description: ${JSON.stringify(skill.description)}`, '---'].join('\n');
-
-const buildSkillBody = (params: {
-  skill: Skill;
-  sourceRules: readonly Rule[];
-  hasReferences: boolean;
-  hasAssets: boolean;
-  hasScripts: boolean;
-}): string => {
-  const sections: string[] = [buildFrontmatter(params.skill), '', `# ${ruleIdToTitle(params.skill.id)}`];
-
-  if (params.skill.instructions) {
-    sections.push('', params.skill.instructions);
-  }
-
-  const resources: string[] = [];
-  if (params.hasReferences) resources.push('- `references/` contains the detailed source material for this skill.');
-  if (params.hasAssets) resources.push('- `assets/` contains reusable templates or supporting artifacts.');
-  if (params.hasScripts) resources.push('- `scripts/` contains executable helpers for this skill.');
-
-  if (resources.length > 0) {
-    sections.push('', '## Available Resources', '', resources.join('\n'));
-  }
-
-  if (params.sourceRules.length > 0) {
-    sections.push('', '## Source Rules', '', params.sourceRules.map((rule) => `- ${rule.id}`).join('\n'));
-  }
-
-  return sections.join('\n');
-};
-
-const collectOptionalFiles = (params: { rootDir: string; dirName: string; files?: readonly { path: string; content: string }[] }) =>
-  (params.files ?? []).map((file) => ({
-    relativePath: join(params.rootDir, params.dirName, file.path),
-    content: file.content,
-  }));
 
 const buildRootDirs = (skillId: string, toolIds: readonly ToolId[]): string[] => {
   const dirs: string[] = [];
@@ -103,38 +64,16 @@ export const buildSkillInstallPlan = (params: {
   const skillHash = computeInstalledSkillHash({
     kind: params.skill.kind,
     description: params.skill.description,
-    instructions: params.skill.instructions ?? '',
     tools: selectedTools,
     sourceRules: sourceRules.map((rule) => rule.id),
-    references: (params.skill.references ?? []).map((file) => `${file.path}:${file.content}`),
-    assets: (params.skill.assets ?? []).map((file) => `${file.path}:${file.content}`),
-    scripts: (params.skill.scripts ?? []).map((file) => `${file.path}:${file.content}`),
+    files: params.skill.files.map((file) => `${file.path}:${file.content}`),
   });
 
   const packages = rootDirs.map((rootDir) => {
-    const files: SkillPackageFile[] = [
-      {
-        relativePath: join(rootDir, 'SKILL.md'),
-        content: buildSkillBody({
-          skill: params.skill,
-          sourceRules,
-          hasReferences: sourceRules.length > 0 || (params.skill.references ?? []).length > 0,
-          hasAssets: (params.skill.assets ?? []).length > 0,
-          hasScripts: (params.skill.scripts ?? []).length > 0,
-        }),
-      },
-    ];
-
-    if (sourceRules.length > 0) {
-      files.push({
-        relativePath: join(rootDir, 'references', 'source-rules.md'),
-        content: renderRulesToMarkdown(sourceRules),
-      });
-    }
-
-    files.push(...collectOptionalFiles({ rootDir, dirName: 'references', files: params.skill.references }));
-    files.push(...collectOptionalFiles({ rootDir, dirName: 'assets', files: params.skill.assets }));
-    files.push(...collectOptionalFiles({ rootDir, dirName: 'scripts', files: params.skill.scripts }));
+    const files: SkillPackageFile[] = params.skill.files.map((file) => ({
+      relativePath: join(rootDir, file.path),
+      content: file.content,
+    }));
 
     return {
       skillId: params.skill.id,

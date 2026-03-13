@@ -1,10 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse } from 'yaml';
+import { parseMarkdownFrontmatter } from '../../frontmatter.js';
 import { RuleSchema } from '../rule.schema.js';
-import { SkillSchema } from '../skill.schema.js';
+import { SkillFrontmatterSchema } from '../skill.schema.js';
 import type { Rule } from '../rule.schema.js';
 import { parseRawPresets, resolvePresetRules } from '../../loader.js';
 
@@ -17,8 +18,16 @@ const loadYaml = (filename: string): unknown => {
   return parse(raw);
 };
 
+const loadSkillFrontmatter = (skillId: string): unknown => {
+  const raw = readFileSync(resolve(skillsDir, skillId, 'SKILL.md'), 'utf-8');
+  return parseMarkdownFrontmatter(raw).frontmatter;
+};
+
 const ruleFiles = readdirSync(rulesDir).filter((f) => f.endsWith('.yaml'));
-const skillFiles = readdirSync(skillsDir).filter((f) => f.endsWith('.yaml'));
+const skillDirs = readdirSync(skillsDir, { withFileTypes: true })
+  .filter((entry) => entry.isDirectory())
+  .map((entry) => entry.name)
+  .sort();
 
 describe('rule data files', () => {
   describe('각 YAML이 RuleSchema를 통과한다', () => {
@@ -46,12 +55,22 @@ describe('rule data files', () => {
 });
 
 describe('skill data files', () => {
-  describe('각 YAML이 SkillSchema를 통과한다', () => {
-    for (const filename of skillFiles) {
-      it(filename, () => {
-        const raw = readFileSync(resolve(skillsDir, filename), 'utf-8');
-        expect(() => SkillSchema.parse(parse(raw))).not.toThrow();
+  describe('각 skill directory의 SKILL.md frontmatter가 SkillFrontmatterSchema를 통과한다', () => {
+    for (const skillId of skillDirs) {
+      it(skillId, () => {
+        expect(() => SkillFrontmatterSchema.parse(loadSkillFrontmatter(skillId))).not.toThrow();
       });
+    }
+  });
+
+  it('reference skill은 references/reference.md를 가진다', () => {
+    for (const skillId of skillDirs) {
+      const frontmatter = SkillFrontmatterSchema.parse(loadSkillFrontmatter(skillId));
+      if (frontmatter.kind !== 'reference') {
+        continue;
+      }
+
+      expect(existsSync(resolve(skillsDir, skillId, 'references', 'reference.md'))).toBe(true);
     }
   });
 });

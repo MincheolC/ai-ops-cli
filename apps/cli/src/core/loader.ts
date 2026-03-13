@@ -1,7 +1,8 @@
 import { readFileSync, readdirSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { join, resolve } from 'node:path';
 import { parse } from 'yaml';
-import { RuleSchema, PresetSchema, SkillSchema } from './schemas/index.js';
+import { parseMarkdownFrontmatter } from './frontmatter.js';
+import { RuleSchema, PresetSchema, SkillFrontmatterSchema } from './schemas/index.js';
 import type { Rule, Preset, Skill } from './schemas/index.js';
 
 type PresetRuleBundles = Readonly<Record<string, Readonly<Record<string, readonly string[]>>>>;
@@ -80,9 +81,29 @@ export const loadRuleFile = (filePath: string): Rule => {
   return RuleSchema.parse(parse(raw));
 };
 
-export const loadSkillFile = (filePath: string): Skill => {
-  const raw = readFileSync(filePath, 'utf-8');
-  return SkillSchema.parse(parse(raw));
+const loadSkillDirectoryFiles = (skillDir: string): Skill['files'] => {
+  const files: Skill['files'] = [];
+
+  const walk = (relativeDir = ''): void => {
+    const absDir = relativeDir.length > 0 ? join(skillDir, relativeDir) : skillDir;
+    const entries = readdirSync(absDir, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
+
+    for (const entry of entries) {
+      const nextRelativePath = relativeDir.length > 0 ? join(relativeDir, entry.name) : entry.name;
+      if (entry.isDirectory()) {
+        walk(nextRelativePath);
+        continue;
+      }
+
+      files.push({
+        path: nextRelativePath,
+        content: readFileSync(join(skillDir, nextRelativePath), 'utf-8'),
+      });
+    }
+  };
+
+  walk();
+  return files;
 };
 
 // readdirSync + .yaml 필터 + 파일명 sort(결정적 로딩) → priority 내림차순
@@ -95,10 +116,41 @@ export const loadAllRules = (rulesDir: string): Rule[] => {
 };
 
 export const loadAllSkills = (skillsDir: string): Skill[] => {
-  const files = readdirSync(skillsDir)
-    .filter((f) => f.endsWith('.yaml'))
+  const dirs = readdirSync(skillsDir, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
     .sort();
-  return files.map((f) => loadSkillFile(resolve(skillsDir, f)));
+
+  return dirs.map((dirName) => {
+    const directory = resolve(skillsDir, dirName);
+    const skillMdPath = join(directory, 'SKILL.md');
+    const rawSkillMd = readFileSync(skillMdPath, 'utf-8');
+    const { frontmatter } = parseMarkdownFrontmatter(rawSkillMd);
+    const parsed = SkillFrontmatterSchema.parse(frontmatter);
+    if (parsed.name !== dirName) {
+      throw new Error(`Skill directory and frontmatter name mismatch: ${dirName} != ${parsed.name}`);
+    }
+
+    const files = loadSkillDirectoryFiles(directory);
+    if (
+      parsed.kind === 'reference' &&
+      !files.some((file) => file.path === 'references/reference.md')
+    ) {
+      throw new Error(`Reference skill must include references/reference.md: ${parsed.name}`);
+    }
+
+    return {
+      id: parsed.name,
+      kind: parsed.kind,
+      description: parsed.description,
+      supported_tools: parsed.supported_tools,
+      allow_implicit_invocation: parsed.allow_implicit_invocation,
+      install_scopes: parsed.install_scopes,
+      source_rules: parsed.source_rules,
+      directory,
+      files,
+    };
+  });
 };
 
 export const loadPresets = (presetsPath: string): Preset[] => {

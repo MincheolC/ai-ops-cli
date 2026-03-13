@@ -1,6 +1,7 @@
-id: graphql-client-integration
-kind: reference
+---
+name: graphql-client-integration
 description: Use when integrating GraphQL clients in web or app frontends, especially around codegen, caching, and partial-success handling.
+kind: reference
 supported_tools:
   - claude-code
   - codex
@@ -9,9 +10,12 @@ allow_implicit_invocation: true
 install_scopes:
   - project
   - user
-instructions: |
-  Load this skill for frontend GraphQL integration so shared client setup, generated operations,
-  cache policy, and partial-success UX are handled consistently.
 source_rules:
   - graphql-client-web
   - graphql-client-app
+---
+# GraphQL Client Integration
+
+Use this skill for frontend GraphQL integration in web or app code.
+
+Read `references/reference.md` before changing client setup, cache policy, generated operations, or error handling.

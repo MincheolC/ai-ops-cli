@@ -1,6 +1,7 @@
-id: graphql-server-runtime
-kind: reference
+---
+name: graphql-server-runtime
 description: Use when implementing GraphQL resolvers, NestJS GraphQL modules, subscriptions, or server-side error handling.
+kind: reference
 supported_tools:
   - claude-code
   - codex
@@ -9,9 +10,12 @@ allow_implicit_invocation: true
 install_scopes:
   - project
   - user
-instructions: |
-  Load this skill for GraphQL server work involving resolver design, NestJS integration,
-  DataLoader usage, subscription auth, payload error handling, and execution safety.
 source_rules:
   - graphql-server
   - nestjs-graphql
+---
+# GraphQL Server Runtime
+
+Use this skill for resolver design, NestJS GraphQL integration, DataLoader usage, subscription auth, and execution safety.
+
+Read `references/reference.md` before changing GraphQL server behavior.

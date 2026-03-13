@@ -21,7 +21,17 @@ const makeSkill = (partial?: Partial<Skill>): Skill => ({
   supported_tools: ['claude-code', 'codex', 'gemini'],
   allow_implicit_invocation: true,
   install_scopes: ['project', 'user'],
-  instructions: 'Load this skill for GraphQL contract work.',
+  directory: '/tmp/graphql-contract',
+  files: [
+    {
+      path: 'SKILL.md',
+      content: '# GraphQL Contract\n\nRead references/reference.md.',
+    },
+    {
+      path: 'references/reference.md',
+      content: 'Detailed GraphQL contract guidance.',
+    },
+  ],
   source_rules: ['graphql-core'],
   ...partial,
 });
@@ -56,8 +66,18 @@ describe('buildSkillInstallPlan', () => {
       skill: makeSkill({
         id: 'skill-load-check',
         kind: 'task',
+        directory: '/tmp/skill-load-check',
+        files: [
+          {
+            path: 'SKILL.md',
+            content: '# Skill Load Check\n\nRun scripts/loaded.js.',
+          },
+          {
+            path: 'scripts/loaded.js',
+            content: "console.log('A Skill loaded');",
+          },
+        ],
         source_rules: undefined,
-        scripts: [{ path: 'loaded.js', content: "console.log('A Skill loaded')" }],
       }),
       allRules: [],
       requestedTools: ['codex'],

@@ -1,6 +1,7 @@
-id: graphql-contract
-kind: reference
+---
+name: graphql-contract
 description: Use when changing GraphQL schema contracts, field nullability, pagination strategy, or deprecation policy.
+kind: reference
 supported_tools:
   - claude-code
   - codex
@@ -9,8 +10,11 @@ allow_implicit_invocation: true
 install_scopes:
   - project
   - user
-instructions: |
-  Load this skill before editing GraphQL schema contracts so nullability, pagination, typed inputs,
-  scalar formats, and deprecation compatibility are handled deliberately.
 source_rules:
   - graphql-core
+---
+# GraphQL Contract
+
+Use this skill before editing GraphQL schema contracts or published field behavior.
+
+Read `references/reference.md` and follow it as the canonical contract guidance.

@@ -31,10 +31,7 @@ export const renderDecisionTable = (entries: readonly DecisionTableEntry[]): str
 };
 
 // 단일 Rule → Markdown (빈 섹션 생략)
-export const renderRuleToMarkdown = (
-  rule: Rule,
-  options: { useCoreExcerpt?: boolean } = {},
-): string => {
+export const renderRuleToMarkdown = (rule: Rule, options: { useCoreExcerpt?: boolean } = {}): string => {
   const sections: string[] = [`# ${ruleIdToTitle(rule.id)}`];
   const useCoreExcerpt =
     options.useCoreExcerpt === true &&
@@ -42,7 +39,7 @@ export const renderRuleToMarkdown = (
     rule.core_excerpt !== undefined &&
     rule.core_excerpt.length > 0;
 
-  if (useCoreExcerpt) {
+  if (useCoreExcerpt && rule.core_excerpt !== undefined) {
     sections.push('## Guidelines');
     sections.push(rule.core_excerpt.map((excerpt) => `- ${excerpt}`).join('\n'));
     return sections.join('\n\n');
@@ -67,10 +64,8 @@ export const renderRuleToMarkdown = (
 };
 
 // Rule[] → 단일 Markdown (--- separator, single-file 모드용)
-export const renderRulesToMarkdown = (
-  rules: readonly Rule[],
-  options: { useCoreExcerpt?: boolean } = {},
-): string => rules.map((rule) => renderRuleToMarkdown(rule, options)).join('\n\n---\n\n');
+export const renderRulesToMarkdown = (rules: readonly Rule[], options: { useCoreExcerpt?: boolean } = {}): string =>
+  rules.map((rule) => renderRuleToMarkdown(rule, options)).join('\n\n---\n\n');
 
 // Rule이 global 카테고리에 속하는지 판별
 export const isGlobalRule = (rule: Rule): boolean => (GLOBAL_CATEGORIES as readonly string[]).includes(rule.category);

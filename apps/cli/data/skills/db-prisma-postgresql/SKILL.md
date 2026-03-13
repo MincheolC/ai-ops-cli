@@ -1,6 +1,7 @@
-id: db-prisma-postgresql
-kind: reference
+---
+name: db-prisma-postgresql
 description: Use when modifying Prisma schemas, transactions, raw queries, indexes, or PostgreSQL migration safety.
+kind: reference
 supported_tools:
   - claude-code
   - codex
@@ -9,8 +10,11 @@ allow_implicit_invocation: true
 install_scopes:
   - project
   - user
-instructions: |
-  Load this skill before Prisma or PostgreSQL changes so raw SQL safety, migration discipline,
-  transaction settings, indexing, and DTO boundaries are applied consistently.
 source_rules:
   - prisma-postgresql
+---
+# Prisma PostgreSQL
+
+Use this skill before changing Prisma schema, raw SQL usage, migration flow, or PostgreSQL transaction settings.
+
+Read `references/reference.md` and use it as the detailed persistence guidance.

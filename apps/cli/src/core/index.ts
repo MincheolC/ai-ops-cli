@@ -2,6 +2,7 @@ export * from './schemas/index.js';
 export * from './loader.js';
 export * from './renderer.js';
 export * from './skill-renderer.js';
+export * from './frontmatter.js';
 export * from './source-hash.js';
 export * from './tool-output.js';
 export * from './managed-header.js';

@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { readFileSync, readdirSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ManifestSchema } from './schemas/index.js';
 import type { Manifest, InstalledSkill } from './schemas/index.js';
@@ -30,10 +30,39 @@ const loadSortedFileContents = (dirPath: string): string[] => {
   return files.map((f) => readFileSync(resolve(dirPath, f), 'utf-8'));
 };
 
+const loadSkillTreeContents = (skillsDir: string): string[] => {
+  const skillDirs = readdirSync(skillsDir, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+    .sort();
+
+  const contents: string[] = [];
+
+  const walk = (baseDir: string, relativeDir = ''): void => {
+    const absDir = relativeDir.length > 0 ? join(baseDir, relativeDir) : baseDir;
+    const entries = readdirSync(absDir, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
+
+    for (const entry of entries) {
+      const nextRelativePath = relativeDir.length > 0 ? join(relativeDir, entry.name) : entry.name;
+      if (entry.isDirectory()) {
+        walk(baseDir, nextRelativePath);
+        continue;
+      }
+      contents.push(`${nextRelativePath}:${readFileSync(join(baseDir, nextRelativePath), 'utf-8')}`);
+    }
+  };
+
+  for (const skillDir of skillDirs) {
+    walk(resolve(skillsDir, skillDir));
+  }
+
+  return contents;
+};
+
 // compiler data 전체(rules, skills, presets) 해시
 export const computeSourceHash = (dataDir: string): string => {
   const ruleContents = loadSortedFileContents(resolve(dataDir, 'rules'));
-  const skillContents = loadSortedFileContents(resolve(dataDir, 'skills'));
+  const skillContents = loadSkillTreeContents(resolve(dataDir, 'skills'));
   const presetsContent = readFileSync(resolve(dataDir, 'presets.yaml'), 'utf-8');
   return computeHash([...ruleContents, ...skillContents, presetsContent]);
 };
@@ -41,22 +70,16 @@ export const computeSourceHash = (dataDir: string): string => {
 export const computeInstalledSkillHash = (params: {
   kind: InstalledSkill['kind'];
   description: string;
-  instructions: string;
   tools: readonly string[];
   sourceRules: readonly string[];
-  references?: readonly string[];
-  assets?: readonly string[];
-  scripts?: readonly string[];
+  files: readonly string[];
 }): string =>
   computeHash([
     params.kind,
     params.description,
-    params.instructions,
     ...[...params.tools].sort(),
     ...[...params.sourceRules].sort(),
-    ...(params.references ? [...params.references].sort() : []),
-    ...(params.assets ? [...params.assets].sort() : []),
-    ...(params.scripts ? [...params.scripts].sort() : []),
+    ...[...params.files].sort(),
   ]);
 
 // Manifest Builder (Pure, 단 generatedAt에 현재 시각 사용)
