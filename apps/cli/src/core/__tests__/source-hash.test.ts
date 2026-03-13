@@ -42,7 +42,6 @@ describe('computeInstalledSkillHash', () => {
         kind: 'task',
         description: 'desc',
         tools: ['codex'],
-        sourceRules: [],
         files: ['SKILL.md:body', "scripts/loaded.js:console.log('A Skill loaded');"],
       }),
     ).toBe(
@@ -50,7 +49,6 @@ describe('computeInstalledSkillHash', () => {
         kind: 'task',
         description: 'desc',
         tools: ['codex'],
-        sourceRules: [],
         files: ['SKILL.md:body', "scripts/loaded.js:console.log('A Skill loaded');"],
       }),
     );

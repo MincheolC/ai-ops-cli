@@ -1,13 +1,11 @@
 import * as p from '@clack/prompts';
-import type { Rule, Preset, ToolId, WorkspaceMapping } from '@/core/index.js';
+import type { InstalledSkill, Preset, Rule, Skill, ToolId, WorkspaceMapping } from '@/core/index.js';
 import {
   loadAllRules,
   loadAllSkills,
   loadPresets,
   resolvePresetRules,
-  resolvePresetRuleGroups,
-  resolveReferenceSkills,
-  isGlobalRule,
+  resolvePresetSkills,
   renderForTool,
   buildInstallPlan,
   buildSkillInstallPlan,
@@ -16,19 +14,31 @@ import {
   getCliVersion,
   resolveManifestPath,
   writeManifest,
+  readSkillRegistry,
+  resolveSkillRegistryPath,
+  writeSkillRegistry,
 } from '@/core/index.js';
-import { resolveBasePath, resolveCompilerDataDir, resolvePresetsPath, resolveRulesDir, resolveSkillsDir } from '../lib/paths.js';
+import {
+  resolveBasePath,
+  resolveCompilerDataDir,
+  resolvePresetsPath,
+  resolveRulesDir,
+  resolveSkillsDir,
+  resolveUserBasePath,
+} from '../lib/paths.js';
 import { listWorkspaceCandidates } from '../lib/workspace.js';
 import { installFiles } from '../lib/install.js';
 import { installSkillPackages } from '../lib/skill-install.js';
 import { promptGeminiSettings, installGeminiSettings } from '../lib/gemini-settings.js';
 import { promptClaudeSettings, installClaudeSettings } from '../lib/claude-settings.js';
 import { promptPrettierIgnore, installPrettierIgnore } from '../lib/prettier-ignore.js';
+import { type SkillScope, upsertInstalledSkill } from '../lib/skill-state.js';
 
 type WorkspacePresetMapping = {
   workspace: string;
   preset: Preset;
   finalRules: Rule[];
+  finalSkills: Skill[];
 };
 
 const TOOL_OPTIONS = [
@@ -39,69 +49,95 @@ const TOOL_OPTIONS = [
 
 const deduplicateRules = (rules: readonly Rule[]): Rule[] => {
   const seen = new Set<string>();
-  return rules.filter((r) => {
-    if (seen.has(r.id)) return false;
-    seen.add(r.id);
+  return rules.filter((rule) => {
+    if (seen.has(rule.id)) return false;
+    seen.add(rule.id);
     return true;
   });
 };
+
+const deduplicateSkills = (skills: readonly Skill[]): Skill[] => {
+  const seen = new Set<string>();
+  return skills.filter((skill) => {
+    if (seen.has(skill.id)) return false;
+    seen.add(skill.id);
+    return true;
+  });
+};
+
+const resolveSelectedSkills = (selectedSkillIds: readonly string[], allSkills: readonly Skill[]): Skill[] =>
+  selectedSkillIds.map((skillId) => {
+    const skill = allSkills.find((candidate) => candidate.id === skillId);
+    if (!skill) {
+      throw new Error(`Unknown skill selected during init: ${skillId}`);
+    }
+    return skill;
+  });
 
 const selectPresetAndFineTune = async (
   workspaceName: string,
   presets: readonly Preset[],
   allRules: readonly Rule[],
+  allSkills: readonly Skill[],
 ): Promise<WorkspacePresetMapping | null> => {
   const preset = await p.select<Preset>({
     message: `[${workspaceName}] 프리셋을 선택하세요`,
-    options: presets.map((pr) => ({
-      value: pr,
-      label: pr.id,
-      hint: pr.description,
+    options: presets.map((candidate) => ({
+      value: candidate,
+      label: candidate.id,
+      hint: candidate.description,
     })),
   });
   if (p.isCancel(preset)) return null;
 
-  const presetRuleGroups = resolvePresetRuleGroups(preset, allRules);
-  const globalGroups = presetRuleGroups.filter((group) => group.rules.every(isGlobalRule));
-  const domainGroups = presetRuleGroups.filter((group) => !group.rules.every(isGlobalRule));
-  const globalGroupIds = globalGroups.map((group) => group.id);
-  const globalRules =
-    globalGroupIds.length > 0 ? resolvePresetRules({ ...preset, rules: globalGroupIds }, allRules) : [];
-
-  // Global rules: locked (항상 포함)
-  if (globalRules.length > 0) {
-    p.note(globalRules.map((r) => `  ✓ ${r.id}`).join('\n'), `[${workspaceName}] 기본 규칙 (잠금)`);
+  const finalRules = resolvePresetRules(preset, allRules);
+  if (finalRules.length > 0) {
+    p.note(finalRules.map((rule) => `  ✓ ${rule.id}`).join('\n'), `[${workspaceName}] core rules (잠금)`);
   }
 
-  if (domainGroups.length === 0) {
-    return { workspace: workspaceName, preset, finalRules: resolvePresetRules(preset, allRules) };
-  }
+  const recommendedSkills = resolvePresetSkills(preset, allSkills);
+  const recommendedSkillIds = recommendedSkills.map((skill) => skill.id);
+  const recommendedSkillSet = new Set(recommendedSkillIds);
 
-  // Domain rules: 제외 가능
-  const selectedDomain = await p.multiselect<string>({
-    message: `[${workspaceName}] 도메인 규칙 선택 (해제하여 제외)`,
-    options: domainGroups.map((group) => ({ value: group.id, label: group.id })),
-    initialValues: domainGroups.map((group) => group.id),
+  const selectedSkillIds = await p.multiselect<string>({
+    message: `[${workspaceName}] recommended skills 선택`,
+    options: allSkills.map((skill) => ({
+      value: skill.id,
+      label: skill.id,
+      hint: recommendedSkillSet.has(skill.id) ? `recommended - ${skill.description}` : skill.description,
+    })),
+    initialValues: recommendedSkillIds,
     required: false,
   });
-  if (p.isCancel(selectedDomain)) return null;
+  if (p.isCancel(selectedSkillIds)) return null;
 
-  const selectedLogicalRuleIds = [...globalGroupIds, ...(selectedDomain as string[])];
   return {
     workspace: workspaceName,
     preset,
-    finalRules: resolvePresetRules({ ...preset, rules: selectedLogicalRuleIds }, allRules),
+    finalRules,
+    finalSkills: resolveSelectedSkills(selectedSkillIds as string[], allSkills),
   };
+};
+
+const selectInitSkillScope = async (): Promise<SkillScope | null> => {
+  const scope = await p.select<SkillScope>({
+    message: '선택된 skills를 어디에 설치할까요?',
+    options: [
+      { value: 'user', label: 'user (global)', hint: '기본값. 여러 프로젝트에서 재사용' },
+      { value: 'project', label: 'project', hint: '현재 프로젝트에만 설치' },
+    ],
+  });
+  return p.isCancel(scope) ? null : scope;
 };
 
 export const initCommand = async (): Promise<void> => {
   const basePath = resolveBasePath();
+  const userBasePath = resolveUserBasePath();
   const rulesDir = resolveRulesDir();
   const skillsDir = resolveSkillsDir();
 
   p.intro('ai-ops init');
 
-  // 1. AI 도구 다중 선택
   const selectedTools = await p.multiselect<ToolId>({
     message: 'AI 도구를 선택하세요',
     options: TOOL_OPTIONS,
@@ -112,7 +148,6 @@ export const initCommand = async (): Promise<void> => {
     process.exit(0);
   }
 
-  // 2. 모노레포 여부
   const isMonorepo = await p.confirm({
     message: '모노레포 프로젝트입니까?',
     initialValue: false,
@@ -122,17 +157,15 @@ export const initCommand = async (): Promise<void> => {
     process.exit(0);
   }
 
-  // 3. 데이터 로드
   const allRules = loadAllRules(rulesDir);
   const allSkills = loadAllSkills(skillsDir);
   const presets = loadPresets(resolvePresetsPath());
   const sourceHash = computeSourceHash(resolveCompilerDataDir());
 
-  // 4. 워크스페이스별 preset 선택 + fine-tune
   const mappings: WorkspacePresetMapping[] = [];
 
   if (!isMonorepo) {
-    const mapping = await selectPresetAndFineTune('.', presets, allRules);
+    const mapping = await selectPresetAndFineTune('.', presets, allRules, allSkills);
     if (!mapping) {
       p.cancel('취소됨');
       process.exit(0);
@@ -142,7 +175,7 @@ export const initCommand = async (): Promise<void> => {
     const candidates = listWorkspaceCandidates(basePath);
     const selectedWorkspaces = await p.multiselect<string>({
       message: '워크스페이스를 선택하세요',
-      options: candidates.map((c) => ({ value: c, label: c })),
+      options: candidates.map((candidate) => ({ value: candidate, label: candidate })),
       required: true,
     });
     if (p.isCancel(selectedWorkspaces)) {
@@ -150,8 +183,8 @@ export const initCommand = async (): Promise<void> => {
       process.exit(0);
     }
 
-    for (const ws of selectedWorkspaces as string[]) {
-      const mapping = await selectPresetAndFineTune(ws, presets, allRules);
+    for (const workspace of selectedWorkspaces as string[]) {
+      const mapping = await selectPresetAndFineTune(workspace, presets, allRules, allSkills);
       if (!mapping) {
         p.cancel('취소됨');
         process.exit(0);
@@ -160,52 +193,70 @@ export const initCommand = async (): Promise<void> => {
     }
   }
 
-  // 4.5. Gemini 설정 (gemini 선택 시)
+  const selectedSkills = deduplicateSkills(mappings.flatMap((mapping) => mapping.finalSkills));
+  const skillScope = selectedSkills.length > 0 ? await selectInitSkillScope() : null;
+  if (selectedSkills.length > 0 && skillScope === null) {
+    p.cancel('취소됨');
+    process.exit(0);
+  }
+
   const geminiSettingValues: readonly string[] | null = (selectedTools as ToolId[]).includes('gemini')
     ? await promptGeminiSettings()
     : null;
 
-  // 4.6. Claude 설정 (claude-code 선택 시)
   const claudeSettingValues: readonly string[] | null = (selectedTools as ToolId[]).includes('claude-code')
     ? await promptClaudeSettings()
     : null;
 
-  // 4.7. .prettierignore 설치 여부
   const wantPrettierIgnore = await promptPrettierIgnore();
 
-  // 5. 설치
   const s = p.spinner();
   s.start('규칙 설치 중...');
 
   const meta = { sourceHash, generatedAt: new Date().toISOString() };
   const allInstalledFiles: string[] = [];
   const allAppended: string[] = [];
-  const selectedRuleSet = new Set(deduplicateRules(mappings.flatMap((mapping) => mapping.finalRules)).map((rule) => rule.id));
-  const referenceSkills = resolveReferenceSkills({
-    selectedRules: deduplicateRules(mappings.flatMap((mapping) => mapping.finalRules)),
-    allSkills,
-  });
-  const installedSkills = referenceSkills.map((skill) => {
-    const selectedSourceRuleIds = (skill.source_rules ?? []).filter((ruleId) => selectedRuleSet.has(ruleId));
-    const { packages, installedSkill } = buildSkillInstallPlan({
-      skill,
-      allRules,
-      requestedTools: selectedTools as ToolId[],
-      scope: 'project',
-      sourceRuleIds: selectedSourceRuleIds,
+  const selectedRuleIds = deduplicateRules(mappings.flatMap((mapping) => mapping.finalRules)).map((rule) => rule.id);
+
+  let projectInstalledSkills: InstalledSkill[] = [];
+
+  if (selectedSkills.length > 0 && skillScope !== null) {
+    const skillBasePath = skillScope === 'project' ? basePath : userBasePath;
+    const installedSkills = selectedSkills.map((skill) => {
+      const { packages, installedSkill } = buildSkillInstallPlan({
+        skill,
+        requestedTools: selectedTools as ToolId[],
+        scope: skillScope,
+      });
+      installSkillPackages(skillBasePath, packages);
+      return installedSkill;
     });
-    installSkillPackages(basePath, packages);
-    return installedSkill;
-  });
+
+    if (skillScope === 'project') {
+      projectInstalledSkills = installedSkills;
+    } else {
+      const registryPath = resolveSkillRegistryPath(skillBasePath);
+      const previous = readSkillRegistry(registryPath);
+      const nextSkills = installedSkills.reduce<InstalledSkill[]>(
+        (acc, installedSkill) => upsertInstalledSkill(acc, installedSkill),
+        previous?.skills ?? [],
+      );
+      writeSkillRegistry(registryPath, {
+        skills: nextSkills,
+        cliVersion: getCliVersion(),
+        generatedAt: new Date().toISOString(),
+      });
+    }
+  }
 
   for (const toolId of selectedTools as ToolId[]) {
     if (isMonorepo) {
-      const allRules = deduplicateRules(mappings.flatMap((m) => m.finalRules));
-      const workspaceMappings: WorkspaceMapping[] = mappings.map((m) => ({
-        path: m.workspace,
-        ruleIds: m.finalRules.map((r) => r.id),
+      const allWorkspaceRules = deduplicateRules(mappings.flatMap((mapping) => mapping.finalRules));
+      const workspaceMappings: WorkspaceMapping[] = mappings.map((mapping) => ({
+        path: mapping.workspace,
+        ruleIds: mapping.finalRules.map((rule) => rule.id),
       }));
-      const renderResult = renderForTool(toolId, allRules, workspaceMappings);
+      const renderResult = renderForTool(toolId, allWorkspaceRules, workspaceMappings);
       const actions = buildInstallPlan({ toolId, renderResult, meta });
       const result = installFiles(basePath, actions, meta);
       allInstalledFiles.push(...result.written);
@@ -233,12 +284,15 @@ export const initCommand = async (): Promise<void> => {
 
   s.stop('규칙 설치 완료');
 
-  // 6. Manifest 저장
-  const allInstalledRuleIds = deduplicateRules(mappings.flatMap((m) => m.finalRules)).map((r) => r.id);
-
   const workspacesRecord = isMonorepo
     ? Object.fromEntries(
-        mappings.map((m) => [m.workspace, { preset: m.preset.id, rules: m.finalRules.map((r) => r.id) }]),
+        mappings.map((mapping) => [
+          mapping.workspace,
+          {
+            preset: mapping.preset.id,
+            rules: mapping.finalRules.map((rule) => rule.id),
+          },
+        ]),
       )
     : undefined;
 
@@ -247,9 +301,9 @@ export const initCommand = async (): Promise<void> => {
     scope: 'project',
     preset: !isMonorepo ? mappings[0].preset.id : undefined,
     workspaces: workspacesRecord,
-    installedRules: allInstalledRuleIds,
+    installedRules: selectedRuleIds,
     installedFiles: allInstalledFiles,
-    installedSkills,
+    installedSkills: projectInstalledSkills,
     appendedFiles: allAppended,
     settings:
       claudeSettingValues || geminiSettingValues || wantPrettierIgnore
@@ -264,10 +318,13 @@ export const initCommand = async (): Promise<void> => {
   });
   writeManifest(resolveManifestPath(basePath), manifest);
 
-  // 7. 결과 요약
   if (allAppended.length > 0) {
-    p.log.info(`기존 파일에 섹션 추가됨 (내용 보존):\n${allAppended.map((f) => `  ${f}`).join('\n')}`);
+    p.log.info(`기존 파일에 섹션 추가됨 (내용 보존):\n${allAppended.map((file) => `  ${file}`).join('\n')}`);
   }
-  p.log.success(`설치된 규칙: ${allInstalledRuleIds.length}개`);
+  p.log.success(`설치된 core rules: ${selectedRuleIds.length}개`);
+  p.log.success(`설치된 skills: ${selectedSkills.length}개${skillScope ? ` (${skillScope})` : ''}`);
+  if (selectedSkills.length > 0 && skillScope === 'user') {
+    p.log.info('global skill은 ai-ops uninstall 대상이 아닙니다. ai-ops skill uninstall으로 제거하세요.');
+  }
   p.outro('ai-ops init 완료');
 };

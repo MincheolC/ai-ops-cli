@@ -10,6 +10,7 @@ install_scopes:
   - project
   - user
 ---
+
 # Skill Load Check
 
 Run the script in `scripts/loaded.js` and return the result.

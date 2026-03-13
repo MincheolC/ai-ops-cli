@@ -9,9 +9,6 @@ supported_tools:
 install_scopes:
   - project
   - user
-source_rules:
-  - graphql-server
-  - nestjs-graphql
 ---
 # GraphQL Server Runtime
 

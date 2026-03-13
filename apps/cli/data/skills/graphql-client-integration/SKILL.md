@@ -9,9 +9,6 @@ supported_tools:
 install_scopes:
   - project
   - user
-source_rules:
-  - graphql-client-web
-  - graphql-client-app
 ---
 # GraphQL Client Integration
 

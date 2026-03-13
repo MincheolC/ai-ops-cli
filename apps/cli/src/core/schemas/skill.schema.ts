@@ -38,9 +38,8 @@ export const SkillFrontmatterSchema = z
     description: z.string().min(1),
     supported_tools: z.array(SkillToolSchema).min(1),
     install_scopes: z.array(SkillScopeSchema).min(1),
-    source_rules: z.array(z.string().min(1)).optional(),
   })
-  .strict();
+  .passthrough();
 
 export type SkillFile = z.infer<typeof SkillFileSchema>;
 export type SkillFrontmatter = z.infer<typeof SkillFrontmatterSchema>;
@@ -50,7 +49,6 @@ export type Skill = {
   description: string;
   supported_tools: SkillFrontmatter['supported_tools'];
   install_scopes: SkillFrontmatter['install_scopes'];
-  source_rules?: readonly string[];
   directory: string;
   files: SkillFile[];
 };
@@ -63,7 +61,6 @@ export const InstalledSkillSchema = z
     scope: SkillScopeSchema,
     installed_paths: z.array(z.string().min(1)).min(1),
     sourceHash: z.string().regex(/^[a-f0-9]{6}$/, 'sourceHash must be 6 lowercase hex chars'),
-    source_rules: z.array(z.string().min(1)).optional(),
   })
   .strict();
 

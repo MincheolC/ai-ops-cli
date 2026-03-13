@@ -71,14 +71,12 @@ export const computeInstalledSkillHash = (params: {
   kind: InstalledSkill['kind'];
   description: string;
   tools: readonly string[];
-  sourceRules: readonly string[];
   files: readonly string[];
 }): string =>
   computeHash([
     params.kind,
     params.description,
     ...[...params.tools].sort(),
-    ...[...params.sourceRules].sort(),
     ...[...params.files].sort(),
   ]);
 

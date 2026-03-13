@@ -7,6 +7,7 @@ export * from './source-hash.js';
 export * from './tool-output.js';
 export * from './managed-header.js';
 export * from './manifest-io.js';
+export * from './manifest-resolution.js';
 export * from './skill-registry-io.js';
 export * from './diff.js';
 export * from './install-plan.js';

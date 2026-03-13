@@ -6,13 +6,12 @@ frontend-web:
     - code-philosophy
     - plan-mode
     - naming-convention
-    - engineering-standards
-    - typescript
-    - react-typescript
-    - shadcn-ui
-    - nextjs
-    - graphql
-    - libs-frontend-web
+  skills:
+    - typescript-language
+    - frontend-web-react-next-runtime
+    - frontend-web-shadcn-ui
+    - graphql-contract
+    - graphql-client-integration
 
 frontend-app:
   description: '앱 프론트엔드 프로젝트를 위한 프리셋'
@@ -22,10 +21,10 @@ frontend-app:
     - code-philosophy
     - plan-mode
     - naming-convention
-    - engineering-standards
-    - flutter
-    - graphql
-    - libs-frontend-app
+  skills:
+    - frontend-app-flutter-runtime
+    - graphql-contract
+    - graphql-client-integration
 
 backend-ts:
   description: 'TypeScript 백엔드 프로젝트를 위한 프리셋'
@@ -35,13 +34,13 @@ backend-ts:
     - code-philosophy
     - plan-mode
     - naming-convention
-    - engineering-standards
-    - typescript
-    - nestjs
-    - prisma-postgresql
-    - graphql
-    - nestjs-graphql
-    - libs-backend-ts
+  skills:
+    - backend-service-standards
+    - typescript-language
+    - backend-ts-nestjs-runtime
+    - db-prisma-postgresql
+    - graphql-contract
+    - graphql-server-runtime
 
 backend-python:
   description: 'Python 백엔드 프로젝트를 위한 프리셋'
@@ -51,8 +50,8 @@ backend-python:
     - code-philosophy
     - plan-mode
     - naming-convention
-    - engineering-standards
-    - python
-    - fastapi
-    - sqlalchemy
-    - libs-backend-python
+  skills:
+    - backend-service-standards
+    - python-language
+    - backend-python-fastapi-runtime
+    - db-sqlalchemy-postgresql

@@ -9,8 +9,6 @@ supported_tools:
 install_scopes:
   - project
   - user
-source_rules:
-  - data-pipeline-python
 ---
 # Data Pipeline Python Performance
 

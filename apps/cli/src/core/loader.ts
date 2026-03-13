@@ -5,25 +5,6 @@ import { parseMarkdownFrontmatter } from './frontmatter.js';
 import { RuleSchema, PresetSchema, SkillFrontmatterSchema } from './schemas/index.js';
 import type { Rule, Preset, Skill } from './schemas/index.js';
 
-type PresetRuleBundles = Readonly<Record<string, Readonly<Record<string, readonly string[]>>>>;
-
-export const PRESET_RULE_BUNDLES: PresetRuleBundles = {
-  'frontend-web': {
-    graphql: ['graphql-core', 'graphql-client-web'],
-  },
-  'frontend-app': {
-    graphql: ['graphql-core', 'graphql-client-app'],
-  },
-  'backend-ts': {
-    graphql: ['graphql-core', 'graphql-server'],
-  },
-} as const;
-
-export type PresetRuleGroup = {
-  id: string;
-  rules: Rule[];
-};
-
 // priority 내림차순 정렬 (높을수록 상단 → U-shaped attention)
 export const sortRulesByPriority = (rules: readonly Rule[]): Rule[] =>
   [...rules].sort((a, b) => b.priority - a.priority);
@@ -37,12 +18,6 @@ const deduplicateRulesById = (rules: readonly Rule[]): Rule[] => {
   });
 };
 
-const resolveBundledRuleIds = (presetId: string, logicalRuleId: string): readonly string[] => {
-  const presetBundles = PRESET_RULE_BUNDLES[presetId];
-  if (!presetBundles) return [logicalRuleId];
-  return presetBundles[logicalRuleId] ?? [logicalRuleId];
-};
-
 const resolveRuleById = (ruleId: string, allRules: readonly Rule[], context?: string): Rule => {
   const found = allRules.find((rule) => rule.id === ruleId);
   if (!found) {
@@ -52,28 +27,34 @@ const resolveRuleById = (ruleId: string, allRules: readonly Rule[], context?: st
   return found;
 };
 
-// presets.yaml의 Record<id, {description, rules}> → Preset[] 변환
-export const parseRawPresets = (raw: Record<string, { description: string; rules: string[] }>): Preset[] =>
-  Object.entries(raw).map(([id, value]) => PresetSchema.parse({ id, ...value }));
-
-export const resolvePresetRuleGroups = (preset: Preset, allRules: readonly Rule[]): PresetRuleGroup[] =>
-  preset.rules.map((logicalRuleId) => {
-    const bundledRuleIds = resolveBundledRuleIds(preset.id, logicalRuleId);
-    const rules = bundledRuleIds.map((ruleId) => resolveRuleById(ruleId, allRules, `${preset.id}:${logicalRuleId}`));
-    return { id: logicalRuleId, rules };
-  });
-
-// TUI 세부조정: 사용자가 해제한 rule ID 목록을 제외 (순서 유지)
-export const excludeRules = (rules: readonly Rule[], excludeIds: readonly string[]): Rule[] => {
-  const excludeSet = new Set(excludeIds);
-  return rules.filter((r) => !excludeSet.has(r.id));
+const resolveSkillById = (skillId: string, allSkills: readonly Skill[], context?: string): Skill => {
+  const found = allSkills.find((skill) => skill.id === skillId);
+  if (!found) {
+    const suffix = context ? ` (from ${context})` : '';
+    throw new Error(`Skill not found: ${skillId}${suffix}`);
+  }
+  return found;
 };
 
-// preset.rules(논리 ID 포함) 목록을 실제 rule로 확장 + priority 정렬, 누락 시 throw
+// presets.yaml의 Record<id, {description, rules, skills}> → Preset[] 변환
+export const parseRawPresets = (
+  raw: Record<string, { description: string; rules: string[]; skills?: string[] }>,
+): Preset[] =>
+  Object.entries(raw).map(([id, value]) => PresetSchema.parse({ id, ...value }));
+
+// preset.rules 목록을 실제 core rule로 해석 + priority 정렬, 누락 시 throw
 export const resolvePresetRules = (preset: Preset, allRules: readonly Rule[]): Rule[] => {
-  const groups = resolvePresetRuleGroups(preset, allRules);
-  const resolved = deduplicateRulesById(groups.flatMap((group) => group.rules));
-  return sortRulesByPriority(resolved);
+  const resolved = preset.rules.map((ruleId) => resolveRuleById(ruleId, allRules, preset.id));
+  return sortRulesByPriority(deduplicateRulesById(resolved));
+};
+
+export const resolvePresetSkills = (preset: Preset, allSkills: readonly Skill[]): Skill[] => {
+  const seen = new Set<string>();
+  return preset.skills.filter((skillId) => {
+    if (seen.has(skillId)) return false;
+    seen.add(skillId);
+    return true;
+  }).map((skillId) => resolveSkillById(skillId, allSkills, preset.id));
 };
 
 export const loadRuleFile = (filePath: string): Rule => {
@@ -145,7 +126,6 @@ export const loadAllSkills = (skillsDir: string): Skill[] => {
       description: parsed.description,
       supported_tools: parsed.supported_tools,
       install_scopes: parsed.install_scopes,
-      source_rules: parsed.source_rules,
       directory,
       files,
     };
@@ -154,19 +134,6 @@ export const loadAllSkills = (skillsDir: string): Skill[] => {
 
 export const loadPresets = (presetsPath: string): Preset[] => {
   const raw = readFileSync(presetsPath, 'utf-8');
-  const data = parse(raw) as Record<string, { description: string; rules: string[] }>;
+  const data = parse(raw) as Record<string, { description: string; rules: string[]; skills?: string[] }>;
   return parseRawPresets(data);
-};
-
-export const resolveReferenceSkills = (params: {
-  selectedRules: readonly Rule[];
-  allSkills: readonly Skill[];
-}): Skill[] => {
-  const selectedRuleIds = new Set(params.selectedRules.map((rule) => rule.id));
-
-  return params.allSkills.filter((skill) => {
-    if (skill.kind !== 'reference') return false;
-    if (skill.source_rules === undefined || skill.source_rules.length === 0) return false;
-    return skill.source_rules.some((ruleId) => selectedRuleIds.has(ruleId));
-  });
 };

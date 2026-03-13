@@ -2,7 +2,6 @@ import * as p from '@clack/prompts';
 import { rmSync } from 'node:fs';
 import type { InstalledSkill, Skill, ToolId } from '@/core/index.js';
 import {
-  loadAllRules,
   loadAllSkills,
   buildSkillInstallPlan,
   resolveManifestPath,
@@ -15,7 +14,7 @@ import {
   resolveSkillRegistryPath,
   writeSkillRegistry,
 } from '@/core/index.js';
-import { resolveBasePath, resolveCompilerDataDir, resolveRulesDir, resolveSkillsDir, resolveUserBasePath } from '../lib/paths.js';
+import { resolveBasePath, resolveCompilerDataDir, resolveSkillsDir, resolveUserBasePath } from '../lib/paths.js';
 import {
   findInstalledSkill,
   removeInstalledSkill,
@@ -44,14 +43,12 @@ const resolveScopeContext = (opts: SkillCommandOptions): {
 };
 
 const loadCompilerInputs = (): {
-  allRules: ReturnType<typeof loadAllRules>;
   allSkills: ReturnType<typeof loadAllSkills>;
   sourceHash: string;
   cliVersion: string;
 } => {
   const compilerDataDir = resolveCompilerDataDir();
   return {
-    allRules: loadAllRules(resolveRulesDir()),
     allSkills: loadAllSkills(resolveSkillsDir()),
     sourceHash: computeSourceHash(compilerDataDir),
     cliVersion: getCliVersion(),
@@ -160,13 +157,11 @@ const installSkill = (params: {
   requestedTools: readonly ToolId[];
   scope: InstalledSkill['scope'];
   basePath: string;
-  allRules: ReturnType<typeof loadAllRules>;
   cliVersion: string;
   sourceHash: string;
 }): InstalledSkill => {
   const { packages, installedSkill } = buildSkillInstallPlan({
     skill: params.skill,
-    allRules: params.allRules,
     requestedTools: params.requestedTools,
     scope: params.scope,
   });
@@ -207,7 +202,7 @@ export const skillListCommand = async (opts: SkillCommandOptions): Promise<void>
 
 export const skillInstallCommand = async (skillId: string, opts: SkillCommandOptions): Promise<void> => {
   const { scope, basePath } = resolveScopeContext(opts);
-  const { allRules, allSkills, sourceHash, cliVersion } = loadCompilerInputs();
+  const { allSkills, sourceHash, cliVersion } = loadCompilerInputs();
   const skill = resolveSkillById(allSkills, skillId);
   assertScopeAllowed(skill, scope);
   const requestedTools = resolveRequestedTools({ requested: opts.tool, supported: skill.supported_tools });
@@ -218,7 +213,6 @@ export const skillInstallCommand = async (skillId: string, opts: SkillCommandOpt
     requestedTools,
     scope,
     basePath,
-    allRules,
     cliVersion,
     sourceHash,
   });
@@ -229,7 +223,7 @@ export const skillInstallCommand = async (skillId: string, opts: SkillCommandOpt
 
 export const skillDiffCommand = async (skillId: string | undefined, opts: SkillCommandOptions): Promise<void> => {
   const { scope, basePath } = resolveScopeContext(opts);
-  const { allRules, allSkills } = loadCompilerInputs();
+  const { allSkills } = loadCompilerInputs();
   const installedSkills = readInstalledSkills(scope, basePath);
   const targets = skillId ? installedSkills.filter((skill) => skill.id === skillId) : installedSkills;
 
@@ -245,10 +239,8 @@ export const skillDiffCommand = async (skillId: string | undefined, opts: SkillC
     const skill = resolveSkillById(allSkills, installedSkill.id);
     const { installedSkill: next } = buildSkillInstallPlan({
       skill,
-      allRules,
       requestedTools: installedSkill.tools,
       scope,
-      sourceRuleIds: installedSkill.source_rules,
     });
     const changed = next.sourceHash !== installedSkill.sourceHash;
     return `- ${installedSkill.id}: ${changed ? 'changed' : 'up-to-date'} (${installedSkill.sourceHash} -> ${next.sourceHash})`;
@@ -260,7 +252,7 @@ export const skillDiffCommand = async (skillId: string | undefined, opts: SkillC
 
 export const skillUpdateCommand = async (skillId: string | undefined, opts: SkillCommandOptions): Promise<void> => {
   const { scope, basePath } = resolveScopeContext(opts);
-  const { allRules, allSkills, sourceHash, cliVersion } = loadCompilerInputs();
+  const { allSkills, sourceHash, cliVersion } = loadCompilerInputs();
   const installedSkills = readInstalledSkills(scope, basePath);
   const targets = skillId ? installedSkills.filter((skill) => skill.id === skillId) : installedSkills;
 
@@ -276,10 +268,8 @@ export const skillUpdateCommand = async (skillId: string | undefined, opts: Skil
     const skill = resolveSkillById(allSkills, installedSkill.id);
     const { packages, installedSkill: next } = buildSkillInstallPlan({
       skill,
-      allRules,
       requestedTools: installedSkill.tools,
       scope,
-      sourceRuleIds: installedSkill.source_rules,
     });
     installSkillPackages(basePath, packages);
     return next;

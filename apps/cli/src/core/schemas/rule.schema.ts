@@ -3,13 +3,6 @@
  */
 import { z } from 'zod';
 
-export const RULE_DELIVERY = {
-  CORE: 'core',
-  REFERENCE_SKILL: 'reference-skill',
-} as const;
-
-const RuleDeliverySchema = z.union([z.literal(RULE_DELIVERY.CORE), z.literal(RULE_DELIVERY.REFERENCE_SKILL)]);
-
 export const DecisionTableEntrySchema = z
   .object({
     when: z.string().min(1),
@@ -37,22 +30,10 @@ export const RuleSchema = z
     tags: z.array(z.string().min(1)),
     /** 0-100. 높을수록 생성 파일 상단 배치 (U-shaped attention 최적화) */
     priority: z.number().int().min(0).max(100),
-    delivery: RuleDeliverySchema.default(RULE_DELIVERY.CORE),
-    reference_skill_id: z.string().regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, 'reference_skill_id must be kebab-case').optional(),
-    core_excerpt: z.array(z.string().min(1)).optional(),
     supported_tools: z.array(z.string().min(1)).min(1).default(['claude-code', 'codex', 'gemini']),
     content: RuleContentSchema,
   })
-  .strict()
-  .superRefine((value, ctx) => {
-    if (value.delivery === RULE_DELIVERY.REFERENCE_SKILL && value.reference_skill_id === undefined) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'reference_skill_id is required when delivery is reference-skill',
-        path: ['reference_skill_id'],
-      });
-    }
-  });
+  .strict();
 
 export type DecisionTableEntry = z.infer<typeof DecisionTableEntrySchema>;
 export type RuleContent = z.infer<typeof RuleContentSchema>;

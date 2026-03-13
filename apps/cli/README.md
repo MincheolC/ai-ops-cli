@@ -1,30 +1,28 @@
 # ai-ops-cli
 
-CLI for managing AI tool rules and agent skills across projects.
+CLI for managing core AI tool rules and agent skills across projects.
 
 ## Why this exists
 
 `ai-ops-cli` reduces configuration drift across AI coding tools.
 
-- Different tools use different file layouts and loading models.
-- Manual sync across tools is error-prone over time.
-- Teams need a deterministic, repeatable setup for AI pair-programming rules and skill packages.
+- different tools use different file layouts and loading models
+- manual sync across tools is error-prone over time
+- teams need a deterministic setup for shared core rules and installable skills
 
-The CLI uses centralized rule YAML, skill directories, and presets as SSOT and renders tool-native outputs into the current project or user environment.
+The CLI treats these as separate sources of truth:
+
+- `apps/cli/data/rules/*.yaml`: always-loaded core rules only
+- `apps/cli/data/skills/<skill-id>/`: installable skills
+- `apps/cli/data/presets.yaml`: preset-to-core-rule and preset-to-skill mapping
 
 ## What this CLI provides
 
-- Interactive project rule installation (`ai-ops init`)
-- Skill package installation and lifecycle management (`ai-ops skill ...`)
-- Source drift checks (`ai-ops diff`)
-- Deterministic re-apply (`ai-ops update`)
-- Managed cleanup (`ai-ops uninstall`)
-
-## What this CLI does not provide
-
-- Hosted backend or remote state
-- In-CLI rule authoring UI
-- IDE plugin management
+- interactive project initialization (`ai-ops init`)
+- skill package installation and lifecycle management (`ai-ops skill ...`)
+- source drift checks (`ai-ops diff`)
+- deterministic re-apply (`ai-ops update`)
+- managed cleanup (`ai-ops uninstall`)
 
 ## Supported tools and output layout
 
@@ -49,7 +47,7 @@ npm install -g ai-ops-cli
 ## Usage
 
 ```bash
-# Initialize rules for the current project
+# Initialize the current project
 ai-ops init
 
 # Install a skill globally (user scope by default)
@@ -64,18 +62,18 @@ ai-ops skill diff
 ai-ops skill update
 ai-ops skill uninstall skill-load-check
 
-# Check drift against current source hash
+# Check project drift
 ai-ops diff
 
-# Re-apply installed project rules (or force)
+# Re-apply current project state
 ai-ops update
 ai-ops update --force
 
-# Remove installed project files and manifest
+# Remove project-managed files
 ai-ops uninstall
 ```
 
-## CLI surface
+## CLI Surface
 
 ```text
 ai-ops [command]
@@ -95,39 +93,42 @@ Options:
 
 Notes:
 
-- Project rule installation state is tracked in `.ai-ops-manifest.json`.
-- User-scope skill installation state is tracked in `~/.ai-ops/skills-manifest.json`.
+- Project installation state is tracked in `.ai-ops-manifest.json`.
+- User-scope skill state is tracked in `~/.ai-ops/skills-manifest.json`.
 - `ai-ops skill` defaults to user scope. Use `--project` to keep a skill local to the current repo.
 
-## How install/update/uninstall behave
+## Install / Update / Uninstall Behavior
 
 - Managed project rule files are wrapped in an `ai-ops` section with metadata (`sourceHash`, `generatedAt`).
 - If a rule file already has an `ai-ops` section, only that section is replaced.
 - If a rule file has no managed section, generated content is appended and user content is preserved.
-- Skill packages are written into dedicated skill directories and replaced as full package trees on update.
+- Skill packages are written into dedicated directories and replaced as full package trees on update.
 - `uninstall` removes only project-managed rule files and project-installed skill directories.
+- User-scope skills are never removed by `ai-ops uninstall`.
 
-## Init flow summary
+## Init Flow Summary
 
 `ai-ops init` prompts for:
 
 1. Tool selection (`claude-code`, `codex`, `gemini`)
 2. Monorepo confirmation
-3. Preset selection per workspace
-4. Domain rule fine-tuning per workspace
-5. Optional settings installation
+3. Workspace selection for monorepos
+4. Preset selection per workspace
+5. Locked core rules review
+6. Recommended skill fine-tuning per workspace
+7. One shared install scope for selected skills (`user` default or `project`)
+8. Optional settings installation
 
-Preset and metadata are loaded from:
+Important behavior:
 
-- `apps/cli/data/presets.yaml`
-- `apps/cli/data/rules/*.yaml`
-- `apps/cli/data/skills/<skill-id>/`
+- core rules come from the preset directly and are not fine-tuned in `init`
+- selected skills can be trimmed or expanded before installation
+- when `user` scope is chosen, selected skills are written only to the global skill registry
+- when `project` scope is chosen, selected skills are recorded in `.ai-ops-manifest.json`
 
 Skill authoring rules live in `apps/cli/data/skills/README.md`.
 
-Selected reference skills are installed alongside project rules when their source rules are selected.
-
-## Local development
+## Local Development
 
 From repo root:
 
@@ -147,11 +148,7 @@ npm run test --workspace=apps/cli
 
 ## Local Skill Loading Check
 
-Use the built-in `skill-load-check` task skill before publishing to npm. It writes `scripts/loaded.js` with:
-
-```js
-console.log('A Skill loaded');
-```
+Use the built-in `skill-load-check` task skill before publishing to npm.
 
 Recommended local flow:
 
@@ -186,9 +183,9 @@ find ./.agents/skills/skill-load-check -maxdepth 2 -type f | sort
 node ./.agents/skills/skill-load-check/scripts/loaded.js
 ```
 
-After file placement is verified, trigger the agent with a prompt such as `validate that the installed skill-load-check skill is available` and confirm the tool discovers the skill metadata. If a tool caches skill discovery, restart that tool session before re-checking.
+After file placement is verified, use a real tool prompt that should trigger `skill-load-check` and confirm the tool discovers the skill metadata. If the tool caches skill discovery, restart that tool session before re-checking.
 
-## Related docs
+## Related Docs
 
 - Master blueprint: [`docs/plan.md`](../../docs/plan.md)
 - Implementation playbook: [`docs/implementation-playbook.md`](../../docs/implementation-playbook.md)

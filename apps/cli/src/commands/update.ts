@@ -5,6 +5,7 @@ import {
   resolveManifestPath,
   loadAllRules,
   loadAllSkills,
+  loadPresets,
   renderForTool,
   buildInstallPlan,
   buildSkillInstallPlan,
@@ -13,8 +14,10 @@ import {
   computeSourceHash,
   computeDiff,
   getCliVersion,
+  resolveManifestProjectSkills,
+  resolveManifestRules,
 } from '@/core/index.js';
-import { resolveBasePath, resolveCompilerDataDir, resolveRulesDir, resolveSkillsDir } from '../lib/paths.js';
+import { resolveBasePath, resolveCompilerDataDir, resolvePresetsPath, resolveRulesDir, resolveSkillsDir } from '../lib/paths.js';
 import { installFiles } from '../lib/install.js';
 import { installSkillPackages } from '../lib/skill-install.js';
 import { installClaudeSettings } from '../lib/claude-settings.js';
@@ -35,12 +38,25 @@ export const updateCommand = async (opts: { force: boolean }): Promise<void> => 
 
   const rulesDir = resolveRulesDir();
   const skillsDir = resolveSkillsDir();
+  const presetsPath = resolvePresetsPath();
   const sourceHash = computeSourceHash(resolveCompilerDataDir());
   const cliVersion = getCliVersion();
+  const allRules = loadAllRules(rulesDir);
+  const allSkills = loadAllSkills(skillsDir);
+  const presets = loadPresets(presetsPath);
+  const resolvedRules = resolveManifestRules({
+    manifest,
+    allRules,
+    presets,
+  });
+  const resolvedSkills = resolveManifestProjectSkills({
+    manifest,
+    allSkills,
+  });
 
   const diffResult = computeDiff({
     previous: manifest,
-    currentRules: manifest.installed_rules,
+    currentRules: resolvedRules.installedRules.map((rule) => rule.id),
     currentSourceHash: sourceHash,
     currentCliVersion: cliVersion,
   });
@@ -54,22 +70,15 @@ export const updateCommand = async (opts: { force: boolean }): Promise<void> => 
   const s = p.spinner();
   s.start('규칙 갱신 중...');
 
-  const allRules = loadAllRules(rulesDir);
-  const allSkills = loadAllSkills(skillsDir);
   const meta = { sourceHash, generatedAt: new Date().toISOString() };
   const allInstalledFiles: string[] = [];
   const allAppended: string[] = [];
-  const installedSkills = (manifest.installed_skills ?? []).map((entry) => {
-    const skill = allSkills.find((candidate) => candidate.id === entry.id);
-    if (!skill) {
-      throw new Error(`Skill not found during update: ${entry.id}`);
-    }
+
+  const installedSkills = resolvedSkills.map(({ skill, requestedTools }) => {
     const { packages, installedSkill } = buildSkillInstallPlan({
       skill,
-      allRules,
-      requestedTools: entry.tools as ToolId[],
+      requestedTools,
       scope: 'project',
-      sourceRuleIds: entry.source_rules,
     });
     installSkillPackages(basePath, packages);
     return installedSkill;
@@ -77,12 +86,11 @@ export const updateCommand = async (opts: { force: boolean }): Promise<void> => 
 
   if (manifest.workspaces) {
     // 모노레포: workspaces 기반 재설치
-    const workspaceEntries = Object.entries(manifest.workspaces);
+    const workspaceEntries = Object.entries(resolvedRules.workspaces ?? {});
 
     for (const toolIdStr of manifest.tools) {
       const toolId = toolIdStr as ToolId;
-      const allInstalledRuleSet = new Set(manifest.installed_rules);
-      const rulesToInstall = allRules.filter((r) => allInstalledRuleSet.has(r.id));
+      const rulesToInstall = resolvedRules.installedRules;
       const workspaceMappings = workspaceEntries.map(([path, entry]) => ({
         path,
         ruleIds: entry.rules,
@@ -95,8 +103,7 @@ export const updateCommand = async (opts: { force: boolean }): Promise<void> => 
     }
   } else {
     // 단일 프로젝트: installed_rules 기반 재설치
-    const installedRuleSet = new Set(manifest.installed_rules);
-    const rulesToInstall = allRules.filter((r) => installedRuleSet.has(r.id));
+    const rulesToInstall = resolvedRules.installedRules;
 
     for (const toolIdStr of manifest.tools) {
       const toolId = toolIdStr as ToolId;
@@ -124,8 +131,8 @@ export const updateCommand = async (opts: { force: boolean }): Promise<void> => 
     tools: manifest.tools,
     scope: manifest.scope,
     preset: manifest.preset,
-    workspaces: manifest.workspaces,
-    installedRules: manifest.installed_rules,
+    workspaces: resolvedRules.workspaces,
+    installedRules: resolvedRules.installedRules.map((rule) => rule.id),
     installedFiles: allInstalledFiles.length > 0 ? allInstalledFiles : manifest.installed_files,
     installedSkills,
     appendedFiles: allAppended.length > 0 ? allAppended : manifest.appended_files,

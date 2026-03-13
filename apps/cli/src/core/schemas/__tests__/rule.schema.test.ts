@@ -17,21 +17,7 @@ const validRule = {
 describe('RuleSchema', () => {
   describe('valid', () => {
     it('전체 필드', () => {
-      expect(RuleSchema.parse(validRule)).toEqual({ ...validRule, delivery: 'core' });
-    });
-
-    it('reference-skill delivery', () => {
-      expect(
-        RuleSchema.parse({
-          ...validRule,
-          delivery: 'reference-skill',
-          reference_skill_id: 'typescript-reference',
-          core_excerpt: ['Use strict mode and avoid any.'],
-        }),
-      ).toMatchObject({
-        delivery: 'reference-skill',
-        reference_skill_id: 'typescript-reference',
-      });
+      expect(RuleSchema.parse(validRule)).toEqual(validRule);
     });
 
     it('decision_table 생략', () => {
@@ -140,15 +126,6 @@ describe('RuleSchema', () => {
         RuleSchema.parse({
           ...validRule,
           content: { ...validRule.content, extra: true },
-        }),
-      ).toThrow();
-    });
-
-    it('reference-skill without reference_skill_id', () => {
-      expect(() =>
-        RuleSchema.parse({
-          ...validRule,
-          delivery: 'reference-skill',
         }),
       ).toThrow();
     });

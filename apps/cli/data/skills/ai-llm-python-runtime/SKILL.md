@@ -9,8 +9,6 @@ supported_tools:
 install_scopes:
   - project
   - user
-source_rules:
-  - ai-llm-python
 ---
 # AI LLM Python Runtime
 

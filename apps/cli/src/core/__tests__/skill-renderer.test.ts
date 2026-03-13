@@ -1,18 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildSkillInstallPlan } from '../skill-renderer.js';
-import type { Rule, Skill } from '../schemas/index.js';
-
-const makeRule = (id: string): Rule => ({
-  id,
-  category: 'standard',
-  tags: ['test'],
-  priority: 50,
-  supported_tools: ['claude-code', 'codex', 'gemini'],
-  content: {
-    constraints: ['Do not do x'],
-    guidelines: ['Do y'],
-  },
-});
+import type { Skill } from '../schemas/index.js';
 
 const makeSkill = (partial?: Partial<Skill>): Skill => ({
   id: 'graphql-contract',
@@ -31,7 +19,6 @@ const makeSkill = (partial?: Partial<Skill>): Skill => ({
       content: 'Detailed GraphQL contract guidance.',
     },
   ],
-  source_rules: ['graphql-core'],
   ...partial,
 });
 
@@ -39,7 +26,6 @@ describe('buildSkillInstallPlan', () => {
   it('codex+gemini는 .agents/skills 하나로 공유 설치한다', () => {
     const result = buildSkillInstallPlan({
       skill: makeSkill(),
-      allRules: [makeRule('graphql-core')],
       requestedTools: ['codex', 'gemini'],
       scope: 'project',
     });
@@ -52,7 +38,6 @@ describe('buildSkillInstallPlan', () => {
   it('claude-code는 .claude/skills에 설치한다', () => {
     const result = buildSkillInstallPlan({
       skill: makeSkill(),
-      allRules: [makeRule('graphql-core')],
       requestedTools: ['claude-code'],
       scope: 'project',
     });
@@ -76,9 +61,7 @@ describe('buildSkillInstallPlan', () => {
             content: "console.log('A Skill loaded');",
           },
         ],
-        source_rules: undefined,
       }),
-      allRules: [],
       requestedTools: ['codex'],
       scope: 'user',
     });
