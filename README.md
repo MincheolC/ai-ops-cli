@@ -1,6 +1,6 @@
 # ai-ops-scaffolder
 
-Monorepo for building and releasing `ai-ops-cli`, a project-local CLI that scaffolds and manages AI tool rule files from centralized YAML rules.
+Monorepo for building and releasing `ai-ops-cli`, a CLI that scaffolds project rules and agent skill packages from centralized YAML metadata.
 
 ## Overview
 
@@ -24,11 +24,12 @@ Supported tools:
 │   └── cli/
 │       ├── src/
 │       │   ├── bin/        # CLI entrypoint
-│       │   ├── commands/   # init/update/diff/uninstall
-│       │   ├── core/       # schemas, loader, renderer, plans
+│       │   ├── commands/   # init/skill/update/diff/uninstall
+│       │   ├── core/       # schemas, loader, renderer, registry
 │       │   └── lib/        # install/uninstall/settings helpers
 │       ├── data/
 │       │   ├── rules/      # Rule YAML files
+│       │   ├── skills/     # Skill YAML files
 │       │   └── presets.yaml
 │       └── README.md       # package-level usage docs
 ├── docs/
@@ -61,6 +62,34 @@ npm run dev
 # Lint + test
 npm run check
 ```
+
+## Local Skill Verification Before Publish
+
+Before `npm publish`, verify the sample `skill-load-check` package end-to-end.
+
+```bash
+npm run build
+export AI_OPS_HOME="$(mktemp -d)"
+node apps/cli/dist/bin/index.js skill install skill-load-check --tool codex
+find "$AI_OPS_HOME/.agents/skills/skill-load-check" -maxdepth 2 -type f | sort
+node "$AI_OPS_HOME/.agents/skills/skill-load-check/scripts/loaded.js"
+```
+
+The script must print:
+
+```text
+A Skill loaded
+```
+
+For a repo-local check, use:
+
+```bash
+node apps/cli/dist/bin/index.js skill install skill-load-check --project --tool codex
+find ./.agents/skills/skill-load-check -maxdepth 2 -type f | sort
+node ./.agents/skills/skill-load-check/scripts/loaded.js
+```
+
+After the file-level check passes, restart the target agent session if needed and verify that the tool can discover the installed skill metadata.
 
 ## Local CLI Usage
 
