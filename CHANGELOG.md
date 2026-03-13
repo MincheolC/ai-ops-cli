@@ -5,6 +5,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-03-13
+
 ### Changed
 
 - `refactor(cli)`: skill catalog 메타데이터를 `apps/cli/data/skills/skill-registry.json`으로 통합하고, 소스 디렉토리를 `reference-skills/`와 `task-skills/`로 분리. `SKILL.md`는 agent-facing frontmatter만 유지하도록 정리
