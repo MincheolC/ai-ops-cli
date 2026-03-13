@@ -13,6 +13,7 @@ import {
   readSkillRegistry,
   resolveSkillRegistryPath,
   writeSkillRegistry,
+  resolveCanonicalSkillId,
 } from '@/core/index.js';
 import { resolveBasePath, resolveCompilerDataDir, resolveSkillsDir, resolveUserBasePath } from '../lib/paths.js';
 import {
@@ -56,7 +57,8 @@ const loadCompilerInputs = (): {
 };
 
 const resolveSkillById = (skills: readonly Skill[], skillId: string): Skill => {
-  const skill = skills.find((candidate) => candidate.id === skillId);
+  const canonicalSkillId = resolveCanonicalSkillId(skillId);
+  const skill = skills.find((candidate) => candidate.id === canonicalSkillId);
   if (!skill) {
     throw new Error(`Unknown skill: ${skillId}`);
   }
@@ -146,10 +148,16 @@ const writeUserSkillState = (params: {
 
 const readInstalledSkills = (scope: InstalledSkill['scope'], basePath: string): InstalledSkill[] => {
   if (scope === 'project') {
-    return readManifest(resolveManifestPath(basePath))?.installed_skills ?? [];
+    return (readManifest(resolveManifestPath(basePath))?.installed_skills ?? []).map((installedSkill) => ({
+      ...installedSkill,
+      id: resolveCanonicalSkillId(installedSkill.id),
+    }));
   }
 
-  return readSkillRegistry(resolveSkillRegistryPath(basePath))?.skills ?? [];
+  return (readSkillRegistry(resolveSkillRegistryPath(basePath))?.skills ?? []).map((installedSkill) => ({
+    ...installedSkill,
+    id: resolveCanonicalSkillId(installedSkill.id),
+  }));
 };
 
 const installSkill = (params: {

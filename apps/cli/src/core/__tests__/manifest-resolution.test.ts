@@ -149,4 +149,36 @@ describe('resolveManifestProjectSkills', () => {
       },
     ]);
   });
+
+  it('legacy installed skill id를 current skill id로 정규화한다', () => {
+    const manifest: Manifest = {
+      tools: ['codex'],
+      scope: 'project',
+      installed_rules: [],
+      installed_skills: [
+        {
+          id: 'engineering-standards-pack',
+          kind: 'reference',
+          tools: ['codex'],
+          scope: 'project',
+          installed_paths: ['.agents/skills/engineering-standards-pack'],
+          sourceHash: 'abc123',
+        },
+      ],
+      sourceHash: 'a1b2c3',
+      generatedAt: '2026-03-13T00:00:00.000Z',
+    };
+
+    const resolved = resolveManifestProjectSkills({
+      manifest,
+      allSkills: [makeReferenceSkill('backend-service-standards')],
+    });
+
+    expect(resolved).toEqual([
+      {
+        skill: makeReferenceSkill('backend-service-standards'),
+        requestedTools: ['codex'],
+      },
+    ]);
+  });
 });

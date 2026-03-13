@@ -2,6 +2,10 @@ import type { Manifest, Preset, Rule, Skill } from './schemas/index.js';
 import { resolvePresetRules } from './loader.js';
 import type { ToolId } from './tool-output.js';
 
+const LEGACY_SKILL_ID_MAP = {
+  'engineering-standards-pack': 'backend-service-standards',
+} as const;
+
 const LEGACY_EXTERNALIZED_RULE_SKILL_MAP = {
   'engineering-standards': 'backend-service-standards',
   typescript: 'typescript-language',
@@ -26,6 +30,9 @@ const LEGACY_EXTERNALIZED_RULE_SKILL_MAP = {
   'ai-llm-python': 'ai-llm-python-runtime',
   'data-pipeline-python': 'data-pipeline-python-performance',
 } as const;
+
+export const resolveCanonicalSkillId = (skillId: string): string =>
+  LEGACY_SKILL_ID_MAP[skillId as keyof typeof LEGACY_SKILL_ID_MAP] ?? skillId;
 
 const resolveRulesFromIds = (ruleIds: readonly string[], allRules: readonly Rule[]): Rule[] => {
   const ruleMap = new Map(allRules.map((rule) => [rule.id, rule]));
@@ -110,7 +117,8 @@ export const resolveManifestProjectSkills = (params: {
   const seen = new Set<string>();
 
   for (const installedSkill of manifest.installed_skills ?? []) {
-    const skill = skillMap.get(installedSkill.id);
+    const canonicalSkillId = resolveCanonicalSkillId(installedSkill.id);
+    const skill = skillMap.get(canonicalSkillId);
     if (!skill) {
       throw new Error(`Skill not found during manifest resolution: ${installedSkill.id}`);
     }

@@ -40,4 +40,25 @@ describe('InstalledSkillSchema', () => {
       scope: 'project',
     });
   });
+
+  it('strips legacy source_rules from installed skill metadata', () => {
+    expect(
+      InstalledSkillSchema.parse({
+        id: 'graphql-contract',
+        kind: 'reference',
+        tools: ['codex'],
+        scope: 'project',
+        installed_paths: ['.agents/skills/graphql-contract'],
+        sourceHash: 'a1b2c3',
+        source_rules: ['graphql-core'],
+      }),
+    ).toEqual({
+      id: 'graphql-contract',
+      kind: 'reference',
+      tools: ['codex'],
+      scope: 'project',
+      installed_paths: ['.agents/skills/graphql-contract'],
+      sourceHash: 'a1b2c3',
+    });
+  });
 });

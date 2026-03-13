@@ -62,6 +62,6 @@ export const InstalledSkillSchema = z
     installed_paths: z.array(z.string().min(1)).min(1),
     sourceHash: z.string().regex(/^[a-f0-9]{6}$/, 'sourceHash must be 6 lowercase hex chars'),
   })
-  .strict();
+  .strip();
 
 export type InstalledSkill = z.infer<typeof InstalledSkillSchema>;

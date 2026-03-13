@@ -39,4 +39,31 @@ describe('skill-state', () => {
     expect(findInstalledSkill(updated, 'skill-load-check')?.sourceHash).toBe('ff1122');
     expect(removeInstalledSkill(updated, 'skill-load-check')).toEqual([]);
   });
+
+  it('legacy skill id를 canonical id로 취급한다', () => {
+    const legacyInstalledSkill = {
+      id: 'engineering-standards-pack',
+      kind: 'reference' as const,
+      tools: ['codex'],
+      scope: 'project' as const,
+      installed_paths: ['.agents/skills/engineering-standards-pack'],
+      sourceHash: 'abc123',
+    };
+
+    expect(findInstalledSkill([legacyInstalledSkill], 'backend-service-standards')).toEqual(legacyInstalledSkill);
+    expect(removeInstalledSkill([legacyInstalledSkill], 'backend-service-standards')).toEqual([]);
+    expect(
+      upsertInstalledSkill([legacyInstalledSkill], {
+        ...legacyInstalledSkill,
+        id: 'backend-service-standards',
+        installed_paths: ['.agents/skills/backend-service-standards'],
+      }),
+    ).toEqual([
+      {
+        ...legacyInstalledSkill,
+        id: 'backend-service-standards',
+        installed_paths: ['.agents/skills/backend-service-standards'],
+      },
+    ]);
+  });
 });

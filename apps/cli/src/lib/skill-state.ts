@@ -1,3 +1,4 @@
+import { resolveCanonicalSkillId } from '@/core/index.js';
 import type { InstalledSkill, Manifest, SkillRegistry, ToolId } from '@/core/index.js';
 
 export type SkillScope = InstalledSkill['scope'];
@@ -38,19 +39,26 @@ export const upsertInstalledSkill = (
   installedSkills: readonly InstalledSkill[],
   nextSkill: InstalledSkill,
 ): InstalledSkill[] => {
-  const remaining = installedSkills.filter((skill) => skill.id !== nextSkill.id);
+  const nextSkillId = resolveCanonicalSkillId(nextSkill.id);
+  const remaining = installedSkills.filter((skill) => resolveCanonicalSkillId(skill.id) !== nextSkillId);
   return [...remaining, nextSkill];
 };
 
 export const removeInstalledSkill = (
   installedSkills: readonly InstalledSkill[],
   skillId: string,
-): InstalledSkill[] => installedSkills.filter((skill) => skill.id !== skillId);
+): InstalledSkill[] => {
+  const targetSkillId = resolveCanonicalSkillId(skillId);
+  return installedSkills.filter((skill) => resolveCanonicalSkillId(skill.id) !== targetSkillId);
+};
 
 export const findInstalledSkill = (
   installedSkills: readonly InstalledSkill[],
   skillId: string,
-): InstalledSkill | undefined => installedSkills.find((skill) => skill.id === skillId);
+): InstalledSkill | undefined => {
+  const targetSkillId = resolveCanonicalSkillId(skillId);
+  return installedSkills.find((skill) => resolveCanonicalSkillId(skill.id) === targetSkillId);
+};
 
 export const buildProjectManifestForSkill = (params: {
   previous: Manifest | null;
