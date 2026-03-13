@@ -31,7 +31,6 @@ const makeSkill = (id: string, sourceRules: readonly string[]): Skill => ({
   kind: 'reference',
   description: `${id} description`,
   supported_tools: ['claude-code', 'codex', 'gemini'],
-  allow_implicit_invocation: true,
   install_scopes: ['project', 'user'],
   directory: `/tmp/${id}`,
   files: [

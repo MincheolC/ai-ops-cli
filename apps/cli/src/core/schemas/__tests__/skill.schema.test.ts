@@ -6,7 +6,6 @@ const validSkillFrontmatter = {
   kind: 'reference' as const,
   description: 'Use when editing GraphQL contracts and schema evolution rules.',
   supported_tools: ['claude-code', 'codex', 'gemini'],
-  allow_implicit_invocation: true,
   install_scopes: ['project', 'user'],
   source_rules: ['graphql-core'],
 };

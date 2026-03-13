@@ -19,7 +19,6 @@ const makeSkill = (partial?: Partial<Skill>): Skill => ({
   kind: 'reference',
   description: 'Use when editing GraphQL contracts.',
   supported_tools: ['claude-code', 'codex', 'gemini'],
-  allow_implicit_invocation: true,
   install_scopes: ['project', 'user'],
   directory: '/tmp/graphql-contract',
   files: [

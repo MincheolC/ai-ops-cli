@@ -132,6 +132,7 @@ sequenceDiagram
 
 - source of truth layout:
   - `apps/cli/data/skills/<skill-id>/SKILL.md`
+  - `agents/` optional
   - `references/` optional
   - `assets/` optional
   - `scripts/` optional
@@ -140,19 +141,19 @@ sequenceDiagram
 - `kind: "reference" | "task"`
 - `description`
 - `supported_tools`
-- `allow_implicit_invocation`
 - `install_scopes: ("project" | "user")[]`
 - `source_rules?`
 - runtime `Skill`
   - `id`
   - `directory`
   - `files: { path, content }[]`
-  - frontmatter-derived fields (`kind`, `description`, `supported_tools`, `allow_implicit_invocation`, `install_scopes`, `source_rules?`)
+  - frontmatter-derived fields (`kind`, `description`, `supported_tools`, `install_scopes`, `source_rules?`)
 
 추가 규칙:
 
 - `reference` skill은 얇은 `SKILL.md`와 필수 `references/reference.md`를 가진다.
 - `task` skill은 절차 본문을 `SKILL.md`에 두고, `references/`, `assets/`, `scripts/`를 선택적으로 가진다.
+- tool-specific metadata(`agents/openai.yaml`, Claude frontmatter flags 등)는 skill author가 source skill에 직접 넣는다.
 - skill 내용은 생성하지 않고 source skill 디렉토리의 file tree를 그대로 복사한다.
 - Codex/Gemini는 `.agents/skills`를 공유하므로 같은 skill은 공통 패키지 하나로 설치된다.
 - authoring contract는 `apps/cli/data/skills/README.md`에 정리한다.

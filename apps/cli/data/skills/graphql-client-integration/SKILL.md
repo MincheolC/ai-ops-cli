@@ -6,7 +6,6 @@ supported_tools:
   - claude-code
   - codex
   - gemini
-allow_implicit_invocation: true
 install_scopes:
   - project
   - user

@@ -37,7 +37,6 @@ export const SkillFrontmatterSchema = z
     kind: SkillKindSchema,
     description: z.string().min(1),
     supported_tools: z.array(SkillToolSchema).min(1),
-    allow_implicit_invocation: z.boolean().default(true),
     install_scopes: z.array(SkillScopeSchema).min(1),
     source_rules: z.array(z.string().min(1)).optional(),
   })
@@ -50,7 +49,6 @@ export type Skill = {
   kind: SkillFrontmatter['kind'];
   description: string;
   supported_tools: SkillFrontmatter['supported_tools'];
-  allow_implicit_invocation: boolean;
   install_scopes: SkillFrontmatter['install_scopes'];
   source_rules?: readonly string[];
   directory: string;

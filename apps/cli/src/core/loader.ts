@@ -144,7 +144,6 @@ export const loadAllSkills = (skillsDir: string): Skill[] => {
       kind: parsed.kind,
       description: parsed.description,
       supported_tools: parsed.supported_tools,
-      allow_implicit_invocation: parsed.allow_implicit_invocation,
       install_scopes: parsed.install_scopes,
       source_rules: parsed.source_rules,
       directory,

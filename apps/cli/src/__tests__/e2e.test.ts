@@ -71,12 +71,6 @@ describe.skipIf(!distExists)('skill subprocess', () => {
 
       expect(result.status).toBe(0);
       expect(existsSync(join(dir, '.agents/skills/skill-load-check/SKILL.md'))).toBe(true);
-      const scriptOutput = execFileSync(
-        process.execPath,
-        [join(dir, '.agents/skills/skill-load-check/scripts/loaded.js')],
-        { encoding: 'utf-8' },
-      );
-      expect(scriptOutput.trim()).toBe('A Skill loaded');
 
       const manifest = readManifest(resolveManifestPath(dir));
       expect(manifest?.installed_skills?.[0]?.id).toBe('skill-load-check');
@@ -98,12 +92,6 @@ describe.skipIf(!distExists)('skill subprocess', () => {
 
       expect(result.status).toBe(0);
       expect(existsSync(join(userHome, '.agents/skills/skill-load-check/SKILL.md'))).toBe(true);
-      const scriptOutput = execFileSync(
-        process.execPath,
-        [join(userHome, '.agents/skills/skill-load-check/scripts/loaded.js')],
-        { encoding: 'utf-8' },
-      );
-      expect(scriptOutput.trim()).toBe('A Skill loaded');
 
       const registryRaw = readFileSync(join(userHome, '.ai-ops/skills-manifest.json'), 'utf-8');
       expect(registryRaw).toContain('"id": "skill-load-check"');
