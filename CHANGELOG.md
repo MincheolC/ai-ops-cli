@@ -5,6 +5,19 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- `refactor(cli)`: skill catalog 메타데이터를 `apps/cli/data/skills/skill-registry.json`으로 통합하고, 소스 디렉토리를 `reference-skills/`와 `task-skills/`로 분리. `SKILL.md`는 agent-facing frontmatter만 유지하도록 정리
+- `refactor(init)`: `ai-ops init`이 preset에 연결된 `reference` skill만 표시하고, 이미 전역 설치된 skill과 현재 설치 가능한 skill을 분리해 보여주도록 변경
+
+### Fixed
+
+- `fix(init)`: `ai-ops init` 전 과정에서 `ESC` 또는 `Ctrl+C`로 일관되게 설치를 중단할 수 있도록 취소 흐름을 정리. 설정 프롬프트 취소도 전체 init 취소로 전파
+
+### Docs
+
+- skill authoring guide, CLI README, root README, generated agent instructions를 최신 skill catalog 구조에 맞게 갱신
+
 ## [0.1.24] - 2026-03-10
 
 - `docs(rules)`: `plan-mode` YAML 소스 수정 — `constraints` 항목 제거 후 다이어그램 타입 규칙을 `guidelines` 인라인으로 흡수; `YYYYMMDD_<topic>.md` 파일 네이밍 규칙을 `decision_table`에 추가
