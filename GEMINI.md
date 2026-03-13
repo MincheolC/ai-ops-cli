@@ -1,5 +1,5 @@
 <!-- ai-ops:start -->
-<!-- sourceHash: d32d57 | generatedAt: 2026-03-08T12:44:37.892Z -->
+<!-- sourceHash: a9527e | generatedAt: 2026-03-13T13:06:25.253Z -->
 
 # Role Persona
 
@@ -65,13 +65,10 @@
 
 # Plan Mode
 
-## Constraints
-
-- DO NOT mix Mermaid diagram types arbitrarily. Pick the type that matches the information structure.
-
 ## Guidelines
 
 - Prefer Mermaid diagrams over long bullet lists when explaining flow, sequence, state, or structure.
+- Pick the diagram type that matches the information structure; do not mix types arbitrarily.
 - Use flowchart for UX/control flows and decision trees.
 - Use sequenceDiagram for request/response and service interaction flows.
 - Use erDiagram for entities and schema relationships.
@@ -86,96 +83,5 @@
 | Describing API or service interactions | Use sequenceDiagram | Plain text arrows only |
 | Describing schema relationships | Use erDiagram | Unstructured table bullet lists |
 | Describing state transitions | Use stateDiagram-v2 | Flat textual state lists |
-
----
-
-# Engineering Standards
-
-## Constraints
-
-- DO NOT use floating-point for money. Use minor-unit integers with ISO 4217 currency (e.g., { amount: 1099, currency: "USD" }).
-- DO NOT expose sequential IDs in external APIs. Use UUIDs (prefer UUID v7).
-- DO NOT store or transmit timezone-naive timestamps. Use ISO 8601 UTC (e.g., "2024-01-15T09:30:00Z").
-- DO NOT use magic numbers or strings inline. Extract constants or config.
-- DO NOT return inconsistent error shapes. Use { code: string, message: string, details?: unknown[] }.
-- DO NOT accept unbounded input. Enforce body, array, and string size limits at the API boundary.
-
-## Guidelines
-
-- Use UTC end-to-end: TIMESTAMPTZ in DB, ISO 8601 UTC in API/logs, local conversion only in the presentation layer.
-- Wrap API responses in a consistent envelope: { data: T | null, error: ErrorEnvelope | null, meta: { requestId: string, timestamp: string } }.
-- Propagate X-Request-Id across gateway, service, logs, DB comments, and outbound calls.
-- Validate environment variables at startup (e.g., Zod parse) and fail fast with all missing/invalid keys.
-- Use domain error codes in DOMAIN_ACTION_REASON format (e.g., PAYMENT_CHARGE_INSUFFICIENT_FUNDS).
-- Support Idempotency-Key for POST/PATCH and replay the cached response for duplicate keys within TTL.
-- Expose GET /health (liveness) and GET /ready (readiness) separately.
-- Return empty collections ([] or {}) instead of null.
-- Handle SIGTERM gracefully: stop intake, drain in-flight requests, close resources, then exit.
-
-## Decision Table
-
-| When | Then | Avoid |
-|------|------|-------|
-| A new entity needs a primary key | Use UUID v7 | Auto-increment IDs or UUID v4 by default |
-| An endpoint returns an error | Return the standard error envelope | Ad-hoc error fields (e.g., { success: false, msg }) |
-| Systems exchange timestamps | Use ISO 8601 UTC in API/logs and TIMESTAMPTZ in DB; Unix epoch is acceptable in compact token formats (e.g., JWT exp/iat) | Timezone-naive strings or mixed local-time storage |
-| An API needs versioning | Use URL versioning (/v1, /v2) | Header-only versioning by default |
-
----
-
-# Typescript
-
-## Constraints
-
-- DO NOT use interface. Use type aliases consistently.
-- DO NOT use enum. Use const objects with inferred literal unions.
-- DO NOT use any. Use unknown and narrow with runtime/type guards.
-- DO NOT use non-null assertion (!). Handle null/undefined explicitly with ?. and ??.
-- DO NOT use .then() chains for normal async flows. Use async/await.
-- DO NOT throw raw strings. Throw Error objects and narrow caught errors from unknown.
-
-## Guidelines
-
-- Use arrow functions only. Annotate return types for exported functions.
-- Use import type for type-only imports. Use absolute paths (@/...) only.
-- Use as const for static config objects.
-- Keep business logic in *.logic.ts and stateless helpers in *.util.ts.
-
-## Decision Table
-
-| When | Then | Avoid |
-|------|------|-------|
-| You feel forced to use an as assertion | Prefer schema parse (e.g., Zod) or explicit type guards first | Bypassing the type system with unchecked assertions |
-
----
-
-# Libs Backend Ts
-
-## Constraints
-
-- DO NOT use moment/dayjs. Standardize on date-fns with named imports.
-- DO NOT use jsonwebtoken. Use jose 6+.
-- DO NOT handle Express req/res directly in NestJS handlers.
-- DO NOT import lodash as a full bundle. Prefer native APIs or per-function imports.
-- DO NOT use node-fetch/got in NestJS services. Use @nestjs/axios HttpModule or native fetch().
-- DO NOT use winston/morgan/console.log for app logs. Use pino via nestjs-pino.
-
-## Guidelines
-
-- Use class-validator + class-transformer DTO validation with ValidationPipe({ whitelist: true }).
-- Use jose for JWT sign/verify and JWKS workflows.
-- Use pino + nestjs-pino as the default structured logger.
-- Use rxjs operators for NestJS interceptors, guards, and event streams.
-- Use Vitest + @nestjs/testing + supertest for unit/e2e tests.
-- Use zod for schema validation outside DTOs (env, external payloads).
-- Keep TypeScript strict mode enabled.
-
-## Decision Table
-
-| When | Then | Avoid |
-|------|------|-------|
-| JWT auth is needed | Use jose (SignJWT, jwtVerify, createRemoteJWKSet) | jsonwebtoken |
-| Date handling is needed | Use date-fns named imports | moment/dayjs |
-| Utility helpers are needed (clone/groupBy) | Use native JS first; fallback to scoped lodash imports only | import _ from "lodash" |
-| Structured logging is needed | Use pino via nestjs-pino LoggerModule.forRoot() | console.log or mixed logging stacks |
+| Saving a plan document to disk | Name as YYYYMMDD_<topic>.md with kebab-case topic | Arbitrary names like plan.md or notes.md |
 <!-- ai-ops:end -->

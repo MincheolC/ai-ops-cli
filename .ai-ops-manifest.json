@@ -11,10 +11,7 @@
     "communication",
     "code-philosophy",
     "naming-convention",
-    "plan-mode",
-    "engineering-standards",
-    "typescript",
-    "libs-backend-ts"
+    "plan-mode"
   ],
   "installed_files": [
     ".claude/rules/role-persona.md",
@@ -22,12 +19,10 @@
     ".claude/rules/code-philosophy.md",
     ".claude/rules/naming-convention.md",
     ".claude/rules/plan-mode.md",
-    ".claude/rules/engineering-standards.md",
-    ".claude/rules/typescript.md",
-    ".claude/rules/libs-backend-ts.md",
     "AGENTS.md",
     "GEMINI.md"
   ],
+  "installed_skills": [],
   "settings": {
     "claude": [
       "model",
@@ -38,9 +33,10 @@
       "plan",
       "sessionRetention",
       "experimental"
-    ]
+    ],
+    "prettierignore": true
   },
-  "cliVersion": "0.1.22",
-  "sourceHash": "d32d57",
-  "generatedAt": "2026-03-08T12:44:37.899Z"
+  "cliVersion": "0.1.24",
+  "sourceHash": "a9527e",
+  "generatedAt": "2026-03-13T13:06:25.277Z"
 }

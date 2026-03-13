@@ -1,5 +1,5 @@
 <!-- ai-ops:start -->
-<!-- sourceHash: d32d57 | generatedAt: 2026-03-08T12:44:37.892Z -->
+<!-- sourceHash: a9527e | generatedAt: 2026-03-13T13:06:25.253Z -->
 
 # Plan Mode
 
@@ -21,5 +21,5 @@
 | Describing API or service interactions | Use sequenceDiagram | Plain text arrows only |
 | Describing schema relationships | Use erDiagram | Unstructured table bullet lists |
 | Describing state transitions | Use stateDiagram-v2 | Flat textual state lists |
-| Saving a plan document to disk | Name as `YYYYMMDD_<topic>.md` with kebab-case topic | Arbitrary names like `plan.md` or `notes.md` |
+| Saving a plan document to disk | Name as YYYYMMDD_<topic>.md with kebab-case topic | Arbitrary names like plan.md or notes.md |
 <!-- ai-ops:end -->
