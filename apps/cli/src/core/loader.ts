@@ -2,8 +2,8 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { parse } from 'yaml';
 import { parseMarkdownFrontmatter } from './frontmatter.js';
-import { RuleSchema, PresetSchema, SkillFrontmatterSchema } from './schemas/index.js';
-import type { Rule, Preset, Skill } from './schemas/index.js';
+import { RuleSchema, PresetSchema, SkillCatalogSchema, SkillFrontmatterSchema } from './schemas/index.js';
+import type { Rule, Preset, Skill, SkillCatalog } from './schemas/index.js';
 
 // priority 내림차순 정렬 (높을수록 상단 → U-shaped attention)
 export const sortRulesByPriority = (rules: readonly Rule[]): Rule[] =>
@@ -27,19 +27,8 @@ const resolveRuleById = (ruleId: string, allRules: readonly Rule[], context?: st
   return found;
 };
 
-const resolveSkillById = (skillId: string, allSkills: readonly Skill[], context?: string): Skill => {
-  const found = allSkills.find((skill) => skill.id === skillId);
-  if (!found) {
-    const suffix = context ? ` (from ${context})` : '';
-    throw new Error(`Skill not found: ${skillId}${suffix}`);
-  }
-  return found;
-};
-
-// presets.yaml의 Record<id, {description, rules, skills}> → Preset[] 변환
-export const parseRawPresets = (
-  raw: Record<string, { description: string; rules: string[]; skills?: string[] }>,
-): Preset[] =>
+// presets.yaml의 Record<id, {description, rules}> → Preset[] 변환
+export const parseRawPresets = (raw: Record<string, { description: string; rules: string[] }>): Preset[] =>
   Object.entries(raw).map(([id, value]) => PresetSchema.parse({ id, ...value }));
 
 // preset.rules 목록을 실제 core rule로 해석 + priority 정렬, 누락 시 throw
@@ -49,12 +38,9 @@ export const resolvePresetRules = (preset: Preset, allRules: readonly Rule[]): R
 };
 
 export const resolvePresetSkills = (preset: Preset, allSkills: readonly Skill[]): Skill[] => {
-  const seen = new Set<string>();
-  return preset.skills.filter((skillId) => {
-    if (seen.has(skillId)) return false;
-    seen.add(skillId);
-    return true;
-  }).map((skillId) => resolveSkillById(skillId, allSkills, preset.id));
+  return allSkills
+    .filter((skill) => skill.included_in_presets.includes(preset.id))
+    .sort((a, b) => a.id.localeCompare(b.id));
 };
 
 export const loadRuleFile = (filePath: string): Rule => {
@@ -96,36 +82,36 @@ export const loadAllRules = (rulesDir: string): Rule[] => {
   return sortRulesByPriority(rules);
 };
 
-export const loadAllSkills = (skillsDir: string): Skill[] => {
-  const dirs = readdirSync(skillsDir, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => entry.name)
-    .sort();
+export const loadSkillCatalog = (skillsDir: string): SkillCatalog =>
+  SkillCatalogSchema.parse(JSON.parse(readFileSync(resolve(skillsDir, 'skill-registry.json'), 'utf-8')));
 
-  return dirs.map((dirName) => {
-    const directory = resolve(skillsDir, dirName);
+export const loadAllSkills = (skillsDir: string): Skill[] => {
+  const catalog = loadSkillCatalog(skillsDir);
+  const entries = [...catalog.skills].sort((a, b) => a.id.localeCompare(b.id));
+
+  return entries.map((entry) => {
+    const directory = resolve(skillsDir, entry.source_path);
     const skillMdPath = join(directory, 'SKILL.md');
     const rawSkillMd = readFileSync(skillMdPath, 'utf-8');
     const { frontmatter } = parseMarkdownFrontmatter(rawSkillMd);
     const parsed = SkillFrontmatterSchema.parse(frontmatter);
-    if (parsed.name !== dirName) {
-      throw new Error(`Skill directory and frontmatter name mismatch: ${dirName} != ${parsed.name}`);
+    if (parsed.name !== entry.id) {
+      throw new Error(`Skill directory and frontmatter name mismatch: ${entry.id} != ${parsed.name}`);
     }
 
     const files = loadSkillDirectoryFiles(directory);
-    if (
-      parsed.kind === 'reference' &&
-      !files.some((file) => file.path === 'references/reference.md')
-    ) {
+    if (entry.kind === 'reference' && !files.some((file) => file.path === 'references/reference.md')) {
       throw new Error(`Reference skill must include references/reference.md: ${parsed.name}`);
     }
 
     return {
-      id: parsed.name,
-      kind: parsed.kind,
+      id: entry.id,
+      kind: entry.kind,
       description: parsed.description,
-      supported_tools: parsed.supported_tools,
-      install_scopes: parsed.install_scopes,
+      supported_tools: [...entry.supported_tools],
+      install_scopes: [...entry.install_scopes],
+      groups: [...entry.groups],
+      included_in_presets: [...entry.included_in_presets],
       directory,
       files,
     };
@@ -134,6 +120,6 @@ export const loadAllSkills = (skillsDir: string): Skill[] => {
 
 export const loadPresets = (presetsPath: string): Preset[] => {
   const raw = readFileSync(presetsPath, 'utf-8');
-  const data = parse(raw) as Record<string, { description: string; rules: string[]; skills?: string[] }>;
+  const data = parse(raw) as Record<string, { description: string; rules: string[] }>;
   return parseRawPresets(data);
 };

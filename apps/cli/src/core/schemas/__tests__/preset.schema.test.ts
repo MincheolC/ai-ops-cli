@@ -5,7 +5,6 @@ const validPreset = {
   id: 'frontend-web',
   description: '웹 프론트엔드 프로젝트를 위한 프리셋',
   rules: ['role-persona', 'communication', 'code-philosophy'],
-  skills: ['typescript-language', 'frontend-web-react-next-runtime'],
 };
 
 describe('PresetSchema', () => {
@@ -18,8 +17,8 @@ describe('PresetSchema', () => {
       expect(() => PresetSchema.parse({ ...validPreset, id: 'backend-ts' })).not.toThrow();
     });
 
-    it('단일 rule + 빈 skills', () => {
-      expect(() => PresetSchema.parse({ ...validPreset, rules: ['role-persona'], skills: [] })).not.toThrow();
+    it('단일 rule', () => {
+      expect(() => PresetSchema.parse({ ...validPreset, rules: ['role-persona'] })).not.toThrow();
     });
   });
 
@@ -50,10 +49,6 @@ describe('PresetSchema', () => {
 
     it('rules 항목 빈 문자열', () => {
       expect(() => PresetSchema.parse({ ...validPreset, rules: ['role-persona', ''] })).toThrow();
-    });
-
-    it('skills 항목 빈 문자열', () => {
-      expect(() => PresetSchema.parse({ ...validPreset, skills: ['typescript-language', ''] })).toThrow();
     });
   });
 });

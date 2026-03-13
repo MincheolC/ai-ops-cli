@@ -8,15 +8,15 @@ Rule YAML is now reserved for always-loaded general rules only.
 
 Current core rule set:
 
-| priority | id |
-| --- | --- |
-| 90 | role-persona |
-| 85 | communication |
-| 80 | code-philosophy |
-| 75 | naming-convention |
-| 71 | plan-mode |
+| priority | id                |
+| -------- | ----------------- |
+| 90       | role-persona      |
+| 85       | communication     |
+| 80       | code-philosophy   |
+| 75       | naming-convention |
+| 71       | plan-mode         |
 
-If guidance is stack/framework/library/domain-specific, it should not be added here. It belongs in `apps/cli/data/skills/<skill-id>/`.
+If guidance is stack/framework/library/domain-specific, it should not be added here. It belongs in `apps/cli/data/skills/reference-skills/<skill-id>/` or `apps/cli/data/skills/task-skills/<skill-id>/`.
 
 ## Schema
 
@@ -53,11 +53,11 @@ Reference: `apps/cli/src/core/schemas/rule.schema.ts`
 
 ## Constraints vs Guidelines
 
-| Use | Meaning |
-| --- | --- |
-| `constraints` | hard “DO NOT” rules that prevent clear quality or safety regressions |
-| `guidelines` | positive defaults and preferred working style |
-| `decision_table` | conditional rule for context-sensitive choices |
+| Use              | Meaning                                                              |
+| ---------------- | -------------------------------------------------------------------- |
+| `constraints`    | hard “DO NOT” rules that prevent clear quality or safety regressions |
+| `guidelines`     | positive defaults and preferred working style                        |
+| `decision_table` | conditional rule for context-sensitive choices                       |
 
 ## When to Create a Skill Instead
 

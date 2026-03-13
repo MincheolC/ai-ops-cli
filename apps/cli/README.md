@@ -13,8 +13,10 @@ CLI for managing core AI tool rules and agent skills across projects.
 The CLI treats these as separate sources of truth:
 
 - `apps/cli/data/rules/*.yaml`: always-loaded core rules only
-- `apps/cli/data/skills/<skill-id>/`: installable skills
-- `apps/cli/data/presets.yaml`: preset-to-core-rule and preset-to-skill mapping
+- `apps/cli/data/skills/skill-registry.json`: install/catalog metadata for skills
+- `apps/cli/data/skills/reference-skills/<skill-id>/`: installable reference skills
+- `apps/cli/data/skills/task-skills/<skill-id>/`: installable task skills
+- `apps/cli/data/presets.yaml`: preset-to-core-rule mapping
 
 ## What this CLI provides
 
@@ -26,11 +28,11 @@ The CLI treats these as separate sources of truth:
 
 ## Supported tools and output layout
 
-| Tool | Project rules output | Skill output |
-| --- | --- | --- |
+| Tool                        | Project rules output                                  | Skill output                 |
+| --------------------------- | ----------------------------------------------------- | ---------------------------- |
 | Claude Code (`claude-code`) | `.claude/rules/<rule-id>.md`, `<workspace>/CLAUDE.md` | `.claude/skills/<skill-id>/` |
-| Codex (`codex`) | `AGENTS.md`, `<workspace>/AGENTS.override.md` | `.agents/skills/<skill-id>/` |
-| Gemini CLI (`gemini`) | `GEMINI.md`, `<workspace>/GEMINI.md` | `.agents/skills/<skill-id>/` |
+| Codex (`codex`)             | `AGENTS.md`, `<workspace>/AGENTS.override.md`         | `.agents/skills/<skill-id>/` |
+| Gemini CLI (`gemini`)       | `GEMINI.md`, `<workspace>/GEMINI.md`                  | `.agents/skills/<skill-id>/` |
 
 Optional settings files:
 
@@ -115,14 +117,18 @@ Notes:
 3. Workspace selection for monorepos
 4. Preset selection per workspace
 5. Locked core rules review
-6. Recommended skill fine-tuning per workspace
-7. One shared install scope for selected skills (`user` default or `project`)
+6. Preset-linked `reference` skills only:
+   - already-installed global skills are shown separately
+   - only installable skills can be deselected
+7. One shared install scope for selected installable skills (`user` default or `project`)
 8. Optional settings installation
 
 Important behavior:
 
 - core rules come from the preset directly and are not fine-tuned in `init`
-- selected skills can be trimmed or expanded before installation
+- `init` shows only preset-linked `reference` skills
+- `task` skills are excluded from `init` and are managed with `ai-ops skill install/uninstall`
+- globally available skills are not reinstalled by default
 - when `user` scope is chosen, selected skills are written only to the global skill registry
 - when `project` scope is chosen, selected skills are recorded in `.ai-ops-manifest.json`
 

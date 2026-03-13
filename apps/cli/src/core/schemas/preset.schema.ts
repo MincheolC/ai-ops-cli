@@ -8,7 +8,6 @@ export const PresetSchema = z
       .min(1),
     description: z.string().min(1),
     rules: z.array(z.string().min(1)).min(1),
-    skills: z.array(z.string().min(1)).default([]),
   })
   .strict();
 

@@ -32,13 +32,33 @@ import { installSkillPackages } from '../lib/skill-install.js';
 import { promptGeminiSettings, installGeminiSettings } from '../lib/gemini-settings.js';
 import { promptClaudeSettings, installClaudeSettings } from '../lib/claude-settings.js';
 import { promptPrettierIgnore, installPrettierIgnore } from '../lib/prettier-ignore.js';
-import { type SkillScope, upsertInstalledSkill } from '../lib/skill-state.js';
+import {
+  findInstalledSkill,
+  mergeSkillTools,
+  subtractSkillTools,
+  type SkillScope,
+  upsertInstalledSkill,
+} from '../lib/skill-state.js';
+
+type SelectedSkillTarget = {
+  skill: Skill;
+  requestedTools: ToolId[];
+};
+
+type InstallablePresetSkill = SelectedSkillTarget & {
+  globalTools: ToolId[];
+};
+
+type GlobalPresetSkill = {
+  skill: Skill;
+  availableTools: ToolId[];
+};
 
 type WorkspacePresetMapping = {
   workspace: string;
   preset: Preset;
   finalRules: Rule[];
-  finalSkills: Skill[];
+  finalSkillTargets: SelectedSkillTarget[];
 };
 
 const TOOL_OPTIONS = [
@@ -56,29 +76,95 @@ const deduplicateRules = (rules: readonly Rule[]): Rule[] => {
   });
 };
 
-const deduplicateSkills = (skills: readonly Skill[]): Skill[] => {
-  const seen = new Set<string>();
-  return skills.filter((skill) => {
-    if (seen.has(skill.id)) return false;
-    seen.add(skill.id);
-    return true;
-  });
+const formatToolList = (toolIds: readonly ToolId[]): string => toolIds.join(', ');
+
+const deduplicateSkillTargets = (targets: readonly SelectedSkillTarget[]): SelectedSkillTarget[] => {
+  const merged = new Map<string, SelectedSkillTarget>();
+
+  for (const target of targets) {
+    const previous = merged.get(target.skill.id);
+    if (!previous) {
+      merged.set(target.skill.id, {
+        skill: target.skill,
+        requestedTools: [...target.requestedTools],
+      });
+      continue;
+    }
+
+    merged.set(target.skill.id, {
+      skill: target.skill,
+      requestedTools: mergeSkillTools({
+        existing: previous.requestedTools,
+        requested: target.requestedTools,
+      }),
+    });
+  }
+
+  return [...merged.values()].sort((a, b) => a.skill.id.localeCompare(b.skill.id));
 };
 
-const resolveSelectedSkills = (selectedSkillIds: readonly string[], allSkills: readonly Skill[]): Skill[] =>
-  selectedSkillIds.map((skillId) => {
-    const skill = allSkills.find((candidate) => candidate.id === skillId);
-    if (!skill) {
-      throw new Error(`Unknown skill selected during init: ${skillId}`);
+const resolveSupportedRequestedTools = (skill: Skill, selectedTools: readonly ToolId[]): ToolId[] =>
+  selectedTools.filter((toolId) => skill.supported_tools.includes(toolId));
+
+const partitionPresetSkills = (params: {
+  preset: Preset;
+  allSkills: readonly Skill[];
+  selectedTools: readonly ToolId[];
+  globalInstalledSkills: readonly InstalledSkill[];
+}): {
+  globalSkills: GlobalPresetSkill[];
+  installableSkills: InstallablePresetSkill[];
+} => {
+  const globalSkills: GlobalPresetSkill[] = [];
+  const installableSkills: InstallablePresetSkill[] = [];
+
+  for (const skill of resolvePresetSkills(params.preset, params.allSkills)) {
+    if (skill.kind !== 'reference') {
+      continue;
     }
-    return skill;
-  });
+
+    const supportedRequestedTools = resolveSupportedRequestedTools(skill, params.selectedTools);
+    if (supportedRequestedTools.length === 0) {
+      continue;
+    }
+
+    const installedGlobalSkill = findInstalledSkill(params.globalInstalledSkills, skill.id);
+    const availableTools = installedGlobalSkill
+      ? supportedRequestedTools.filter((toolId) => installedGlobalSkill.tools.includes(toolId))
+      : [];
+    const requestedTools = subtractSkillTools({
+      requested: supportedRequestedTools,
+      installed: availableTools,
+    });
+
+    if (requestedTools.length === 0) {
+      globalSkills.push({
+        skill,
+        availableTools,
+      });
+      continue;
+    }
+
+    installableSkills.push({
+      skill,
+      requestedTools,
+      globalTools: availableTools,
+    });
+  }
+
+  return {
+    globalSkills,
+    installableSkills,
+  };
+};
 
 const selectPresetAndFineTune = async (
   workspaceName: string,
   presets: readonly Preset[],
   allRules: readonly Rule[],
   allSkills: readonly Skill[],
+  selectedTools: readonly ToolId[],
+  globalInstalledSkills: readonly InstalledSkill[],
 ): Promise<WorkspacePresetMapping | null> => {
   const preset = await p.select<Preset>({
     message: `[${workspaceName}] 프리셋을 선택하세요`,
@@ -95,27 +181,57 @@ const selectPresetAndFineTune = async (
     p.note(finalRules.map((rule) => `  ✓ ${rule.id}`).join('\n'), `[${workspaceName}] core rules (잠금)`);
   }
 
-  const recommendedSkills = resolvePresetSkills(preset, allSkills);
-  const recommendedSkillIds = recommendedSkills.map((skill) => skill.id);
-  const recommendedSkillSet = new Set(recommendedSkillIds);
+  const { globalSkills, installableSkills } = partitionPresetSkills({
+    preset,
+    allSkills,
+    selectedTools,
+    globalInstalledSkills,
+  });
+
+  if (globalSkills.length > 0) {
+    const globalLines = globalSkills.map(
+      ({ skill, availableTools }) => `  ✓ ${skill.id} (${formatToolList(availableTools)})`,
+    );
+    p.note(globalLines.join('\n'), `[${workspaceName}] already available globally`);
+  }
+
+  if (installableSkills.length === 0) {
+    p.note('  새로 설치할 reference skill이 없습니다.', `[${workspaceName}] installable reference skills`);
+    return {
+      workspace: workspaceName,
+      preset,
+      finalRules,
+      finalSkillTargets: [],
+    };
+  }
 
   const selectedSkillIds = await p.multiselect<string>({
-    message: `[${workspaceName}] recommended skills 선택`,
-    options: allSkills.map((skill) => ({
+    message: `[${workspaceName}] installable reference skills 선택`,
+    options: installableSkills.map(({ skill, requestedTools, globalTools }) => ({
       value: skill.id,
       label: skill.id,
-      hint: recommendedSkillSet.has(skill.id) ? `recommended - ${skill.description}` : skill.description,
+      hint:
+        globalTools.length > 0
+          ? `global: ${formatToolList(globalTools)} / install: ${formatToolList(requestedTools)}`
+          : `${skill.description} / install: ${formatToolList(requestedTools)}`,
     })),
-    initialValues: recommendedSkillIds,
+    initialValues: installableSkills.map(({ skill }) => skill.id),
     required: false,
   });
   if (p.isCancel(selectedSkillIds)) return null;
+
+  const selectedSkillSet = new Set(selectedSkillIds as string[]);
 
   return {
     workspace: workspaceName,
     preset,
     finalRules,
-    finalSkills: resolveSelectedSkills(selectedSkillIds as string[], allSkills),
+    finalSkillTargets: installableSkills
+      .filter(({ skill }) => selectedSkillSet.has(skill.id))
+      .map(({ skill, requestedTools }) => ({
+        skill,
+        requestedTools,
+      })),
   };
 };
 
@@ -161,11 +277,19 @@ export const initCommand = async (): Promise<void> => {
   const allSkills = loadAllSkills(skillsDir);
   const presets = loadPresets(resolvePresetsPath());
   const sourceHash = computeSourceHash(resolveCompilerDataDir());
+  const globalInstalledSkills = readSkillRegistry(resolveSkillRegistryPath(userBasePath))?.skills ?? [];
 
   const mappings: WorkspacePresetMapping[] = [];
 
   if (!isMonorepo) {
-    const mapping = await selectPresetAndFineTune('.', presets, allRules, allSkills);
+    const mapping = await selectPresetAndFineTune(
+      '.',
+      presets,
+      allRules,
+      allSkills,
+      selectedTools as ToolId[],
+      globalInstalledSkills,
+    );
     if (!mapping) {
       p.cancel('취소됨');
       process.exit(0);
@@ -184,7 +308,14 @@ export const initCommand = async (): Promise<void> => {
     }
 
     for (const workspace of selectedWorkspaces as string[]) {
-      const mapping = await selectPresetAndFineTune(workspace, presets, allRules, allSkills);
+      const mapping = await selectPresetAndFineTune(
+        workspace,
+        presets,
+        allRules,
+        allSkills,
+        selectedTools as ToolId[],
+        globalInstalledSkills,
+      );
       if (!mapping) {
         p.cancel('취소됨');
         process.exit(0);
@@ -193,9 +324,9 @@ export const initCommand = async (): Promise<void> => {
     }
   }
 
-  const selectedSkills = deduplicateSkills(mappings.flatMap((mapping) => mapping.finalSkills));
-  const skillScope = selectedSkills.length > 0 ? await selectInitSkillScope() : null;
-  if (selectedSkills.length > 0 && skillScope === null) {
+  const selectedSkillTargets = deduplicateSkillTargets(mappings.flatMap((mapping) => mapping.finalSkillTargets));
+  const skillScope = selectedSkillTargets.length > 0 ? await selectInitSkillScope() : null;
+  if (selectedSkillTargets.length > 0 && skillScope === null) {
     p.cancel('취소됨');
     process.exit(0);
   }
@@ -220,12 +351,20 @@ export const initCommand = async (): Promise<void> => {
 
   let projectInstalledSkills: InstalledSkill[] = [];
 
-  if (selectedSkills.length > 0 && skillScope !== null) {
+  if (selectedSkillTargets.length > 0 && skillScope !== null) {
     const skillBasePath = skillScope === 'project' ? basePath : userBasePath;
-    const installedSkills = selectedSkills.map((skill) => {
+    const installedSkills = selectedSkillTargets.map(({ skill, requestedTools }) => {
+      const existingUserSkill = skillScope === 'user' ? findInstalledSkill(globalInstalledSkills, skill.id) : undefined;
+      const nextRequestedTools =
+        skillScope === 'user'
+          ? mergeSkillTools({
+              existing: existingUserSkill?.tools,
+              requested: requestedTools,
+            })
+          : requestedTools;
       const { packages, installedSkill } = buildSkillInstallPlan({
         skill,
-        requestedTools: selectedTools as ToolId[],
+        requestedTools: nextRequestedTools,
         scope: skillScope,
       });
       installSkillPackages(skillBasePath, packages);
@@ -322,8 +461,8 @@ export const initCommand = async (): Promise<void> => {
     p.log.info(`기존 파일에 섹션 추가됨 (내용 보존):\n${allAppended.map((file) => `  ${file}`).join('\n')}`);
   }
   p.log.success(`설치된 core rules: ${selectedRuleIds.length}개`);
-  p.log.success(`설치된 skills: ${selectedSkills.length}개${skillScope ? ` (${skillScope})` : ''}`);
-  if (selectedSkills.length > 0 && skillScope === 'user') {
+  p.log.success(`설치된 skills: ${selectedSkillTargets.length}개${skillScope ? ` (${skillScope})` : ''}`);
+  if (selectedSkillTargets.length > 0 && skillScope === 'user') {
     p.log.info('global skill은 ai-ops uninstall 대상이 아닙니다. ai-ops skill uninstall으로 제거하세요.');
   }
   p.outro('ai-ops init 완료');

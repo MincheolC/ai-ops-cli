@@ -4,6 +4,9 @@ import {
   resolveCompilerDataDir,
   resolveRulesDir,
   resolveSkillsDir,
+  resolveReferenceSkillsDir,
+  resolveTaskSkillsDir,
+  resolveSkillCatalogPath,
   resolvePresetsPath,
   resolveBasePath,
 } from '../lib/paths.js';
@@ -19,6 +22,18 @@ describe('resolveCompilerDataDir', () => {
 
   it('data/skills/ 포함', () => {
     expect(existsSync(resolveSkillsDir())).toBe(true);
+  });
+
+  it('reference-skills/ 포함', () => {
+    expect(existsSync(resolveReferenceSkillsDir())).toBe(true);
+  });
+
+  it('task-skills/ 포함', () => {
+    expect(existsSync(resolveTaskSkillsDir())).toBe(true);
+  });
+
+  it('skill-registry.json 포함', () => {
+    expect(existsSync(resolveSkillCatalogPath())).toBe(true);
   });
 
   it('data/presets.yaml 포함', () => {

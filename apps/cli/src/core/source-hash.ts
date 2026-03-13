@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ManifestSchema } from './schemas/index.js';
@@ -30,30 +30,43 @@ const loadSortedFileContents = (dirPath: string): string[] => {
   return files.map((f) => readFileSync(resolve(dirPath, f), 'utf-8'));
 };
 
-const loadSkillTreeContents = (skillsDir: string): string[] => {
-  const skillDirs = readdirSync(skillsDir, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => entry.name)
-    .sort();
-
+const loadDirectoryContents = (baseDir: string): string[] => {
   const contents: string[] = [];
 
-  const walk = (baseDir: string, relativeDir = ''): void => {
+  const walk = (relativeDir = ''): void => {
     const absDir = relativeDir.length > 0 ? join(baseDir, relativeDir) : baseDir;
     const entries = readdirSync(absDir, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
 
     for (const entry of entries) {
       const nextRelativePath = relativeDir.length > 0 ? join(relativeDir, entry.name) : entry.name;
       if (entry.isDirectory()) {
-        walk(baseDir, nextRelativePath);
+        walk(nextRelativePath);
         continue;
       }
       contents.push(`${nextRelativePath}:${readFileSync(join(baseDir, nextRelativePath), 'utf-8')}`);
     }
   };
 
-  for (const skillDir of skillDirs) {
-    walk(resolve(skillsDir, skillDir));
+  walk();
+  return contents;
+};
+
+const loadSkillTreeContents = (skillsDir: string): string[] => {
+  const contents: string[] = [];
+  const registryPath = resolve(skillsDir, 'skill-registry.json');
+
+  if (existsSync(registryPath)) {
+    contents.push(`skill-registry.json:${readFileSync(registryPath, 'utf-8')}`);
+  }
+
+  for (const directoryName of ['reference-skills', 'task-skills']) {
+    const directoryPath = resolve(skillsDir, directoryName);
+    if (!existsSync(directoryPath)) {
+      continue;
+    }
+
+    const directoryContents = loadDirectoryContents(directoryPath).map((content) => `${directoryName}/${content}`);
+    contents.push(...directoryContents);
   }
 
   return contents;
@@ -72,13 +85,7 @@ export const computeInstalledSkillHash = (params: {
   description: string;
   tools: readonly string[];
   files: readonly string[];
-}): string =>
-  computeHash([
-    params.kind,
-    params.description,
-    ...[...params.tools].sort(),
-    ...[...params.files].sort(),
-  ]);
+}): string => computeHash([params.kind, params.description, ...[...params.tools].sort(), ...[...params.files].sort()]);
 
 // Manifest Builder (Pure, 단 generatedAt에 현재 시각 사용)
 export const buildManifest = (params: {

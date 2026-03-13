@@ -18,6 +18,7 @@ import {
 import { resolveBasePath, resolveCompilerDataDir, resolveSkillsDir, resolveUserBasePath } from '../lib/paths.js';
 import {
   findInstalledSkill,
+  mergeSkillTools,
   removeInstalledSkill,
   resolveRequestedTools,
   resolveSkillScope,
@@ -32,7 +33,9 @@ type SkillCommandOptions = {
   tool?: string[];
 };
 
-const resolveScopeContext = (opts: SkillCommandOptions): {
+const resolveScopeContext = (
+  opts: SkillCommandOptions,
+): {
   scope: InstalledSkill['scope'];
   basePath: string;
 } => {
@@ -84,12 +87,12 @@ const writeProjectSkillState = (params: {
     ? removeInstalledSkill(previous?.installed_skills ?? [], params.removeSkillId)
     : params.nextSkill
       ? upsertInstalledSkill(previous?.installed_skills ?? [], params.nextSkill)
-      : previous?.installed_skills ?? [];
+      : (previous?.installed_skills ?? []);
 
   const nextTools =
     params.nextSkill !== undefined
       ? [...new Set([...(previous?.tools ?? []), ...params.nextSkill.tools])]
-      : previous?.tools ?? [];
+      : (previous?.tools ?? []);
 
   const hasProjectState =
     (previous?.installed_rules.length ?? 0) > 0 ||
@@ -104,7 +107,7 @@ const writeProjectSkillState = (params: {
   }
 
   const manifest = buildManifest({
-    tools: nextTools.length > 0 ? nextTools : params.nextSkill?.tools ?? ['codex'],
+    tools: nextTools.length > 0 ? nextTools : (params.nextSkill?.tools ?? ['codex']),
     scope: 'project',
     preset: previous?.preset,
     workspaces: previous?.workspaces,
@@ -132,7 +135,7 @@ const writeUserSkillState = (params: {
     ? removeInstalledSkill(previous?.skills ?? [], params.removeSkillId)
     : params.nextSkill
       ? upsertInstalledSkill(previous?.skills ?? [], params.nextSkill)
-      : previous?.skills ?? [];
+      : (previous?.skills ?? []);
 
   if (skills.length === 0) {
     rmSync(registryPath, { force: true });
@@ -168,9 +171,15 @@ const installSkill = (params: {
   cliVersion: string;
   sourceHash: string;
 }): InstalledSkill => {
+  const installedSkills = readInstalledSkills(params.scope, params.basePath);
+  const existingInstalledSkill = findInstalledSkill(installedSkills, params.skill.id);
+  const nextRequestedTools = mergeSkillTools({
+    existing: existingInstalledSkill?.tools,
+    requested: params.requestedTools,
+  });
   const { packages, installedSkill } = buildSkillInstallPlan({
     skill: params.skill,
-    requestedTools: params.requestedTools,
+    requestedTools: nextRequestedTools,
     scope: params.scope,
   });
   installSkillPackages(params.basePath, packages);
@@ -199,12 +208,28 @@ export const skillListCommand = async (opts: SkillCommandOptions): Promise<void>
   const installedSkills = readInstalledSkills(scope, basePath);
 
   p.intro(`ai-ops skill list (${scope})`);
-  const lines = allSkills.map((skill) => {
-    const installed = findInstalledSkill(installedSkills, skill.id);
-    const suffix = installed ? `installed for ${installed.tools.join(', ')}` : 'not installed';
-    return `- ${skill.id} [${skill.kind}] (${skill.install_scopes.join(', ')}) - ${suffix}`;
-  });
-  p.log.info(lines.join('\n'));
+  const sections = [
+    { kind: 'reference' as const, title: 'reference skills' },
+    { kind: 'task' as const, title: 'task skills' },
+  ]
+    .map(({ kind, title }) => {
+      const lines = allSkills
+        .filter((skill) => skill.kind === kind)
+        .map((skill) => {
+          const installed = findInstalledSkill(installedSkills, skill.id);
+          const suffix = installed ? `installed for ${installed.tools.join(', ')}` : 'not installed';
+          return `- ${skill.id} (${skill.install_scopes.join(', ')}) - ${suffix}`;
+        });
+
+      if (lines.length === 0) {
+        return null;
+      }
+
+      return `${title}\n${lines.join('\n')}`;
+    })
+    .filter((section): section is string => section !== null);
+
+  p.log.info(sections.join('\n\n'));
   p.outro('ai-ops skill list 완료');
 };
 

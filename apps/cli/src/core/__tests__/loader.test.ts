@@ -8,6 +8,7 @@ import {
   resolvePresetSkills,
   loadAllRules,
   loadAllSkills,
+  loadSkillCatalog,
   loadPresets,
 } from '../loader.js';
 import type { Rule, Skill } from '../schemas/index.js';
@@ -30,11 +31,13 @@ const makeSkill = (id: string): Skill => ({
   description: `${id} description`,
   supported_tools: ['claude-code', 'codex', 'gemini'],
   install_scopes: ['project', 'user'],
+  groups: ['frontend-web'],
+  included_in_presets: ['frontend-web'],
   directory: `/tmp/${id}`,
   files: [
     {
       path: 'SKILL.md',
-      content: `# ${id}\n\nRead references/reference.md.`,
+      content: `---\nname: ${id}\ndescription: ${id} description\n---\n# ${id}\n\nRead references/reference.md.`,
     },
     {
       path: 'references/reference.md',
@@ -68,7 +71,6 @@ describe('parseRawPresets', () => {
       'my-preset': {
         description: 'Test preset',
         rules: ['role-persona'],
-        skills: ['typescript-language'],
       },
     };
     const presets = parseRawPresets(raw);
@@ -76,7 +78,6 @@ describe('parseRawPresets', () => {
     expect(presets[0].id).toBe('my-preset');
     expect(presets[0].description).toBe('Test preset');
     expect(presets[0].rules).toEqual(['role-persona']);
-    expect(presets[0].skills).toEqual(['typescript-language']);
   });
 
   it('description 누락 시 ZodError', () => {
@@ -92,42 +93,49 @@ describe('resolvePresetRules', () => {
   const ruleB = makeRule('role-persona', 90);
 
   it('정상 매칭 + priority 정렬', () => {
-    const preset = { id: 'test', description: 'test', rules: ['communication', 'role-persona'], skills: [] };
+    const preset = { id: 'test', description: 'test', rules: ['communication', 'role-persona'] };
     const resolved = resolvePresetRules(preset, [ruleA, ruleB]);
     expect(resolved.map((r) => r.id)).toEqual(['role-persona', 'communication']);
   });
 
   it('missing rule -> Error', () => {
-    const preset = { id: 'test', description: 'test', rules: ['missing-rule'], skills: [] };
+    const preset = { id: 'test', description: 'test', rules: ['missing-rule'] };
     expect(() => resolvePresetRules(preset, [ruleA])).toThrow('Rule not found: missing-rule');
   });
 });
 
 describe('resolvePresetSkills', () => {
-  it('skill ids를 installable skill로 해석한다', () => {
+  it('registry의 included_in_presets로 installable skill을 해석한다', () => {
     const preset = {
       id: 'frontend-web',
       description: 'test',
       rules: ['role-persona'],
-      skills: ['typescript-language', 'frontend-web-react-next-runtime'],
     };
-    const skills = [makeSkill('typescript-language'), makeSkill('frontend-web-react-next-runtime')];
+    const skills = [
+      makeSkill('typescript-language'),
+      makeSkill('frontend-web-react-next-runtime'),
+      {
+        ...makeSkill('skill-load-check'),
+        kind: 'task' as const,
+        groups: [],
+        included_in_presets: [],
+      },
+    ];
 
     expect(resolvePresetSkills(preset, skills).map((skill) => skill.id)).toEqual([
-      'typescript-language',
       'frontend-web-react-next-runtime',
+      'typescript-language',
     ]);
   });
 
-  it('missing skill -> Error', () => {
+  it('preset와 연결된 skill이 없으면 빈 배열', () => {
     const preset = {
       id: 'frontend-web',
       description: 'test',
       rules: ['role-persona'],
-      skills: ['missing-skill'],
     };
 
-    expect(() => resolvePresetSkills(preset, [])).toThrow('Skill not found: missing-skill');
+    expect(resolvePresetSkills(preset, [])).toEqual([]);
   });
 });
 
@@ -135,6 +143,11 @@ describe('I/O', () => {
   it('loadAllRules: 실제 data/rules/ 5개 로드', () => {
     const rules = loadAllRules(resolve(dataDir, 'rules'));
     expect(rules).toHaveLength(5);
+  });
+
+  it('loadSkillCatalog: 실제 skill-registry.json 로드', () => {
+    const catalog = loadSkillCatalog(resolve(dataDir, 'skills'));
+    expect(catalog.skills.length).toBeGreaterThan(0);
   });
 
   it('loadAllSkills: 실제 data/skills/ 16개 로드', () => {

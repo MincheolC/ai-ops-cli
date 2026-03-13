@@ -20,25 +20,22 @@ const makeReferenceSkill = (id: string): Skill => ({
   description: `${id} description`,
   supported_tools: ['claude-code', 'codex', 'gemini'],
   install_scopes: ['project', 'user'],
+  groups: ['frontend-web'],
+  included_in_presets: ['frontend-web'],
   directory: `/tmp/${id}`,
   files: [
-    { path: 'SKILL.md', content: `---\nname: ${id}\nkind: reference\ndescription: ${id}\nsupported_tools:\n  - codex\ninstall_scopes:\n  - project\n---` },
+    { path: 'SKILL.md', content: `---\nname: ${id}\ndescription: ${id}\n---` },
     { path: 'references/reference.md', content: `${id} reference` },
   ],
 });
 
 describe('resolveManifestRules', () => {
-  const allRules = [
-    makeRule('role-persona', 90),
-    makeRule('communication', 85),
-    makeRule('code-philosophy', 80),
-  ];
+  const allRules = [makeRule('role-persona', 90), makeRule('communication', 85), makeRule('code-philosophy', 80)];
   const presets: Preset[] = [
     {
       id: 'frontend-web',
       description: 'frontend',
       rules: ['role-persona', 'communication'],
-      skills: ['typescript-language'],
     },
   ];
 
@@ -87,10 +84,7 @@ describe('resolveManifestRules', () => {
 });
 
 describe('resolveManifestProjectSkills', () => {
-  const allSkills = [
-    makeReferenceSkill('typescript-language'),
-    makeReferenceSkill('frontend-web-react-next-runtime'),
-  ];
+  const allSkills = [makeReferenceSkill('typescript-language'), makeReferenceSkill('frontend-web-react-next-runtime')];
 
   it('legacy externalized rules를 project skills로 마이그레이션한다', () => {
     const manifest: Manifest = {

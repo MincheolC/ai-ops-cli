@@ -22,6 +22,7 @@ const makeRule = (overrides: Partial<Rule> = {}): Rule => ({
   category: 'test',
   tags: [],
   priority: 50,
+  supported_tools: ['claude-code', 'codex', 'gemini'],
   content: { constraints: [], guidelines: [] },
   ...overrides,
 });
@@ -82,7 +83,6 @@ describe('renderRuleToMarkdown', () => {
     const md = renderRuleToMarkdown(rule);
     expect(md).not.toContain('Decision Table');
   });
-
 });
 
 describe('renderRulesToMarkdown', () => {

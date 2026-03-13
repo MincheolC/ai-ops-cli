@@ -1,6 +1,6 @@
 # ai-ops-scaffolder
 
-Monorepo for building and releasing `ai-ops-cli`, a CLI that scaffolds project rules and agent skill packages from centralized YAML metadata.
+Monorepo for building and releasing `ai-ops-cli`, a CLI that scaffolds project rules and agent skill packages from centralized metadata.
 
 ## Overview
 
@@ -29,7 +29,7 @@ Supported tools:
 │       │   └── lib/        # install/uninstall/settings helpers
 │       ├── data/
 │       │   ├── rules/      # Rule YAML files
-│       │   ├── skills/     # Skill YAML files
+│       │   ├── skills/     # Skill catalog + reference/task skill sources
 │       │   └── presets.yaml
 │       └── README.md       # package-level usage docs
 ├── docs/

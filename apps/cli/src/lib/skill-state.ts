@@ -1,13 +1,9 @@
-import { resolveCanonicalSkillId } from '@/core/index.js';
+import { resolveCanonicalSkillId, SKILL_TOOL } from '@/core/index.js';
 import type { InstalledSkill, Manifest, SkillRegistry, ToolId } from '@/core/index.js';
 
 export type SkillScope = InstalledSkill['scope'];
 
-export const resolveSkillScope = (params: {
-  global?: boolean;
-  project?: boolean;
-  scope?: string;
-}): SkillScope => {
+export const resolveSkillScope = (params: { global?: boolean; project?: boolean; scope?: string }): SkillScope => {
   if (params.scope !== undefined) {
     if (params.scope === 'user') return 'user';
     if (params.scope === 'project') return 'project';
@@ -35,6 +31,21 @@ export const resolveRequestedTools = (params: {
   return [...params.requested] as ToolId[];
 };
 
+const TOOL_ORDER = [SKILL_TOOL.CLAUDE_CODE, SKILL_TOOL.CODEX, SKILL_TOOL.GEMINI] as const;
+
+export const mergeSkillTools = (params: { existing?: readonly string[]; requested: readonly ToolId[] }): ToolId[] => {
+  const merged = new Set([...(params.existing ?? []), ...params.requested]);
+  return TOOL_ORDER.filter((tool) => merged.has(tool));
+};
+
+export const subtractSkillTools = (params: {
+  requested: readonly ToolId[];
+  installed?: readonly string[];
+}): ToolId[] => {
+  const installed = new Set(params.installed ?? []);
+  return params.requested.filter((tool) => !installed.has(tool));
+};
+
 export const upsertInstalledSkill = (
   installedSkills: readonly InstalledSkill[],
   nextSkill: InstalledSkill,
@@ -44,10 +55,7 @@ export const upsertInstalledSkill = (
   return [...remaining, nextSkill];
 };
 
-export const removeInstalledSkill = (
-  installedSkills: readonly InstalledSkill[],
-  skillId: string,
-): InstalledSkill[] => {
+export const removeInstalledSkill = (installedSkills: readonly InstalledSkill[], skillId: string): InstalledSkill[] => {
   const targetSkillId = resolveCanonicalSkillId(skillId);
   return installedSkills.filter((skill) => resolveCanonicalSkillId(skill.id) !== targetSkillId);
 };

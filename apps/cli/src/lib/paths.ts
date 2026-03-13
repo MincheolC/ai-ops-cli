@@ -7,6 +7,12 @@ export const resolveRulesDir = (): string => join(COMPILER_DATA_DIR, 'rules');
 
 export const resolveSkillsDir = (): string => join(COMPILER_DATA_DIR, 'skills');
 
+export const resolveReferenceSkillsDir = (): string => join(resolveSkillsDir(), 'reference-skills');
+
+export const resolveTaskSkillsDir = (): string => join(resolveSkillsDir(), 'task-skills');
+
+export const resolveSkillCatalogPath = (): string => join(resolveSkillsDir(), 'skill-registry.json');
+
 export const resolvePresetsPath = (): string => join(COMPILER_DATA_DIR, 'presets.yaml');
 
 // project-only 설치 기준 디렉토리

@@ -9,6 +9,7 @@ import {
   readSkillRegistry,
   writeSkillRegistry,
 } from '../skill-registry-io.js';
+import type { SkillRegistry } from '../schemas/index.js';
 
 describe('skill-registry-io', () => {
   let tmpBase = '';
@@ -24,7 +25,7 @@ describe('skill-registry-io', () => {
   });
 
   it('serialize/parse round-trip', () => {
-    const registry = {
+    const registry: SkillRegistry = {
       skills: [
         {
           id: 'skill-load-check',
@@ -45,7 +46,7 @@ describe('skill-registry-io', () => {
   it('read/write works on disk', () => {
     tmpBase = mkdtempSync(join(tmpdir(), 'skill-registry-'));
     const path = resolveSkillRegistryPath(tmpBase);
-    const registry = {
+    const registry: SkillRegistry = {
       skills: [],
       generatedAt: '2026-03-13T00:00:00Z',
     };

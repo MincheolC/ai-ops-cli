@@ -16,9 +16,9 @@ export const SKILL_TOOL = {
   GEMINI: 'gemini',
 } as const;
 
-const SkillKindSchema = z.union([z.literal(SKILL_KIND.REFERENCE), z.literal(SKILL_KIND.TASK)]);
-const SkillScopeSchema = z.union([z.literal(SKILL_SCOPE.PROJECT), z.literal(SKILL_SCOPE.USER)]);
-const SkillToolSchema = z.union([
+export const SkillKindSchema = z.union([z.literal(SKILL_KIND.REFERENCE), z.literal(SKILL_KIND.TASK)]);
+export const SkillScopeSchema = z.union([z.literal(SKILL_SCOPE.PROJECT), z.literal(SKILL_SCOPE.USER)]);
+export const SkillToolSchema = z.union([
   z.literal(SKILL_TOOL.CLAUDE_CODE),
   z.literal(SKILL_TOOL.CODEX),
   z.literal(SKILL_TOOL.GEMINI),
@@ -34,10 +34,7 @@ export const SkillFileSchema = z
 export const SkillFrontmatterSchema = z
   .object({
     name: z.string().regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, 'name must be kebab-case'),
-    kind: SkillKindSchema,
     description: z.string().min(1),
-    supported_tools: z.array(SkillToolSchema).min(1),
-    install_scopes: z.array(SkillScopeSchema).min(1),
   })
   .passthrough();
 
@@ -45,10 +42,12 @@ export type SkillFile = z.infer<typeof SkillFileSchema>;
 export type SkillFrontmatter = z.infer<typeof SkillFrontmatterSchema>;
 export type Skill = {
   id: string;
-  kind: SkillFrontmatter['kind'];
+  kind: z.infer<typeof SkillKindSchema>;
   description: string;
-  supported_tools: SkillFrontmatter['supported_tools'];
-  install_scopes: SkillFrontmatter['install_scopes'];
+  supported_tools: z.infer<typeof SkillToolSchema>[];
+  install_scopes: z.infer<typeof SkillScopeSchema>[];
+  groups: string[];
+  included_in_presets: string[];
   directory: string;
   files: SkillFile[];
 };

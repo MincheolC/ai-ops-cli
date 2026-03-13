@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { resolve, dirname } from 'node:path';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { computeHash, computeSourceHash, computeInstalledSkillHash, buildManifest } from '../source-hash.js';
 import { ManifestSchema } from '../schemas/index.js';
@@ -32,6 +34,78 @@ describe('computeHash', () => {
 describe('computeSourceHash', () => {
   it('실제 data/ 대상 2회 호출 동일 결과', () => {
     expect(computeSourceHash(dataDir)).toBe(computeSourceHash(dataDir));
+  });
+
+  it('skill-registry.json 변경도 hash에 반영된다', () => {
+    const tmpDataDir = mkdtempSync(join(tmpdir(), 'ai-ops-source-hash-'));
+
+    try {
+      mkdirSync(join(tmpDataDir, 'rules'), { recursive: true });
+      mkdirSync(join(tmpDataDir, 'skills', 'reference-skills', 'demo-skill', 'references'), { recursive: true });
+      writeFileSync(
+        join(tmpDataDir, 'rules', 'rule.yaml'),
+        'id: role-persona\ncategory: general\ntags: []\npriority: 100\ncontent:\n  constraints: []\n  guidelines: []\n',
+      );
+      writeFileSync(
+        join(tmpDataDir, 'skills', 'reference-skills', 'demo-skill', 'SKILL.md'),
+        '---\nname: demo-skill\ndescription: Demo skill\n---\n# Demo Skill\n',
+      );
+      writeFileSync(
+        join(tmpDataDir, 'skills', 'reference-skills', 'demo-skill', 'references', 'reference.md'),
+        'demo reference\n',
+      );
+      writeFileSync(
+        join(tmpDataDir, 'skills', 'skill-registry.json'),
+        JSON.stringify(
+          {
+            skills: [
+              {
+                id: 'demo-skill',
+                kind: 'reference',
+                supported_tools: ['codex'],
+                install_scopes: ['project'],
+                groups: ['frontend-web'],
+                included_in_presets: ['frontend-web'],
+                source_path: 'reference-skills/demo-skill',
+              },
+            ],
+          },
+          null,
+          2,
+        ) + '\n',
+      );
+      writeFileSync(
+        join(tmpDataDir, 'presets.yaml'),
+        "frontend-web:\n  description: 'demo'\n  rules:\n    - role-persona\n",
+      );
+
+      const firstHash = computeSourceHash(tmpDataDir);
+      writeFileSync(
+        join(tmpDataDir, 'skills', 'skill-registry.json'),
+        JSON.stringify(
+          {
+            skills: [
+              {
+                id: 'demo-skill',
+                kind: 'reference',
+                supported_tools: ['codex', 'gemini'],
+                install_scopes: ['project'],
+                groups: ['frontend-web'],
+                included_in_presets: ['frontend-web'],
+                source_path: 'reference-skills/demo-skill',
+              },
+            ],
+          },
+          null,
+          2,
+        ) + '\n',
+      );
+      const secondHash = computeSourceHash(tmpDataDir);
+
+      expect(firstHash).not.toBe(secondHash);
+    } finally {
+      rmSync(tmpDataDir, { recursive: true, force: true });
+    }
   });
 });
 

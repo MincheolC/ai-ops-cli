@@ -25,36 +25,56 @@ A `task skill` is a procedural workflow.
 ```text
 apps/cli/data/skills/
   README.md
-  <skill-name>/
-    SKILL.md
-    agents/       # optional
-    references/   # optional
-    assets/       # optional
-    scripts/      # optional
+  skill-registry.json
+  reference-skills/
+    <skill-name>/
+      SKILL.md
+      agents/       # optional
+      references/   # required for reference skills
+      assets/       # optional
+      scripts/      # optional
+  task-skills/
+    <skill-name>/
+      SKILL.md
+      references/   # optional
+      assets/       # optional
+      scripts/      # optional
 ```
 
 ## Authoring Rules
 
 1. Directory name must exactly match frontmatter `name`.
 2. `SKILL.md` must start with YAML frontmatter.
-3. A `reference` skill must include `references/reference.md`.
-4. A `task` skill keeps its executable procedure in `SKILL.md`.
-5. Do not duplicate the same detailed content across `SKILL.md` and `references/`.
-6. Tool-specific metadata is authored in the skill source and copied as-is by the CLI.
-7. Codex and Gemini install to `.agents/skills/<skill-name>`. Claude installs to `.claude/skills/<skill-name>`.
-8. The CLI copies the whole skill directory tree as-is, so any file under `agents/`, `references/`, `assets/`, or `scripts/` is installed unchanged.
+3. `kind`, `supported_tools`, `install_scopes`, preset grouping, and `source_path` live in `skill-registry.json`.
+4. A `reference` skill must live under `reference-skills/` and include `references/reference.md`.
+5. A `task` skill must live under `task-skills/` and keep its executable procedure in `SKILL.md`.
+6. Do not duplicate the same detailed content across `SKILL.md` and `references/`.
+7. Tool-specific metadata is authored in the skill source and copied as-is by the CLI.
+8. Codex and Gemini install to `.agents/skills/<skill-name>`. Claude installs to `.claude/skills/<skill-name>`.
+9. The CLI copies the whole skill directory tree as-is, so any file under `agents/`, `references/`, `assets/`, or `scripts/` is installed unchanged.
 
 ## Frontmatter Fields
 
-The CLI validates the required fields below and ignores extra tool-specific frontmatter fields.
+`SKILL.md` frontmatter is now agent-facing only. The CLI validates the required fields below and ignores extra tool-specific frontmatter fields.
 
-| Field | Required | Example | Meaning |
-| --- | --- | --- | --- |
-| `name` | Yes | `graphql-contract` | Unique skill name and install directory key |
-| `description` | Yes | `Use when changing GraphQL schema contracts.` | Discovery/autotrigger summary |
-| `kind` | Yes | `reference` / `task` | Skill category |
-| `supported_tools` | Yes | `["claude-code", "codex", "gemini"]` | Where the skill may be installed |
-| `install_scopes` | Yes | `["project", "user"]` | Allowed install scopes |
+| Field         | Required | Example                                       | Meaning                                     |
+| ------------- | -------- | --------------------------------------------- | ------------------------------------------- |
+| `name`        | Yes      | `graphql-contract`                            | Unique skill name and install directory key |
+| `description` | Yes      | `Use when changing GraphQL schema contracts.` | Discovery/autotrigger summary               |
+
+## Registry Fields
+
+`skill-registry.json` is the install/catalog SSOT.
+
+| Field                 | Required | Example                              | Meaning                                           |
+| --------------------- | -------- | ------------------------------------ | ------------------------------------------------- |
+| `id`                  | Yes      | `graphql-contract`                   | Canonical skill id                                |
+| `kind`                | Yes      | `reference` / `task`                 | Skill category                                    |
+| `supported_tools`     | Yes      | `["claude-code", "codex", "gemini"]` | Where the skill may be installed                  |
+| `install_scopes`      | Yes      | `["project", "user"]`                | Allowed install scopes                            |
+| `groups`              | Yes      | `["frontend-web"]`                   | Display/discovery grouping                        |
+| `included_in_presets` | Yes      | `["frontend-web", "backend-ts"]`     | Presets that surface this skill in `ai-ops init`  |
+| `source_path`         | Yes      | `reference-skills/graphql-contract`  | Relative directory that contains the skill source |
 
 ## Content Placement
 
@@ -111,7 +131,7 @@ Gemini CLI does not currently provide a skill-level frontmatter flag for disabli
 ### Reference Skill Skeleton
 
 ```text
-graphql-contract/
+reference-skills/graphql-contract/
   SKILL.md
   agents/
     openai.yaml      # optional
@@ -122,7 +142,7 @@ graphql-contract/
 ### Task Skill Skeleton
 
 ```text
-skill-load-check/
+task-skills/skill-load-check/
   SKILL.md
   scripts/
     loaded.js
