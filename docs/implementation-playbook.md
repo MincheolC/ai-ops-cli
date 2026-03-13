@@ -11,29 +11,31 @@
 
 ### Phase 1: Core contracts
 
-1. `RuleSchema`, `SkillSchema`, `ManifestSchema`, `SkillRegistrySchema`를 먼저 고정한다.
+1. `RuleSchema`, `SkillFrontmatterSchema`, `ManifestSchema`, `SkillRegistrySchema`를 먼저 고정한다.
 2. 스키마 실패 케이스 테스트를 먼저 작성한다.
 3. compiler `sourceHash`와 project manifest/global registry builder를 구현한다.
 
 완료 기준:
 
-- malformed YAML/JSON이 명확한 에러로 차단됨
+- malformed YAML/frontmatter/JSON이 명확한 에러로 차단됨
 - manifest와 registry가 항상 UTC timestamp와 6-char hash를 가짐
 - reference-skill rule은 `reference_skill_id` 없이 통과하지 않음
 
 ### Phase 2: Deterministic data pipeline
 
 1. loader 구현(`loadAllRules`, `loadAllSkills`, `loadPresets`, preset bundle 확장)
+   - `loadAllSkills`는 `apps/cli/data/skills/<skill-id>/SKILL.md` frontmatter를 읽고 file tree를 수집한다.
 2. deterministic ordering 보장(file sort + priority desc)
 3. reference skill 추론(`resolveReferenceSkills`) 구현
 4. core renderer 구현(global/domain 분리 + excerpt rendering)
-5. skill renderer 구현(tool path mapping + package tree 생성)
+5. skill renderer 구현(tool path mapping + source directory tree copy plan 생성)
 
 완료 기준:
 
 - 같은 입력에서 항상 같은 rule/skill 렌더 결과 생성
 - Codex/Gemini는 `.agents/skills`, Claude는 `.claude/skills` 경로 계약이 테스트로 고정됨
 - reference skill rule은 코어 문서에서 full body가 아닌 excerpt만 렌더됨
+- reference skill 상세 본문은 `references/reference.md`에만 존재함
 
 ### Phase 3: Managed lifecycle
 
@@ -66,14 +68,16 @@
 ### Phase 5: Verification and docs
 
 1. README와 package README에 skill 사용법과 local verification 절차 반영
-2. `skill-load-check` 샘플 skill을 이용한 manual verification 절차 문서화
-3. build/test/subprocess 검증 수행
+2. `apps/cli/data/skills/README.md`에 skill authoring contract 유지
+3. `skill-load-check` 샘플 skill을 이용한 manual verification 절차 문서화
+4. build/test/subprocess 검증 수행
 
 완료 기준:
 
 - 로컬에서 `console.log('A Skill loaded')`까지 검증 가능한 문서가 존재함
 - `AI_OPS_HOME`을 사용한 격리된 user scope 검증 절차가 README에 정리됨
 - dist 기준 subprocess 테스트가 통과함
+- skill authoring guide와 parser contract가 서로 모순되지 않음
 
 ## 3. 엣지 케이스 점검표
 
@@ -103,6 +107,7 @@ npm test
 
 - README 명령/옵션/경로 표기가 코드와 일치하는지 확인
 - `docs/plan.md`의 계약(`.ai-ops-manifest.json`, `~/.ai-ops/skills-manifest.json`, tool output paths)이 구현과 일치하는지 확인
+- `apps/cli/data/skills/README.md`의 frontmatter 표와 실제 parser contract가 일치하는지 확인
 
 ## 5. 로컬 skill 검증 절차
 

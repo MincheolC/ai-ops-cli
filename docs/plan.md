@@ -2,7 +2,7 @@
 
 > 핵심 컨셉
 >
-> 플랫폼별 규칙 파일과 skill 패키지를 직접 손으로 관리하지 않고, `rules + skills + presets` 메타데이터를 SSOT로 관리해 다중 AI 환경에 동일한 정책을 배포한다.
+> 플랫폼별 규칙 파일과 skill 패키지를 직접 손으로 관리하지 않고, `rules YAML + skill directories + presets`를 SSOT로 관리해 다중 AI 환경에 동일한 정책을 배포한다.
 
 ## 1. 문제 정의
 
@@ -14,15 +14,15 @@ Claude Code, Codex, Gemini CLI는 규칙 파일 경로와 skill 로딩 경로가
 
 해결 목표는 다음과 같다.
 
-- 단일 SSOT(`apps/cli/data/rules/*.yaml`, `apps/cli/data/skills/*.yaml`, `apps/cli/data/presets.yaml`)에서 도구별 산출물 생성
+- 단일 SSOT(`apps/cli/data/rules/*.yaml`, `apps/cli/data/skills/<skill-id>/`, `apps/cli/data/presets.yaml`)에서 도구별 산출물 생성
 - project rule 설치와 user/project scope skill 설치를 동시에 지원
 - 같은 입력에 대해 같은 산출물을 만드는 결정론적 렌더링 유지
 - reference skill로 외부화된 규칙은 코어 instruction 파일에는 요약만 남기고, 상세 내용은 지연 로딩 skill로 분리
 
 ## 2. 핵심 설계 원리
 
-- SSOT First: 규칙과 skill은 YAML 메타데이터에서만 정의한다.
-- Deterministic Rendering: 파일 로드 순서, rule 정렬, skill 패키지 생성 순서를 결정론적으로 유지한다.
+- SSOT First: rules는 YAML로, skills는 실제 skill 디렉토리와 `SKILL.md` frontmatter로 정의한다.
+- Deterministic Rendering: 파일 로드 순서, rule 정렬, skill 디렉토리 복사 순서를 결정론적으로 유지한다.
 - Functional Core / Imperative Shell: 스키마 검증, 렌더링, hash 계산은 순수 함수에 두고 파일 I/O는 명령 계층에서 수행한다.
 - Managed Section Safety: project rule 파일은 `ai-ops` 관리 섹션만 갱신한다.
 - Dedicated Skill Package Safety: skill은 전용 디렉토리 단위로 설치/교체/삭제한다.
@@ -124,27 +124,38 @@ sequenceDiagram
 설계 규칙:
 
 - `delivery = "reference-skill"`인 rule은 코어 문서에서 `core_excerpt`만 렌더링한다.
-- 상세 규칙 본문은 연결된 reference skill의 `references/source-rules.md`로 이동한다.
+- 상세 규칙 본문은 연결된 reference skill의 `references/reference.md`에서 관리한다.
 
-### 4.2 Skill Schema
+### 4.2 Skill Source of Truth and Schema
 
 `apps/cli/src/core/schemas/skill.schema.ts` 기준:
 
-- `id`
+- source of truth layout:
+  - `apps/cli/data/skills/<skill-id>/SKILL.md`
+  - `references/` optional
+  - `assets/` optional
+  - `scripts/` optional
+- `SkillFrontmatterSchema`
+  - `name`
 - `kind: "reference" | "task"`
 - `description`
 - `supported_tools`
 - `allow_implicit_invocation`
 - `install_scopes: ("project" | "user")[]`
-- `instructions?`
 - `source_rules?`
-- `references?`, `assets?`, `scripts?`: `{ path, content }[]`
+- runtime `Skill`
+  - `id`
+  - `directory`
+  - `files: { path, content }[]`
+  - frontmatter-derived fields (`kind`, `description`, `supported_tools`, `allow_implicit_invocation`, `install_scopes`, `source_rules?`)
 
 추가 규칙:
 
-- `reference` skill은 `source_rules`를 기반으로 `references/source-rules.md`를 생성한다.
-- `task` skill은 선택적으로 `scripts/`, `references/`, `assets/`를 가진다.
+- `reference` skill은 얇은 `SKILL.md`와 필수 `references/reference.md`를 가진다.
+- `task` skill은 절차 본문을 `SKILL.md`에 두고, `references/`, `assets/`, `scripts/`를 선택적으로 가진다.
+- skill 내용은 생성하지 않고 source skill 디렉토리의 file tree를 그대로 복사한다.
 - Codex/Gemini는 `.agents/skills`를 공유하므로 같은 skill은 공통 패키지 하나로 설치된다.
+- authoring contract는 `apps/cli/data/skills/README.md`에 정리한다.
 
 ### 4.3 Preset Schema
 
@@ -164,7 +175,7 @@ sequenceDiagram
 
 - Claude는 domain rule에서 `paths` frontmatter를 사용한다(매핑 존재 시).
 - Codex root `AGENTS.md`에는 Plan Snapshot 섹션이 항상 append된다.
-- skill 패키지는 항상 `SKILL.md`를 포함하고, 필요 시 `references/`, `assets/`, `scripts/`를 추가한다.
+- skill 패키지는 source skill 디렉토리의 file tree를 그대로 반영한다.
 
 ### 4.5 Project Manifest Contract
 
@@ -237,7 +248,7 @@ sequenceDiagram
 주의:
 
 - 비교 대상 rule 집합은 `manifest.installed_rules`
-- source hash는 rules만이 아니라 `rules + skills + presets` 전체 기준
+- source hash는 rules, installable skill directories, presets 전체 기준
 
 ### 5.3 `ai-ops update [--force]`
 
@@ -321,7 +332,7 @@ stateDiagram-v2
 ```mermaid
 stateDiagram-v2
   [*] --> Absent
-  Absent --> Installed: install skill package tree
+  Absent --> Installed: install skill directory tree
   Installed --> Installed: update replaces the entire package directory
   Installed --> Deleted: uninstall removes the root skill directory
   Deleted --> [*]
@@ -372,7 +383,7 @@ stateDiagram-v2
 1. 스키마(`Rule`, `Skill`, `Manifest`, `SkillRegistry`)를 Zod로 고정
 2. loader 구현(결정론적 파일 로드 + preset bundle 확장 + reference skill 해석)
 3. core renderer 구현(도구별 규칙 경로 전략 + excerpt 렌더링)
-4. skill renderer 구현(도구별 skill 경로 전략 + package tree 생성)
+4. skill renderer 구현(도구별 skill 경로 전략 + source directory tree copy plan 생성)
 5. managed section 유틸 구현(append/replace/strip)
 6. project file install/uninstall + skill package install/uninstall 구현
 7. 명령(`init`, `diff`, `update`, `uninstall`, `skill ...`) 오케스트레이션 구현

@@ -10,7 +10,7 @@ CLI for managing AI tool rules and agent skills across projects.
 - Manual sync across tools is error-prone over time.
 - Teams need a deterministic, repeatable setup for AI pair-programming rules and skill packages.
 
-The CLI uses centralized YAML rules and skill metadata as SSOT and renders tool-native outputs into the current project or user environment.
+The CLI uses centralized rule YAML, skill directories, and presets as SSOT and renders tool-native outputs into the current project or user environment.
 
 ## What this CLI provides
 
@@ -121,7 +121,9 @@ Preset and metadata are loaded from:
 
 - `apps/cli/data/presets.yaml`
 - `apps/cli/data/rules/*.yaml`
-- `apps/cli/data/skills/*.yaml`
+- `apps/cli/data/skills/<skill-id>/`
+
+Skill authoring rules live in `apps/cli/data/skills/README.md`.
 
 Selected reference skills are installed alongside project rules when their source rules are selected.
 

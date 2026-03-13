@@ -1,0 +1,95 @@
+# Skill Authoring Guide
+
+This directory is the source of truth for installable agent skills.
+
+## Terms
+
+### Reference Skill
+
+A `reference skill` is a knowledge pack.
+
+- Canonical detail lives in `references/reference.md`
+- `SKILL.md` stays thin and points the agent to the reference
+- Use it for large standards or domain guidance that should be lazy-loaded
+
+### Task Skill
+
+A `task skill` is a procedural workflow.
+
+- Canonical procedure lives in `SKILL.md`
+- `references/` is optional supporting material only
+- Use it for repeatable actions, checks, or guided workflows
+
+## Directory Shape
+
+```text
+apps/cli/data/skills/
+  README.md
+  <skill-name>/
+    SKILL.md
+    references/   # optional
+    assets/       # optional
+    scripts/      # optional
+```
+
+## Authoring Rules
+
+1. Directory name must exactly match frontmatter `name`.
+2. `SKILL.md` must start with YAML frontmatter.
+3. A `reference` skill must include `references/reference.md`.
+4. A `task` skill keeps its executable procedure in `SKILL.md`.
+5. Do not duplicate the same detailed content across `SKILL.md` and `references/`.
+6. Codex and Gemini share `.agents/skills/<skill-name>`. Claude installs to `.claude/skills/<skill-name>`.
+
+## Frontmatter Fields
+
+| Field | Required | Example | Meaning |
+| --- | --- | --- | --- |
+| `name` | Yes | `graphql-contract` | Unique skill name and install directory key |
+| `description` | Yes | `Use when changing GraphQL schema contracts.` | Discovery/autotrigger summary |
+| `kind` | Yes | `reference` / `task` | Skill category |
+| `supported_tools` | Yes | `["claude-code", "codex", "gemini"]` | Where the skill may be installed |
+| `allow_implicit_invocation` | Yes | `true` | Whether the agent may trigger it automatically |
+| `install_scopes` | Yes | `["project", "user"]` | Allowed install scopes |
+| `source_rules` | No | `["graphql-core"]` | Linked rule ids for reference-tracking and init selection |
+
+## Content Placement
+
+### Reference Skill
+
+- `SKILL.md`: short routing note
+- `references/reference.md`: full detailed content
+
+### Task Skill
+
+- `SKILL.md`: full actionable procedure
+- `references/`: optional background material
+- `scripts/`: optional executable helpers
+
+## Examples
+
+### Reference Skill Skeleton
+
+```text
+graphql-contract/
+  SKILL.md
+  references/
+    reference.md
+```
+
+### Task Skill Skeleton
+
+```text
+skill-load-check/
+  SKILL.md
+  scripts/
+    loaded.js
+```
+
+## Temporary Validation Skills
+
+`skill-load-check` is an example of a temporary validation skill.
+
+- Keep the description narrow and test-focused
+- Keep the body short and procedural
+- It is acceptable to delete this skill later once the install/load workflow is proven
