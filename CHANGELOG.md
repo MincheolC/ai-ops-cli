@@ -5,6 +5,22 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-03-15
+
+### Added
+
+- `test(settings)`: Claude/Gemini settings install/uninstall 동작을 직접 검증하는 단위 테스트 추가
+
+### Changed
+
+- `refactor(settings)`: Claude/Gemini settings 처리 로직을 `tool-settings` 공통 엔진으로 통합해 install/uninstall/prompt 흐름 중복 제거
+- `chore(format)`: `npm run format`이 Prettier 기본 ignore 동작을 사용하도록 `--ignore-path .gitignore` 제거
+
+### Docs
+
+- generated agent instruction 파일과 manifest를 최신 communication 규칙 및 source hash에 맞게 재생성
+- Claude plan 문서 파일명을 `YYYYMMDD_<topic>.md` 규칙에 맞게 정리하고 유지보수 리팩토링 계획 문서 추가
+
 ## [0.2.0] - 2026-03-13
 
 ### Changed
