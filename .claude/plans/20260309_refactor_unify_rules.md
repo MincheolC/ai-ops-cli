@@ -4,12 +4,13 @@
 
 현재 단일레포에서 codex/gemini는 global 룰과 domain 룰을 **별도 파일**로 생성한다:
 
-| Tool | Global rules | Domain rules |
-|------|-------------|-------------|
-| codex | `AGENTS.md` | `AGENTS.override.md` |
+| Tool   | Global rules        | Domain rules                     |
+| ------ | ------------------- | -------------------------------- |
+| codex  | `AGENTS.md`         | `AGENTS.override.md`             |
 | gemini | `.gemini/GEMINI.md` | `./GEMINI.md` (루트에 별도 파일) |
 
 **문제:** 두 도구 모두 단일레포에서는 하나의 파일에 모든 룰이 들어가야 한다:
+
 - codex → `AGENTS.md` 하나
 - gemini → `.gemini/GEMINI.md` 하나
 
@@ -30,6 +31,7 @@ flowchart LR
 ### 1. `apps/cli/src/core/renderer.ts` (lines 159-176)
 
 **Before (단일레포 분기):**
+
 ```ts
 const { global, domain } = partitionRules(rules);
 const rootContent = renderRulesToMarkdown(global);
@@ -41,6 +43,7 @@ if (!workspaceMappings || workspaceMappings.length === 0) {
 ```
 
 **After:**
+
 ```ts
 if (!workspaceMappings || workspaceMappings.length === 0) {
   // 단일 프로젝트: 모든 룰(global + domain)을 rootContent 하나로 합침

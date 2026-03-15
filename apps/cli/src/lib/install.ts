@@ -1,11 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-import {
-  hasAiOpsSection,
-  replaceAiOpsSection,
-  stripAiOpsSection,
-  hasLegacyHeader,
-} from '@/core/index.js';
+import { hasAiOpsSection, replaceAiOpsSection, stripAiOpsSection, hasLegacyHeader } from '@/core/index.js';
 import type { FileAction } from '@/core/index.js';
 
 export type InstallResult = {

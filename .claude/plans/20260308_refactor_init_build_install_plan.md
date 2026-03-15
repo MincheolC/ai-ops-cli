@@ -3,6 +3,7 @@
 ## Context
 
 `installHierarchicalMonorepo`가 `buildInstallPlan`을 우회하고 직접 `FileAction`을 구성하면서:
+
 1. `CODEX_PLAN_BODY` 누락 버그 발생 (이전 플랜에서 핫픽스 완료)
 2. root 파일 생성 로직이 `buildInstallPlan`과 `installHierarchicalMonorepo` 두 곳에 중복
 
@@ -31,12 +32,14 @@ type GeminiRenderResult = {
 ```
 
 **renderForTool codex/gemini 분기 확장** (159-168행):
+
 - `workspaceMappings` 없음 (single-repo): `domainFiles: [{ workspacePath: '.', content: domainMarkdown }]` (domainMarkdown이 비어있으면 빈 배열)
 - `workspaceMappings` 있음 (monorepo): workspace별로 domain 룰 필터 → `domainFiles` 배열 생성
 
 ### 2. `apps/cli/src/core/install-plan.ts` — buildInstallPlan 수정
 
 **codex 분기** (33-55행): `domainFiles` 순회하며 workspace별 domain FileAction 생성
+
 ```ts
 // root: rootContent + CODEX_PLAN_BODY (기존과 동일)
 // domain: domainFiles.map(df => ({
@@ -54,6 +57,7 @@ type GeminiRenderResult = {
 **installHierarchicalMonorepo 함수 삭제** (101-138행)
 
 **monorepo 분기 (242-251행)** 통합:
+
 ```ts
 // 기존: toolId === 'claude-code'만 buildInstallPlan 사용
 // 변경: 모든 toolId에서 동일 파이프라인
@@ -74,18 +78,19 @@ const r = installFiles(basePath, actions, meta);
 ### 4. `apps/cli/src/core/__tests__/install-plan.test.ts` — 테스트 업데이트
 
 기존 테스트의 `domainContent` → `domainFiles` 타입으로 전환:
+
 - `domainContent: '# Domain'` → `domainFiles: [{ workspacePath: '.', content: '# Domain' }]`
 - `domainContent: ''` → `domainFiles: []`
 - 모노레포 케이스 추가: `domainFiles`에 여러 workspace 엔트리
 
 ## Files to modify
 
-| File | Action |
-|------|--------|
-| `apps/cli/src/core/renderer.ts` | 타입 변경 + renderForTool 확장 |
-| `apps/cli/src/core/install-plan.ts` | buildInstallPlan domainFiles 순회 |
-| `apps/cli/src/commands/init.ts` | installHierarchicalMonorepo 삭제, 통합 흐름 |
-| `apps/cli/src/core/__tests__/install-plan.test.ts` | 타입 변경 반영 + 모노레포 케이스 |
+| File                                               | Action                                      |
+| -------------------------------------------------- | ------------------------------------------- |
+| `apps/cli/src/core/renderer.ts`                    | 타입 변경 + renderForTool 확장              |
+| `apps/cli/src/core/install-plan.ts`                | buildInstallPlan domainFiles 순회           |
+| `apps/cli/src/commands/init.ts`                    | installHierarchicalMonorepo 삭제, 통합 흐름 |
+| `apps/cli/src/core/__tests__/install-plan.test.ts` | 타입 변경 반영 + 모노레포 케이스            |
 
 ## Verification
 
@@ -95,5 +100,6 @@ npm test
 ```
 
 수동 테스트:
+
 1. 단일 프로젝트: `ai-ops init` → codex → root AGENTS.md에 Plan Snapshot 존재
 2. 모노레포: `ai-ops init` → codex → root AGENTS.md에 Plan Snapshot 존재, workspace별 AGENTS.override.md 생성

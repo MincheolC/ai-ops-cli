@@ -95,7 +95,9 @@ export const resolveManifestRules = (params: {
   }
 
   const preset = resolvePresetById(manifest.preset, presets);
-  const installedRules = preset ? resolvePresetRules(preset, allRules) : resolveRulesFromIds(manifest.installed_rules, allRules);
+  const installedRules = preset
+    ? resolvePresetRules(preset, allRules)
+    : resolveRulesFromIds(manifest.installed_rules, allRules);
 
   return {
     installedRules,

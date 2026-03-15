@@ -1,26 +1,13 @@
-import * as p from '@clack/prompts';
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
-import { deepMerge, deepRemoveKeys } from './deep-merge.util.js';
-import { PROMPT_CANCELLED, type PromptCancelled } from './prompt-control.js';
+import type { PromptCancelled } from './prompt-control.js';
+import {
+  type SettingsUninstallStatus,
+  type ToolSettingsConfig,
+  installToolSettings,
+  promptToolSettings,
+  uninstallToolSettings,
+} from './tool-settings.js';
 
-type GeminiSettings = {
-  ui?: { showLineNumbers?: boolean };
-  general?: {
-    plan?: { directory?: string; modelRouting?: boolean };
-    sessionRetention?: { maxAge?: string };
-  };
-  experimental?: { jitContext?: boolean; plan?: boolean };
-};
-
-type SettingGroup = {
-  value: string;
-  label: string;
-  hint: string;
-  patch: GeminiSettings;
-};
-
-const SETTING_GROUPS: readonly SettingGroup[] = [
+const SETTING_GROUPS: ToolSettingsConfig['groups'] = [
   {
     value: 'ui',
     label: 'UI — 줄 번호 숨기기',
@@ -47,88 +34,21 @@ const SETTING_GROUPS: readonly SettingGroup[] = [
   },
 ];
 
+const CONFIG: ToolSettingsConfig = {
+  dirName: '.gemini',
+  fileName: 'settings.json',
+  promptMessage: 'Gemini CLI 설정 파일(.gemini/settings.json)을 설치하시겠습니까?',
+  groups: SETTING_GROUPS,
+};
+
 // PromptCancelled → 사용자 취소, null → "No", string[] → 선택된 항목
-export const promptGeminiSettings = async (): Promise<readonly string[] | null | PromptCancelled> => {
-  const wantSettings = await p.confirm({
-    message: 'Gemini CLI 설정 파일(.gemini/settings.json)을 설치하시겠습니까?',
-    initialValue: true,
-  });
-  if (p.isCancel(wantSettings)) return PROMPT_CANCELLED;
-  if (!wantSettings) return null;
+export const promptGeminiSettings = (): Promise<readonly string[] | null | PromptCancelled> =>
+  promptToolSettings(CONFIG);
 
-  const selected = await p.multiselect<string>({
-    message: '설치할 설정 항목을 선택하세요 (스페이스로 토글)',
-    options: SETTING_GROUPS.map((g) => ({
-      value: g.value,
-      label: g.label,
-      hint: g.hint,
-    })),
-    initialValues: SETTING_GROUPS.map((g) => g.value),
-    required: false,
-  });
-  if (p.isCancel(selected)) return PROMPT_CANCELLED;
-  return selected as string[];
-};
+export const installGeminiSettings = (basePath: string, selectedValues: readonly string[]): void =>
+  installToolSettings(basePath, selectedValues, CONFIG);
 
-export const installGeminiSettings = (basePath: string, selectedValues: readonly string[]): void => {
-  if (selectedValues.length === 0) return;
+export type { SettingsUninstallStatus };
 
-  const settingsDir = join(basePath, '.gemini');
-  const settingsPath = join(settingsDir, 'settings.json');
-
-  let existing: GeminiSettings = {};
-  if (existsSync(settingsPath)) {
-    try {
-      existing = JSON.parse(readFileSync(settingsPath, 'utf-8')) as GeminiSettings;
-    } catch {
-      // parse 실패 시 덮어쓰기
-    }
-  }
-
-  let merged: GeminiSettings = existing;
-  for (const val of selectedValues) {
-    const group = SETTING_GROUPS.find((g) => g.value === val);
-    if (!group) continue;
-    merged = deepMerge(merged as Record<string, unknown>, group.patch as Record<string, unknown>) as GeminiSettings;
-  }
-
-  mkdirSync(settingsDir, { recursive: true });
-  writeFileSync(settingsPath, JSON.stringify(merged, null, 2) + '\n', 'utf-8');
-};
-
-export type SettingsUninstallStatus = 'deleted' | 'cleaned' | 'notFound';
-
-export const uninstallGeminiSettings = (
-  basePath: string,
-  selectedValues: readonly string[],
-): SettingsUninstallStatus => {
-  const settingsPath = join(basePath, '.gemini', 'settings.json');
-
-  if (!existsSync(settingsPath)) return 'notFound';
-
-  let existing: GeminiSettings = {};
-  try {
-    existing = JSON.parse(readFileSync(settingsPath, 'utf-8')) as GeminiSettings;
-  } catch {
-    rmSync(settingsPath, { force: true });
-    return 'deleted';
-  }
-
-  let result: GeminiSettings = existing;
-  for (const val of selectedValues) {
-    const group = SETTING_GROUPS.find((g) => g.value === val);
-    if (!group) continue;
-    result = deepRemoveKeys(
-      result as Record<string, unknown>,
-      group.patch as Record<string, unknown>,
-    ) as GeminiSettings;
-  }
-
-  if (Object.keys(result).length === 0) {
-    rmSync(settingsPath, { force: true });
-    return 'deleted';
-  }
-
-  writeFileSync(settingsPath, JSON.stringify(result, null, 2) + '\n', 'utf-8');
-  return 'cleaned';
-};
+export const uninstallGeminiSettings = (basePath: string, selectedValues: readonly string[]): SettingsUninstallStatus =>
+  uninstallToolSettings(basePath, selectedValues, CONFIG);

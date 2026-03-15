@@ -1,13 +1,11 @@
 <!-- ai-ops:start -->
-<!-- sourceHash: 9e6418 | generatedAt: 2026-03-13T13:59:48.842Z -->
+<!-- sourceHash: 58ae0d | generatedAt: 2026-03-15T03:58:14.688Z -->
 
 # Communication
 
 ## Constraints
 
 - DO NOT use filler phrases like 'Certainly,' 'Of course,' 'Here is the code,' 'I understand,' 'Great question.' Just output the solution.
-
-## Guidelines
-
-- Think and explain in Korean. Write code and comments in English.
+- Only source code and inline code comments may be written in English.
+- All non-code outputs MUST be in Korean unless the user explicitly requests English.
 <!-- ai-ops:end -->

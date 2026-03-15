@@ -41,7 +41,9 @@ export const uninstallCommand = async (): Promise<void> => {
     p.log.info(`삭제 대상 파일 (${targetFiles.length}개):\n${targetFiles.map((f) => `  ${f}`).join('\n')}`);
   }
   if (targetSkillDirs.length > 0) {
-    p.log.info(`삭제 대상 skill 디렉토리 (${targetSkillDirs.length}개):\n${targetSkillDirs.map((f) => `  ${f}`).join('\n')}`);
+    p.log.info(
+      `삭제 대상 skill 디렉토리 (${targetSkillDirs.length}개):\n${targetSkillDirs.map((f) => `  ${f}`).join('\n')}`,
+    );
   }
 
   // 4. confirm
@@ -59,7 +61,8 @@ export const uninstallCommand = async (): Promise<void> => {
   if (manifest.settings?.claude) {
     const status = uninstallClaudeSettings(basePath, manifest.settings.claude);
     if (status === 'deleted') settingsMessages.push('삭제: .claude/settings.local.json');
-    else if (status === 'cleaned') settingsMessages.push('ai-ops 키 제거 (사용자 설정 보존): .claude/settings.local.json');
+    else if (status === 'cleaned')
+      settingsMessages.push('ai-ops 키 제거 (사용자 설정 보존): .claude/settings.local.json');
   }
   if (manifest.settings?.gemini) {
     const status = uninstallGeminiSettings(basePath, manifest.settings.gemini);
@@ -102,7 +105,9 @@ export const uninstallCommand = async (): Promise<void> => {
     p.log.info(`빈 디렉토리 정리 (${removedDirs.length}개):\n${removedDirs.map((d) => `  ${d}`).join('\n')}`);
   }
   if (removedSkillDirs.length > 0) {
-    p.log.success(`skill 디렉토리 삭제 (${removedSkillDirs.length}개):\n${removedSkillDirs.map((d) => `  ${d}`).join('\n')}`);
+    p.log.success(
+      `skill 디렉토리 삭제 (${removedSkillDirs.length}개):\n${removedSkillDirs.map((d) => `  ${d}`).join('\n')}`,
+    );
   }
   if (settingsMessages.length > 0) {
     p.log.success(`설정 파일 처리:\n${settingsMessages.map((m) => `  ${m}`).join('\n')}`);

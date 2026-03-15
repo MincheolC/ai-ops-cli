@@ -24,12 +24,9 @@ export const computeDiff = (params: {
   const sourceChanged = previous.sourceHash !== currentSourceHash;
   // previous.cliVersion이 없는 레거시 manifest는 버전 변경으로 간주하지 않음
   const versionChanged =
-    previous.cliVersion !== undefined &&
-    currentCliVersion !== undefined &&
-    previous.cliVersion !== currentCliVersion;
+    previous.cliVersion !== undefined && currentCliVersion !== undefined && previous.cliVersion !== currentCliVersion;
 
-  const status =
-    added.length > 0 || removed.length > 0 || sourceChanged || versionChanged ? 'changed' : 'up-to-date';
+  const status = added.length > 0 || removed.length > 0 || sourceChanged || versionChanged ? 'changed' : 'up-to-date';
 
   return { status, added, removed, sourceChanged, versionChanged };
 };

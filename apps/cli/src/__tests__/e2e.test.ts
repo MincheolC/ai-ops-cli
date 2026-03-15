@@ -64,10 +64,14 @@ describe.skipIf(!distExists)('skill subprocess', () => {
   it('project scope skill install writes project manifest and .agents skill dir', () => {
     const { dir, cleanup } = setup();
     try {
-      const result = spawnSync(process.execPath, [BIN_PATH, 'skill', 'install', 'skill-load-check', '--project', '--tool', 'codex'], {
-        cwd: dir,
-        encoding: 'utf-8',
-      });
+      const result = spawnSync(
+        process.execPath,
+        [BIN_PATH, 'skill', 'install', 'skill-load-check', '--project', '--tool', 'codex'],
+        {
+          cwd: dir,
+          encoding: 'utf-8',
+        },
+      );
 
       expect(result.status).toBe(0);
       expect(existsSync(join(dir, '.agents/skills/skill-load-check/SKILL.md'))).toBe(true);
@@ -84,11 +88,15 @@ describe.skipIf(!distExists)('skill subprocess', () => {
     const { dir, cleanup } = setup();
     const userHome = mkdtempSync(join(tmpdir(), 'ai-ops-home-'));
     try {
-      const result = spawnSync(process.execPath, [BIN_PATH, 'skill', 'install', 'skill-load-check', '--tool', 'codex'], {
-        cwd: dir,
-        encoding: 'utf-8',
-        env: { ...process.env, AI_OPS_HOME: userHome },
-      });
+      const result = spawnSync(
+        process.execPath,
+        [BIN_PATH, 'skill', 'install', 'skill-load-check', '--tool', 'codex'],
+        {
+          cwd: dir,
+          encoding: 'utf-8',
+          env: { ...process.env, AI_OPS_HOME: userHome },
+        },
+      );
 
       expect(result.status).toBe(0);
       expect(existsSync(join(userHome, '.agents/skills/skill-load-check/SKILL.md'))).toBe(true);

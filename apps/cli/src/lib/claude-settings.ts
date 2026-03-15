@@ -1,19 +1,13 @@
-import * as p from '@clack/prompts';
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
-import { deepMerge, deepRemoveKeys } from './deep-merge.util.js';
-import { PROMPT_CANCELLED, type PromptCancelled } from './prompt-control.js';
+import type { PromptCancelled } from './prompt-control.js';
+import {
+  type SettingsUninstallStatus,
+  type ToolSettingsConfig,
+  installToolSettings,
+  promptToolSettings,
+  uninstallToolSettings,
+} from './tool-settings.js';
 
-type ClaudeSettings = Record<string, unknown>;
-
-type SettingGroup = {
-  value: string;
-  label: string;
-  hint: string;
-  patch: ClaudeSettings;
-};
-
-const SETTING_GROUPS: readonly SettingGroup[] = [
+const SETTING_GROUPS: ToolSettingsConfig['groups'] = [
   {
     value: 'model',
     label: 'Model — Plan 모드 모델',
@@ -26,91 +20,23 @@ const SETTING_GROUPS: readonly SettingGroup[] = [
     hint: 'plansDirectory: ./.claude/plans — 계획 파일을 .claude/plans에 저장',
     patch: { plansDirectory: './.claude/plans' },
   },
-] as const;
+];
+
+const CONFIG: ToolSettingsConfig = {
+  dirName: '.claude',
+  fileName: 'settings.local.json',
+  promptMessage: 'Claude Code 설정 파일(.claude/settings.local.json)을 설치하시겠습니까?',
+  groups: SETTING_GROUPS,
+};
 
 // PromptCancelled → 사용자 취소, null → "No", string[] → 선택된 항목
-export const promptClaudeSettings = async (): Promise<readonly string[] | null | PromptCancelled> => {
-  const wantSettings = await p.confirm({
-    message: 'Claude Code 설정 파일(.claude/settings.local.json)을 설치하시겠습니까?',
-    initialValue: true,
-  });
-  if (p.isCancel(wantSettings)) return PROMPT_CANCELLED;
-  if (!wantSettings) return null;
+export const promptClaudeSettings = (): Promise<readonly string[] | null | PromptCancelled> =>
+  promptToolSettings(CONFIG);
 
-  const selected = await p.multiselect<string>({
-    message: '설치할 설정 항목을 선택하세요 (스페이스로 토글)',
-    options: SETTING_GROUPS.map((g) => ({
-      value: g.value,
-      label: g.label,
-      hint: g.hint,
-    })),
-    initialValues: SETTING_GROUPS.map((g) => g.value),
-    required: false,
-  });
-  if (p.isCancel(selected)) return PROMPT_CANCELLED;
-  return selected as string[];
-};
+export const installClaudeSettings = (basePath: string, selectedValues: readonly string[]): void =>
+  installToolSettings(basePath, selectedValues, CONFIG);
 
-export const installClaudeSettings = (basePath: string, selectedValues: readonly string[]): void => {
-  if (selectedValues.length === 0) return;
+export type { SettingsUninstallStatus };
 
-  const settingsDir = join(basePath, '.claude');
-  const settingsPath = join(settingsDir, 'settings.local.json');
-
-  let existing: ClaudeSettings = {};
-  if (existsSync(settingsPath)) {
-    try {
-      existing = JSON.parse(readFileSync(settingsPath, 'utf-8')) as ClaudeSettings;
-    } catch {
-      // parse 실패 시 덮어쓰기
-    }
-  }
-
-  let merged: ClaudeSettings = existing;
-  for (const val of selectedValues) {
-    const group = SETTING_GROUPS.find((g) => g.value === val);
-    if (!group) continue;
-    merged = deepMerge(merged, group.patch);
-  }
-
-  mkdirSync(settingsDir, { recursive: true });
-  writeFileSync(settingsPath, JSON.stringify(merged, null, 2) + '\n', 'utf-8');
-};
-
-export type SettingsUninstallStatus = 'deleted' | 'cleaned' | 'notFound';
-
-export const uninstallClaudeSettings = (
-  basePath: string,
-  selectedValues: readonly string[],
-): SettingsUninstallStatus => {
-  const settingsPath = join(basePath, '.claude', 'settings.local.json');
-
-  if (!existsSync(settingsPath)) return 'notFound';
-
-  let existing: ClaudeSettings = {};
-  try {
-    existing = JSON.parse(readFileSync(settingsPath, 'utf-8')) as ClaudeSettings;
-  } catch {
-    // parse 실패 시 삭제로 처리
-    rmSync(settingsPath, { force: true });
-    return 'deleted';
-  }
-
-  let result: ClaudeSettings = existing;
-  for (const val of selectedValues) {
-    const group = SETTING_GROUPS.find((g) => g.value === val);
-    if (!group) continue;
-    result = deepRemoveKeys(
-      result as Record<string, unknown>,
-      group.patch as Record<string, unknown>,
-    ) as ClaudeSettings;
-  }
-
-  if (Object.keys(result).length === 0) {
-    rmSync(settingsPath, { force: true });
-    return 'deleted';
-  }
-
-  writeFileSync(settingsPath, JSON.stringify(result, null, 2) + '\n', 'utf-8');
-  return 'cleaned';
-};
+export const uninstallClaudeSettings = (basePath: string, selectedValues: readonly string[]): SettingsUninstallStatus =>
+  uninstallToolSettings(basePath, selectedValues, CONFIG);

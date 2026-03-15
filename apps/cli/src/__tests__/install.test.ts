@@ -101,11 +101,7 @@ describe('installFiles', () => {
         '<!-- managed by ai-ops -->\n<!-- sourceHash: aabbcc | generatedAt: 2026-01-01T00:00:00.000Z -->\n\n# Old',
         'utf-8',
       );
-      const result = installFiles(
-        dir,
-        [{ relativePath: 'CLAUDE.md', content: wrapWithSection('# New', META) }],
-        META,
-      );
+      const result = installFiles(dir, [{ relativePath: 'CLAUDE.md', content: wrapWithSection('# New', META) }], META);
       expect(result.written).toEqual(['CLAUDE.md']);
       expect(result.appended).toHaveLength(0);
 

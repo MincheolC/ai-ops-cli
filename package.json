@@ -9,7 +9,7 @@
     "test": "vitest run",
     "compile": "node apps/cli/dist/bin/index.js --help",
     "dev": "npm run dev --workspaces --if-present",
-    "format": "prettier --write \"**/*.{ts,json,yaml,md}\" --ignore-path .gitignore",
+    "format": "prettier --write \"**/*.{ts,json,yaml,md}\"",
     "lint": "eslint .",
     "check": "npm run lint && npm run test",
     "publish:patch": "./scripts/publish.sh patch",

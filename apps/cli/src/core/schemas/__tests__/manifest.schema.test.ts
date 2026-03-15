@@ -94,15 +94,11 @@ describe('ManifestSchema', () => {
     });
 
     it('settings claude만 포함', () => {
-      expect(() =>
-        ManifestSchema.parse({ ...validManifest, settings: { claude: ['model'] } }),
-      ).not.toThrow();
+      expect(() => ManifestSchema.parse({ ...validManifest, settings: { claude: ['model'] } })).not.toThrow();
     });
 
     it('settings gemini만 포함', () => {
-      expect(() =>
-        ManifestSchema.parse({ ...validManifest, settings: { gemini: ['plan'] } }),
-      ).not.toThrow();
+      expect(() => ManifestSchema.parse({ ...validManifest, settings: { gemini: ['plan'] } })).not.toThrow();
     });
 
     it('cliVersion 포함', () => {
@@ -181,15 +177,11 @@ describe('ManifestSchema', () => {
     });
 
     it('settings.claude 빈 문자열 포함', () => {
-      expect(() =>
-        ManifestSchema.parse({ ...validManifest, settings: { claude: [''] } }),
-      ).toThrow();
+      expect(() => ManifestSchema.parse({ ...validManifest, settings: { claude: [''] } })).toThrow();
     });
 
     it('settings.gemini 빈 문자열 포함', () => {
-      expect(() =>
-        ManifestSchema.parse({ ...validManifest, settings: { gemini: [''] } }),
-      ).toThrow();
+      expect(() => ManifestSchema.parse({ ...validManifest, settings: { gemini: [''] } })).toThrow();
     });
   });
 });

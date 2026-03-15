@@ -1,5 +1,5 @@
 <!-- ai-ops:start -->
-<!-- sourceHash: 9e6418 | generatedAt: 2026-03-13T13:59:48.842Z -->
+<!-- sourceHash: 58ae0d | generatedAt: 2026-03-15T03:58:14.688Z -->
 
 # Role Persona
 
@@ -21,10 +21,8 @@
 ## Constraints
 
 - DO NOT use filler phrases like 'Certainly,' 'Of course,' 'Here is the code,' 'I understand,' 'Great question.' Just output the solution.
-
-## Guidelines
-
-- Think and explain in Korean. Write code and comments in English.
+- Only source code and inline code comments may be written in English.
+- All non-code outputs MUST be in Korean unless the user explicitly requests English.
 
 ---
 
@@ -47,11 +45,11 @@
 
 ## Decision Table
 
-| When | Then | Avoid |
-|------|------|-------|
-| Implementing complex business logic | Write failing tests first, then implement pure functions | Implementation-first with mixed I/O |
-| Similar code appears in two places | Keep duplication temporarily | Early shared abstraction |
-| Similar code appears in three or more places | Extract a clearly named shared function |  |
+| When                                         | Then                                                     | Avoid                               |
+| -------------------------------------------- | -------------------------------------------------------- | ----------------------------------- |
+| Implementing complex business logic          | Write failing tests first, then implement pure functions | Implementation-first with mixed I/O |
+| Similar code appears in two places           | Keep duplication temporarily                             | Early shared abstraction            |
+| Similar code appears in three or more places | Extract a clearly named shared function                  |                                     |
 
 ---
 
@@ -77,11 +75,12 @@
 
 ## Decision Table
 
-| When | Then | Avoid |
-|------|------|-------|
-| Describing user journey or UI navigation | Use flowchart (LR or TD) | Text-only step lists |
-| Describing API or service interactions | Use sequenceDiagram | Plain text arrows only |
-| Describing schema relationships | Use erDiagram | Unstructured table bullet lists |
-| Describing state transitions | Use stateDiagram-v2 | Flat textual state lists |
-| Saving a plan document to disk | Name as YYYYMMDD_<topic>.md with kebab-case topic | Arbitrary names like plan.md or notes.md |
+| When                                     | Then                                               | Avoid                                    |
+| ---------------------------------------- | -------------------------------------------------- | ---------------------------------------- |
+| Describing user journey or UI navigation | Use flowchart (LR or TD)                           | Text-only step lists                     |
+| Describing API or service interactions   | Use sequenceDiagram                                | Plain text arrows only                   |
+| Describing schema relationships          | Use erDiagram                                      | Unstructured table bullet lists          |
+| Describing state transitions             | Use stateDiagram-v2                                | Flat textual state lists                 |
+| Saving a plan document to disk           | Name as YYYYMMDD\_<topic>.md with kebab-case topic | Arbitrary names like plan.md or notes.md |
+
 <!-- ai-ops:end -->

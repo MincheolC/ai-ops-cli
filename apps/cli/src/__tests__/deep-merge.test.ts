@@ -26,12 +26,18 @@ describe('deepRemoveKeys', () => {
   });
 
   it('중첩 키 제거', () => {
-    const result = deepRemoveKeys({ general: { plan: { directory: '.gemini/plans', modelRouting: true }, other: 'x' } }, { general: { plan: { directory: '.gemini/plans', modelRouting: true } } });
+    const result = deepRemoveKeys(
+      { general: { plan: { directory: '.gemini/plans', modelRouting: true }, other: 'x' } },
+      { general: { plan: { directory: '.gemini/plans', modelRouting: true } } },
+    );
     expect(result).toEqual({ general: { other: 'x' } });
   });
 
   it('빈 부모 객체 정리', () => {
-    const result = deepRemoveKeys({ general: { plan: { directory: '.gemini/plans' } } }, { general: { plan: { directory: '.gemini/plans' } } });
+    const result = deepRemoveKeys(
+      { general: { plan: { directory: '.gemini/plans' } } },
+      { general: { plan: { directory: '.gemini/plans' } } },
+    );
     expect(result).toEqual({});
   });
 

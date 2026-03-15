@@ -17,7 +17,13 @@ import {
   resolveManifestProjectSkills,
   resolveManifestRules,
 } from '@/core/index.js';
-import { resolveBasePath, resolveCompilerDataDir, resolvePresetsPath, resolveRulesDir, resolveSkillsDir } from '../lib/paths.js';
+import {
+  resolveBasePath,
+  resolveCompilerDataDir,
+  resolvePresetsPath,
+  resolveRulesDir,
+  resolveSkillsDir,
+} from '../lib/paths.js';
 import { installFiles } from '../lib/install.js';
 import { installSkillPackages } from '../lib/skill-install.js';
 import { installClaudeSettings } from '../lib/claude-settings.js';

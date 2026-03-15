@@ -1,5 +1,5 @@
 import { resolveCanonicalSkillId, SKILL_TOOL } from '@/core/index.js';
-import type { InstalledSkill, Manifest, SkillRegistry, ToolId } from '@/core/index.js';
+import type { InstalledSkill, ToolId } from '@/core/index.js';
 
 export type SkillScope = InstalledSkill['scope'];
 
@@ -67,42 +67,3 @@ export const findInstalledSkill = (
   const targetSkillId = resolveCanonicalSkillId(skillId);
   return installedSkills.find((skill) => resolveCanonicalSkillId(skill.id) === targetSkillId);
 };
-
-export const buildProjectManifestForSkill = (params: {
-  previous: Manifest | null;
-  nextInstalledSkill: InstalledSkill;
-  currentSourceHash: string;
-  cliVersion: string;
-}): Manifest => {
-  const previous = params.previous;
-  const mergedTools = previous
-    ? [...new Set([...previous.tools, ...params.nextInstalledSkill.tools])]
-    : [...params.nextInstalledSkill.tools];
-
-  const nextInstalledSkills = upsertInstalledSkill(previous?.installed_skills ?? [], params.nextInstalledSkill);
-
-  return {
-    tools: mergedTools,
-    scope: 'project',
-    preset: previous?.preset,
-    workspaces: previous?.workspaces,
-    installed_rules: previous?.installed_rules ?? [],
-    installed_files: previous?.installed_files,
-    installed_skills: nextInstalledSkills,
-    appended_files: previous?.appended_files,
-    settings: previous?.settings,
-    cliVersion: params.cliVersion,
-    sourceHash: params.currentSourceHash,
-    generatedAt: new Date().toISOString(),
-  };
-};
-
-export const buildSkillRegistry = (params: {
-  previous: SkillRegistry | null;
-  nextInstalledSkill: InstalledSkill;
-  cliVersion: string;
-}): SkillRegistry => ({
-  skills: upsertInstalledSkill(params.previous?.skills ?? [], params.nextInstalledSkill),
-  cliVersion: params.cliVersion,
-  generatedAt: new Date().toISOString(),
-});

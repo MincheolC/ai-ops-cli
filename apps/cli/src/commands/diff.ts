@@ -11,7 +11,13 @@ import {
   resolveManifestProjectSkills,
   resolveManifestRules,
 } from '@/core/index.js';
-import { resolveBasePath, resolveCompilerDataDir, resolvePresetsPath, resolveRulesDir, resolveSkillsDir } from '../lib/paths.js';
+import {
+  resolveBasePath,
+  resolveCompilerDataDir,
+  resolvePresetsPath,
+  resolveRulesDir,
+  resolveSkillsDir,
+} from '../lib/paths.js';
 
 export const diffCommand = async (): Promise<void> => {
   const basePath = resolveBasePath();
