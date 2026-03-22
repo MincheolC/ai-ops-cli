@@ -63,7 +63,9 @@ describe('buildInstallPlan - codex', () => {
     expect(actions).toHaveLength(1);
     expect(actions[0].relativePath).toBe('AGENTS.md');
     expect(actions[0].content).toContain('## Plan Snapshot');
+    expect(actions[0].content).toContain('Codex is running in `collaboration_mode=Plan`');
     expect(actions[0].content).toContain('.codex/plans/YYYYMMDD_<topic>.md');
+    expect(actions[0].content).toContain('before leaving Plan mode');
   });
 
   it('appends plan section to AGENTS.md root content', () => {
