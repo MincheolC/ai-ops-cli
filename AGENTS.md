@@ -1,5 +1,5 @@
 <!-- ai-ops:start -->
-<!-- sourceHash: 58ae0d | generatedAt: 2026-03-15T03:58:14.688Z -->
+<!-- sourceHash: 58ae0d | generatedAt: 2026-03-22T14:49:45.408Z -->
 
 # Role Persona
 
@@ -45,11 +45,11 @@
 
 ## Decision Table
 
-| When                                         | Then                                                     | Avoid                               |
-| -------------------------------------------- | -------------------------------------------------------- | ----------------------------------- |
-| Implementing complex business logic          | Write failing tests first, then implement pure functions | Implementation-first with mixed I/O |
-| Similar code appears in two places           | Keep duplication temporarily                             | Early shared abstraction            |
-| Similar code appears in three or more places | Extract a clearly named shared function                  |                                     |
+| When | Then | Avoid |
+|------|------|-------|
+| Implementing complex business logic | Write failing tests first, then implement pure functions | Implementation-first with mixed I/O |
+| Similar code appears in two places | Keep duplication temporarily | Early shared abstraction |
+| Similar code appears in three or more places | Extract a clearly named shared function |  |
 
 ---
 
@@ -75,19 +75,19 @@
 
 ## Decision Table
 
-| When                                     | Then                                               | Avoid                                    |
-| ---------------------------------------- | -------------------------------------------------- | ---------------------------------------- |
-| Describing user journey or UI navigation | Use flowchart (LR or TD)                           | Text-only step lists                     |
-| Describing API or service interactions   | Use sequenceDiagram                                | Plain text arrows only                   |
-| Describing schema relationships          | Use erDiagram                                      | Unstructured table bullet lists          |
-| Describing state transitions             | Use stateDiagram-v2                                | Flat textual state lists                 |
-| Saving a plan document to disk           | Name as YYYYMMDD\_<topic>.md with kebab-case topic | Arbitrary names like plan.md or notes.md |
+| When | Then | Avoid |
+|------|------|-------|
+| Describing user journey or UI navigation | Use flowchart (LR or TD) | Text-only step lists |
+| Describing API or service interactions | Use sequenceDiagram | Plain text arrows only |
+| Describing schema relationships | Use erDiagram | Unstructured table bullet lists |
+| Describing state transitions | Use stateDiagram-v2 | Flat textual state lists |
+| Saving a plan document to disk | Name as YYYYMMDD_<topic>.md with kebab-case topic | Arbitrary names like plan.md or notes.md |
 
 ---
 
 ## Plan Snapshot (Plan mode only)
 
-- This rule applies only when `collaboration_mode=Plan`.
-- Before implementation (file edits/creates, installs, commits), save the latest plan content to `.codex/plans/YYYYMMDD_<topic>.md`.
+- This rule applies only when Codex is running in `collaboration_mode=Plan`.
+- Before implementation (file edits/creates, installs, commits) and before leaving Plan mode, save the latest plan content to `.codex/plans/YYYYMMDD_<topic>.md`.
 - In `Default` mode, do not automatically create or update plan files.
 <!-- ai-ops:end -->

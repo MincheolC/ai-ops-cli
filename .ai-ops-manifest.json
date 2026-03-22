@@ -1,8 +1,18 @@
 {
-  "tools": ["claude-code", "codex", "gemini"],
+  "tools": [
+    "claude-code",
+    "codex",
+    "gemini"
+  ],
   "scope": "project",
   "preset": "backend-ts",
-  "installed_rules": ["role-persona", "communication", "code-philosophy", "naming-convention", "plan-mode"],
+  "installed_rules": [
+    "role-persona",
+    "communication",
+    "code-philosophy",
+    "naming-convention",
+    "plan-mode"
+  ],
   "installed_files": [
     ".claude/rules/role-persona.md",
     ".claude/rules/communication.md",
@@ -14,11 +24,19 @@
   ],
   "installed_skills": [],
   "settings": {
-    "claude": ["model", "plansDirectory"],
-    "gemini": ["ui", "plan", "sessionRetention", "experimental"],
+    "claude": [
+      "model",
+      "plansDirectory"
+    ],
+    "gemini": [
+      "ui",
+      "plan",
+      "sessionRetention",
+      "experimental"
+    ],
     "prettierignore": true
   },
-  "cliVersion": "0.2.0",
+  "cliVersion": "0.2.2",
   "sourceHash": "58ae0d",
-  "generatedAt": "2026-03-15T03:58:14.696Z"
+  "generatedAt": "2026-03-22T14:49:45.411Z"
 }
