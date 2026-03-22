@@ -10,6 +10,7 @@ import {
   skillUninstallCommand,
   skillUpdateCommand,
 } from '../commands/skill.js';
+import { specInitCommand } from '../commands/spec.js';
 
 const program = new Command();
 
@@ -64,5 +65,13 @@ applySkillScopeOptions(skillCommand.command('update [skillId]').description('ski
 applySkillScopeOptions(skillCommand.command('uninstall <skillId>').description('skill 제거')).action((skillId, opts) =>
   skillUninstallCommand(skillId, opts),
 );
+
+const specCommand = program.command('spec').description('spec 파이프라인 관리');
+
+specCommand
+  .command('init')
+  .description('specs/ 디렉토리 구조 초기화')
+  .option('--force', '이미 존재해도 강제 재생성', false)
+  .action((opts: { force: boolean }) => specInitCommand(opts));
 
 program.parse();
