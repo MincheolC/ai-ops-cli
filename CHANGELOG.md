@@ -5,6 +5,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- `feat(cli)`: `ai-ops spec init` 명령 추가 — `specs/README.md`, `specs/baseline/`, `specs/delta/` 디렉토리 구조를 생성하는 spec 파이프라인 초기화 커맨드. `--force` 옵션으로 기존 디렉토리 덮어쓰기 가능
+
 ## [0.2.1] - 2026-03-15
 
 ### Added

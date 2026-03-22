@@ -22,6 +22,7 @@ The CLI treats these as separate sources of truth:
 
 - interactive project initialization (`ai-ops init`)
 - skill package installation and lifecycle management (`ai-ops skill ...`)
+- spec pipeline directory scaffolding (`ai-ops spec init`)
 - source drift checks (`ai-ops diff`)
 - deterministic re-apply (`ai-ops update`)
 - managed cleanup (`ai-ops uninstall`)
@@ -73,6 +74,12 @@ ai-ops update --force
 
 # Remove project-managed files
 ai-ops uninstall
+
+# Initialize spec pipeline directory structure
+ai-ops spec init
+
+# Force re-create even if specs/ already exists
+ai-ops spec init --force
 ```
 
 ## CLI Surface
@@ -83,6 +90,7 @@ ai-ops [command]
 Commands:
   init       Initialize AI tool rules for a project
   skill      Manage agent skills
+  spec       Manage spec pipeline
   update     Update installed rules
   diff       Show diff between installed and current rules
   uninstall  Remove installed rules and manifest
@@ -91,6 +99,21 @@ Options:
   --force        Force update even when no changes are detected (update only)
   -V, --version  Output version number
   -h, --help     Display help
+```
+
+### `ai-ops spec` subcommands
+
+```text
+ai-ops spec init [options]
+
+  Initialize the specs/ directory structure for AI-collaborative spec pipelines.
+  Creates:
+    specs/README.md          — usage guide
+    specs/baseline/          — baseline spec documents
+    specs/delta/             — delta (incremental change) spec documents
+
+Options:
+  --force   Overwrite existing specs/ directory
 ```
 
 Notes:
