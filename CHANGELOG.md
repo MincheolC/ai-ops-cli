@@ -5,6 +5,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.2.3] - 2026-03-23
+
 ### Changed
 
 - `data(skills)`: `backend-ts-nestjs-runtime`, `frontend-web-react-next-runtime` reference에 `date-fns` 사용 규칙 추가 — `moment/dayjs` 금지에 대응하는 positive rule (`date-fns` 개별 import), `new Date(string)` timezone silent failure 방지를 위한 `parseISO()` 사용 constraint 및 decision rule 추가
