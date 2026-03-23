@@ -19,6 +19,7 @@
 ## Backend TS Library Constraints
 
 - Do not use moment/dayjs.
+- Do not parse date strings with `new Date(string)`. It applies implicit local timezone coercion and silently shifts dates.
 - Do not use jsonwebtoken.
 - Do not handle Express req/res directly in NestJS handlers.
 - Do not import lodash as a full bundle.
@@ -29,6 +30,7 @@
 
 - Use class-validator and class-transformer DTO validation.
 - Use jose for JWT sign/verify and JWKS workflows.
+- Use date-fns for date manipulation; import functions individually (e.g. `import { parseISO, format } from 'date-fns'`).
 - Use pino via nestjs-pino for structured logs.
 - Use rxjs operators in interceptors, guards, and event streams.
 - Use Vitest with @nestjs/testing and supertest.
@@ -40,4 +42,5 @@
 - When auth or roles depend on handler metadata, use guards.
 - When response transformation or timing is needed, use interceptors.
 - When JWT auth is needed, use jose.
+- When parsing an ISO date string, use `parseISO()` from date-fns; avoid `new Date(string)`.
 - When structured logging is needed, use pino via nestjs-pino.

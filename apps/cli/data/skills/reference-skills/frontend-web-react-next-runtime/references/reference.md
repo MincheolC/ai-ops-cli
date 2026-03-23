@@ -27,6 +27,7 @@
 ## Web Frontend Library Constraints
 
 - Do not use moment.js or dayjs.
+- Do not parse date strings with `new Date(string)`. It applies implicit local timezone coercion and silently shifts dates.
 - Do not use react-icons.
 - Do not use axios in browser code.
 - Do not build conditional className strings manually.
@@ -36,6 +37,7 @@
 ## Web Frontend Library Guidelines
 
 - Keep styling on Tailwind and design tokens.
+- Use date-fns for date formatting and manipulation; import functions individually (e.g. `import { parseISO, format } from 'date-fns'`).
 - Use next-intl for i18n and next-themes for theme switching.
 - Render Recharts only inside client components.
 - Mount one Sonner toaster at the app root.
@@ -48,4 +50,5 @@
 - When page data is needed for first render, fetch in server components.
 - When internal form mutation is needed, use server actions.
 - When form validation is needed, use zod with react-hook-form.
+- When parsing an ISO date string, use `parseISO()` from date-fns; avoid `new Date(string)`.
 - When client UI state is needed, use a zustand slice.
