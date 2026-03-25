@@ -5,6 +5,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.2.4] - 2026-03-25
+
 ### Changed
 
 - `docs(rules)`: `code-philosophy` 규칙에 파일 내부 구조화 규칙 추가 — 선언 순서 컨벤션(types → constants → validators/guards → helper functions → main logic/exports)과 의미 단위 경계에 섹션 구분 주석(`// ----- types -----`) 사용 원칙을 guidelines 및 decision_table에 추가
