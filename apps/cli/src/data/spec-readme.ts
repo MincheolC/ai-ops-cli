@@ -7,7 +7,7 @@ export const SPEC_README_TEMPLATE = `# Specs
 \`\`\`
 specs/
 ├── baseline/   # 기준 spec 문서 (초기 요구사항, 확정된 스펙)
-└── delta/      # 변경 spec 문서 (기준 대비 추가/수정 사항)
+└── initial-build/      # 초기 구축 spec 문서
 \`\`\`
 
 ## 사용 방법
@@ -19,10 +19,10 @@ specs/
 - 파일명: \`<feature-name>.md\` (kebab-case)
 - 내용: 요구사항, 도메인 용어, 제약 조건 등
 
-### delta
+### initial-build
 
-기준 스펙 대비 변경되는 내용을 \`delta/\` 디렉토리에 저장합니다.
+초기 구축 범위와 구현 계획을 \`initial-build/\` 디렉토리에 저장합니다.
 
 - 파일명: \`<YYYYMMDD>-<feature-name>.md\`
-- 내용: 변경 이유, 변경 전/후 비교, 영향 범위 등
+- 내용: 초기 구현 범위, 사용자 흐름, 데이터 모델, API 계약, 검증 기준 등
 `;

@@ -17,9 +17,9 @@ describe('buildSpecInitPlan', () => {
     expect(actions[1].relativePath).toBe('specs/baseline/.gitkeep');
   });
 
-  it('includes specs/delta/.gitkeep', () => {
+  it('includes specs/initial-build/.gitkeep', () => {
     const actions = buildSpecInitPlan();
-    expect(actions[2].relativePath).toBe('specs/delta/.gitkeep');
+    expect(actions[2].relativePath).toBe('specs/initial-build/.gitkeep');
   });
 
   it('README content is non-empty', () => {
