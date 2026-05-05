@@ -5,6 +5,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.2.5] - 2026-05-05
+
+### Added
+
+- `docs(skills)`: frontend 상태/cache 관리 reference 규칙 추가 — Flutter Riverpod, React TanStack Query/SWR, Zustand persist, GraphQL client cache의 server state/client state 경계를 명시
+
+### Changed
+
+- `feat(spec)`: `ai-ops spec init` 생성 디렉토리를 `specs/delta/`에서 `specs/initial-build/`로 변경하고 README 템플릿과 테스트 기대값 갱신
+
 ## [0.2.4] - 2026-03-25
 
 ### Changed
