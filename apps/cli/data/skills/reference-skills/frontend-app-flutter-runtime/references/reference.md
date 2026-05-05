@@ -29,6 +29,7 @@
 - Do not handwrite data classes.
 - Do not use Navigator 1.0 push/pop APIs for routing.
 - Do not manually implement JSON serialization.
+- Do not duplicate server-owned API data into shared preferences, secure storage, or long-lived UI state.
 
 ## App Frontend Library Guidelines
 
@@ -38,6 +39,7 @@
 - Create one shared Dio instance via Riverpod DI.
 - Use shared_preferences or flutter_secure_storage by data sensitivity.
 - Use cached_network_image for network image caching.
+- Treat remote API data as server-owned state exposed through Riverpod providers.
 - Use very_good_analysis and treat warnings as CI failures.
 - Use intl or easy_localization with ARB-based translations.
 
@@ -45,6 +47,8 @@
 
 - When state is local and ephemeral, keep it local.
 - When state is shared or long-lived, use Riverpod Notifier or AsyncNotifier.
+- When async data comes from an external API, keep cache freshness, invalidation, and reload behavior explicit in the provider or repository boundary.
+- When persisted app state is needed, persist only preferences, session bootstrap data, or explicitly designed offline state.
 - When HTTP API calls are needed, use one DI-injected Dio client.
 - When network images are rendered, use cached_network_image.
 - When code generation is required, run build_runner instead of editing generated code.

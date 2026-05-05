@@ -33,6 +33,7 @@
 - Do not build conditional className strings manually.
 - Do not install parallel UI kits next to shadcn/ui.
 - Do not use Redux, Recoil, or MobX for local UI state.
+- Do not mirror server-owned API responses into Zustand or browser persistence.
 
 ## Web Frontend Library Guidelines
 
@@ -42,6 +43,9 @@
 - Render Recharts only inside client components.
 - Mount one Sonner toaster at the app root.
 - Sanitize user HTML before `dangerouslySetInnerHTML`.
+- Use TanStack Query or SWR for client-side REST/HTTP server state.
+- Use Zustand for client-owned UI and application state.
+- Use Zustand persist only for preferences, draft UI state, or explicit session restoration.
 - Use Vitest and Testing Library.
 
 ## Decision Rules
@@ -52,3 +56,5 @@
 - When form validation is needed, use zod with react-hook-form.
 - When parsing an ISO date string, use `parseISO()` from date-fns; avoid `new Date(string)`.
 - When client UI state is needed, use a zustand slice.
+- When client-side server state is needed, define stale time, invalidation triggers, refetch behavior, and optimistic rollback behavior.
+- When derived state can be calculated from query data or store state, calculate it instead of storing a synchronized copy.
