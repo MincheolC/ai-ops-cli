@@ -24,6 +24,17 @@ export const stripAiOpsSection = (content: string): string => {
   return before + (after ? '\n\n' + after : '') + '\n';
 };
 
+export const extractAiOpsSectionContent = (content: string): string | null => {
+  const startIdx = content.indexOf(SECTION_START);
+  const endIdx = content.indexOf(SECTION_END);
+  if (startIdx === -1 || endIdx === -1) return null;
+
+  const section = content.slice(startIdx + SECTION_START.length, endIdx).trim();
+  const lines = section.split('\n');
+  const [, ...contentLines] = lines;
+  return contentLines.join('\n').trimStart();
+};
+
 export const replaceAiOpsSection = (existing: string, newSection: string): string => {
   const startIdx = existing.indexOf(SECTION_START);
   const endIdx = existing.indexOf(SECTION_END);

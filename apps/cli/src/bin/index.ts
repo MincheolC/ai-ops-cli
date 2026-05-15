@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import { initCommand } from '../commands/init.js';
 import { updateCommand } from '../commands/update.js';
 import { diffCommand } from '../commands/diff.js';
+import { auditCommand } from '../commands/audit.js';
 import { uninstallCommand } from '../commands/uninstall.js';
 import {
   skillDiffCommand,
@@ -18,24 +19,31 @@ program.name('ai-ops').description('AI 에이전트 규칙 스캐폴더').versio
 
 program
   .command('init')
-  .description('AI 규칙 초기 설치')
-  .action(() => initCommand());
+  .description('project operating layer 초기 설치')
+  .option('--tool <tool...>', '대상 도구 adapter 지정 (codex|gemini|claude-code)')
+  .action((opts: { tool?: string[] }) => initCommand(opts));
 
 program
   .command('update')
-  .description('기존 manifest 기반 규칙 갱신')
+  .description('project operating layer 갱신')
   .option('--force', '변경 없어도 강제 재설치', false)
   .action((opts: { force: boolean }) => updateCommand(opts));
 
 program
   .command('diff')
-  .description('설치된 규칙과 최신 소스 비교')
+  .description('project operating layer drift 비교')
   .action(() => diffCommand());
 
 program
+  .command('audit')
+  .description('project operating layer 상태 검사')
+  .action(() => auditCommand());
+
+program
   .command('uninstall')
-  .description('설치된 규칙 파일 및 manifest 제거')
-  .action(() => uninstallCommand());
+  .description('project operating layer 제거')
+  .option('--yes', '확인 프롬프트 없이 제거', false)
+  .action((opts: { yes?: boolean }) => uninstallCommand(opts));
 
 const skillCommand = program.command('skill').description('에이전트 skill 설치/조회/갱신');
 

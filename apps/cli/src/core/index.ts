@@ -11,6 +11,7 @@ export * from './manifest-resolution.js';
 export * from './skill-registry-io.js';
 export * from './diff.js';
 export * from './install-plan.js';
+export * from './project-layer.js';
 export * from './spec-plan.js';
 export * from './uninstall-plan.js';
 export * from './paths.js';
