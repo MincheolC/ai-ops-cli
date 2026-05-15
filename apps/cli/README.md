@@ -1,165 +1,114 @@
 # ai-ops-cli
 
-CLI for managing core AI tool rules and agent skills across projects.
+`ai-ops-cli`는 다음 major release에서 프로젝트에 AI agent operating layer를 설치하고, 사용자 환경에 agent skills/subagents를 설치하는 CLI로 전환됩니다.
 
-## Why this exists
+이 문서는 Phase 0에서 고정한 planned breaking model을 설명합니다. 현재 npm 배포 또는 현재 코드의 일부 명령은 아직 old rules + skills scaffolder 모델로 동작할 수 있습니다.
 
-`ai-ops-cli` reduces configuration drift across AI coding tools.
+## Planned Breaking Model
 
-- different tools use different file layouts and loading models
-- manual sync across tools is error-prone over time
-- teams need a deterministic setup for shared core rules and installable skills
+```mermaid
+flowchart TD
+  init["ai-ops init"] --> layer["Project operating layer 설치"]
+  layer --> entry["AGENTS.md canonical entrypoint"]
+  layer --> adapters["GEMINI.md / CLAUDE.md adapters"]
+  layer --> docs["docs/agent/* / docs/business/*"]
+  layer --> state[".ai-ops/manifest.json / context-layer.json"]
 
-The CLI treats these as separate sources of truth:
-
-- `apps/cli/data/rules/*.yaml`: always-loaded core rules only
-- `apps/cli/data/skills/skill-registry.json`: install/catalog metadata for skills
-- `apps/cli/data/skills/reference-skills/<skill-id>/`: installable reference skills
-- `apps/cli/data/skills/task-skills/<skill-id>/`: installable task skills
-- `apps/cli/data/presets.yaml`: preset-to-core-rule mapping
-
-## What this CLI provides
-
-- interactive project initialization (`ai-ops init`)
-- skill package installation and lifecycle management (`ai-ops skill ...`)
-- spec pipeline directory scaffolding (`ai-ops spec init`)
-- source drift checks (`ai-ops diff`)
-- deterministic re-apply (`ai-ops update`)
-- managed cleanup (`ai-ops uninstall`)
-
-## Supported tools and output layout
-
-| Tool                        | Project rules output                                  | Skill output                 |
-| --------------------------- | ----------------------------------------------------- | ---------------------------- |
-| Claude Code (`claude-code`) | `.claude/rules/<rule-id>.md`, `<workspace>/CLAUDE.md` | `.claude/skills/<skill-id>/` |
-| Codex (`codex`)             | `AGENTS.md`, `<workspace>/AGENTS.override.md`         | `.agents/skills/<skill-id>/` |
-| Gemini CLI (`gemini`)       | `GEMINI.md`, `<workspace>/GEMINI.md`                  | `.agents/skills/<skill-id>/` |
-
-Optional settings files:
-
-- Claude Code: `.claude/settings.local.json`
-- Gemini CLI: `.gemini/settings.json`
-- Formatting protection section: `.prettierignore`
-
-## Install
-
-```bash
-npm install -g ai-ops-cli
+  skill["ai-ops skill ..."] --> globalSkills["Global skills only"]
+  subagent["ai-ops subagent ..."] --> globalSubagents["Global subagents only"]
+  specs["optional pack"] --> docsSpecs["docs/specs/"]
 ```
 
-## Usage
+핵심 경계:
 
-```bash
-# Initialize the current project
-ai-ops init
+- project scope는 operating layer 문서만 관리합니다.
+- global scope는 skills/subagents만 관리합니다.
+- `AGENTS.md`가 canonical entrypoint입니다.
+- `GEMINI.md`와 `CLAUDE.md`는 `AGENTS.md`를 기준으로 삼게 하는 adapter입니다.
+- `docs/specs/`는 optional pack 위치입니다.
 
-# Install a skill globally (user scope by default)
-ai-ops skill install skill-load-check --tool codex
+## 설치 대상
 
-# Install a skill only for the current project
-ai-ops skill install skill-load-check --project --tool codex
+Project repo:
 
-# Inspect or update installed skills
-ai-ops skill list
-ai-ops skill diff
-ai-ops skill update
-ai-ops skill uninstall skill-load-check
-
-# Check project drift
-ai-ops diff
-
-# Re-apply current project state
-ai-ops update
-ai-ops update --force
-
-# Remove project-managed files
-ai-ops uninstall
-
-# Initialize spec pipeline directory structure
-ai-ops spec init
-
-# Force re-create even if specs/ already exists
-ai-ops spec init --force
+```text
+AGENTS.md
+GEMINI.md
+CLAUDE.md
+docs/agent/workflow.md
+docs/agent/rules/routing-rules.md
+docs/agent/rules/doc-update-rules.md
+docs/agent/rules/stop-rules.md
+docs/agent/checks/impact-checklist.md
+docs/agent/checks/review-checklist.md
+docs/agent/maps/codebase-map.md
+docs/business/business-rules.md
+docs/docs-status.md
+.ai-ops/manifest.json
+.ai-ops/context-layer.json
 ```
 
-## CLI Surface
+Global tool home:
+
+```text
+skills/*
+subagents/*
+```
+
+## 목표 CLI 표면
 
 ```text
 ai-ops [command]
 
 Commands:
-  init       Initialize AI tool rules for a project
-  skill      Manage agent skills
-  spec       Manage spec pipeline
-  update     Update installed rules
-  diff       Show diff between installed and current rules
-  uninstall  Remove installed rules and manifest
-
-Options:
-  --force        Force update even when no changes are detected (update only)
-  -V, --version  Output version number
-  -h, --help     Display help
+  init       Install or refresh the project agent operating layer
+  diff       Show drift in the project operating layer
+  update     Re-apply the project operating layer
+  audit      Check frontmatter, docs-status, manifest, and context-layer consistency
+  uninstall  Remove project-managed operating layer files
+  skill      Manage global agent skills
+  subagent   Manage global agent subagents
 ```
 
-### `ai-ops spec` subcommands
+`--tool`은 유지합니다. Codex, Claude Code, Gemini CLI가 서로 다른 discovery 위치와 adapter 파일을 사용하기 때문입니다.
 
-```text
-ai-ops spec init [options]
+## Deprecated Old Model
 
-  Initialize the specs/ directory structure for AI-collaborative spec pipelines.
-  Creates:
-    specs/README.md          — usage guide
-    specs/baseline/          — baseline spec documents
-    specs/delta/             — delta (incremental change) spec documents
+다음 동작은 현재 코드나 과거 README에 남아 있을 수 있지만 새 계약에서는 제거 대상입니다.
 
-Options:
-  --force   Overwrite existing specs/ directory
+- preset-first init UX
+- project scope skill 설치
+- `ai-ops skill install --project`
+- project-installed skill metadata
+- `.ai-ops-manifest.json`
+- legacy manifest migration
+- root `specs/`
+
+기존 프로젝트 자동 마이그레이션은 제공하지 않습니다. 기존 사용자는 old CLI로 `ai-ops uninstall`을 실행한 뒤 새 major CLI로 `ai-ops init`을 다시 실행합니다.
+
+## Old Model Command Notes
+
+후속 phase 전까지 현재 CLI help에는 아래 old model 명령이 보일 수 있습니다.
+
+```bash
+ai-ops init
+ai-ops skill install skill-load-check --tool codex
+ai-ops skill install skill-load-check --project --tool codex
+ai-ops spec init
+ai-ops diff
+ai-ops update
+ai-ops uninstall
 ```
 
-Notes:
+Deprecated old model 문맥에서만 유지되는 항목:
 
-- Project installation state is tracked in `.ai-ops-manifest.json`.
-- User-scope skill state is tracked in `~/.ai-ops/skills-manifest.json`.
-- `ai-ops skill` defaults to user scope. Use `--project` to keep a skill local to the current repo.
+- `--project`는 project scope skill 설치용 old option입니다.
+- `spec init`은 root `specs/`를 만드는 old command입니다.
+- `.ai-ops-manifest.json`는 old project manifest입니다.
 
-## Install / Update / Uninstall Behavior
+## 개발
 
-- Managed project rule files are wrapped in an `ai-ops` section with metadata (`sourceHash`, `generatedAt`).
-- If a rule file already has an `ai-ops` section, only that section is replaced.
-- If a rule file has no managed section, generated content is appended and user content is preserved.
-- Skill packages are written into dedicated directories and replaced as full package trees on update.
-- `uninstall` removes only project-managed rule files and project-installed skill directories.
-- User-scope skills are never removed by `ai-ops uninstall`.
-
-## Init Flow Summary
-
-`ai-ops init` prompts for:
-
-1. Tool selection (`claude-code`, `codex`, `gemini`)
-2. Monorepo confirmation
-3. Workspace selection for monorepos
-4. Preset selection per workspace
-5. Locked core rules review
-6. Preset-linked `reference` skills only:
-   - already-installed global skills are shown separately
-   - only installable skills can be deselected
-7. One shared install scope for selected installable skills (`user` default or `project`)
-8. Optional settings installation
-
-Important behavior:
-
-- core rules come from the preset directly and are not fine-tuned in `init`
-- `init` shows only preset-linked `reference` skills
-- `task` skills are excluded from `init` and are managed with `ai-ops skill install/uninstall`
-- globally available skills are not reinstalled by default
-- when `user` scope is chosen, selected skills are written only to the global skill registry
-- when `project` scope is chosen, selected skills are recorded in `.ai-ops-manifest.json`
-
-Skill authoring rules live in `apps/cli/data/skills/README.md`.
-
-## Local Development
-
-From repo root:
+저장소 루트 기준:
 
 ```bash
 npm install
@@ -168,57 +117,16 @@ npm run compile
 npm test
 ```
 
-From `apps/cli` workspace:
+CLI workspace만 확인할 때:
 
 ```bash
 npm run build --workspace=apps/cli
 npm run test --workspace=apps/cli
 ```
 
-## Local Skill Loading Check
+코드 변경 phase에서는 `npm run check`를 기본 검증으로 사용합니다. Phase 0은 문서 계약만 수정하므로 `npm test`가 필수 완료 기준은 아닙니다.
 
-Use the built-in `skill-load-check` task skill before publishing to npm.
+## 관련 문서
 
-Recommended local flow:
-
-```bash
-# 1. Build the CLI
-npm run build
-
-# 2. Use an isolated user home so you do not pollute your real ~/.agents or ~/.claude
-export AI_OPS_HOME="$(mktemp -d)"
-
-# 3. Install the sample skill globally
-node apps/cli/dist/bin/index.js skill install skill-load-check --tool codex
-
-# 4. Verify files exist
-find "$AI_OPS_HOME/.agents/skills/skill-load-check" -maxdepth 2 -type f | sort
-
-# 5. Run the sample script manually
-node "$AI_OPS_HOME/.agents/skills/skill-load-check/scripts/loaded.js"
-```
-
-Expected output:
-
-```text
-A Skill loaded
-```
-
-Project-scope verification:
-
-```bash
-node apps/cli/dist/bin/index.js skill install skill-load-check --project --tool codex
-find ./.agents/skills/skill-load-check -maxdepth 2 -type f | sort
-node ./.agents/skills/skill-load-check/scripts/loaded.js
-```
-
-After file placement is verified, use a real tool prompt that should trigger `skill-load-check` and confirm the tool discovers the skill metadata. If the tool caches skill discovery, restart that tool session before re-checking.
-
-## Related Docs
-
-- Master blueprint: [`docs/plan.md`](../../docs/plan.md)
-- Implementation playbook: [`docs/implementation-playbook.md`](../../docs/implementation-playbook.md)
-
-## License
-
-MIT
+- [Master blueprint](../../docs/plan.md)
+- [Implementation playbook](../../docs/implementation-playbook.md)
