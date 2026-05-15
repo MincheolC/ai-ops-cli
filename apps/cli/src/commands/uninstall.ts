@@ -1,23 +1,10 @@
 import * as p from '@clack/prompts';
-import { ZodError } from 'zod';
 import { readProjectLayerManifest, uninstallProjectLayer } from '@/core/index.js';
 import { resolveBasePath } from '../lib/paths.js';
+import { reportInvalidProjectLayerManifest } from './project-layer-errors.js';
 
 type UninstallCommandOptions = {
   yes?: boolean;
-};
-
-const formatManifestReadError = (error: unknown): string => {
-  if (error instanceof ZodError) {
-    return error.issues
-      .map((issue) => {
-        const path = issue.path.length > 0 ? issue.path.join('.') : 'manifest';
-        return `${path}: ${issue.message}`;
-      })
-      .join('; ');
-  }
-
-  return error instanceof Error ? error.message : 'unknown error';
 };
 
 export const uninstallCommand = async (opts: UninstallCommandOptions = {}): Promise<void> => {
@@ -29,10 +16,7 @@ export const uninstallCommand = async (opts: UninstallCommandOptions = {}): Prom
   try {
     manifest = readProjectLayerManifest(basePath);
   } catch (error) {
-    const reason = formatManifestReadError(error);
-    p.log.error(`[invalid-manifest] .ai-ops/manifest.json 파싱 실패: ${reason}`);
-    process.exitCode = 1;
-    p.outro('ai-ops uninstall 실패');
+    reportInvalidProjectLayerManifest({ error, outro: 'ai-ops uninstall 실패' });
     return;
   }
 

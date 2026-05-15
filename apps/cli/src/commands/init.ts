@@ -5,6 +5,7 @@ import {
   type ProjectLayerTool,
 } from '@/core/index.js';
 import { resolveBasePath } from '../lib/paths.js';
+import { reportInvalidProjectLayerManifest } from './project-layer-errors.js';
 
 type InitCommandOptions = {
   tool?: string[];
@@ -36,10 +37,16 @@ export const initCommand = async (opts: InitCommandOptions = {}): Promise<void> 
     process.exit(0);
   }
 
-  const result = installProjectLayer({
-    basePath: resolveBasePath(),
-    tools,
-  });
+  let result: ReturnType<typeof installProjectLayer>;
+  try {
+    result = installProjectLayer({
+      basePath: resolveBasePath(),
+      tools,
+    });
+  } catch (error) {
+    reportInvalidProjectLayerManifest({ error, outro: 'ai-ops init 실패' });
+    return;
+  }
 
   p.log.success(`project operating layer 설치 완료: ${result.manifest.managed_files.length + result.manifest.project_files.length}개 파일`);
   p.log.info(`도구 adapter: ${result.manifest.tools.join(', ')}`);

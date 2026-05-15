@@ -5,13 +5,21 @@ import {
   updateProjectLayer,
 } from '@/core/index.js';
 import { resolveBasePath } from '../lib/paths.js';
+import { reportInvalidProjectLayerManifest } from './project-layer-errors.js';
 
 export const updateCommand = async (opts: { force: boolean }): Promise<void> => {
   const basePath = resolveBasePath();
 
   p.intro('ai-ops update');
 
-  const manifest = readProjectLayerManifest(basePath);
+  let manifest: ReturnType<typeof readProjectLayerManifest>;
+  try {
+    manifest = readProjectLayerManifest(basePath);
+  } catch (error) {
+    reportInvalidProjectLayerManifest({ error, outro: 'ai-ops update 실패' });
+    return;
+  }
+
   if (!manifest) {
     p.log.error('.ai-ops/manifest.json이 없습니다. 먼저 ai-ops init을 실행하세요.');
     process.exit(1);
