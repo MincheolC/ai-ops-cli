@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
+import { installProjectLayer, resolveProjectLayerTools } from '@/core/index.js';
 import { auditCommand } from '../commands/audit.js';
 import { diffCommand } from '../commands/diff.js';
 import { initCommand } from '../commands/init.js';
@@ -50,6 +51,11 @@ const writeUnsafeManifest = (dir: string): void => {
   );
 };
 
+const installLayerWithBrokenDocsStatus = (dir: string): void => {
+  installProjectLayer({ basePath: dir, tools: resolveProjectLayerTools(['codex']) });
+  writeFileSync(join(dir, 'docs/docs-status.md'), '# Missing frontmatter\n', 'utf-8');
+};
+
 describe('project layer commands', () => {
   it('diff exits non-zero when error issues are present', async () => {
     const { dir, cleanup } = setup();
@@ -80,12 +86,34 @@ describe('project layer commands', () => {
     }
   });
 
+  it('init exits non-zero with a readable apply error for broken project files', async () => {
+    const { dir, cleanup } = setup();
+    try {
+      installLayerWithBrokenDocsStatus(dir);
+
+      await expect(runInDirectory(dir, () => initCommand({ tool: ['codex'] }))).resolves.toBe(1);
+    } finally {
+      cleanup();
+    }
+  });
+
   it('update exits non-zero with a readable error for invalid manifests', async () => {
     const { dir, cleanup } = setup();
     try {
       writeUnsafeManifest(dir);
 
       await expect(runInDirectory(dir, () => updateCommand({ force: false }))).resolves.toBe(1);
+    } finally {
+      cleanup();
+    }
+  });
+
+  it('update exits non-zero with a readable apply error for broken project files', async () => {
+    const { dir, cleanup } = setup();
+    try {
+      installLayerWithBrokenDocsStatus(dir);
+
+      await expect(runInDirectory(dir, () => updateCommand({ force: true }))).resolves.toBe(1);
     } finally {
       cleanup();
     }

@@ -5,7 +5,7 @@ import {
   updateProjectLayer,
 } from '@/core/index.js';
 import { resolveBasePath } from '../lib/paths.js';
-import { reportInvalidProjectLayerManifest } from './project-layer-errors.js';
+import { reportInvalidProjectLayerManifest, reportProjectLayerApplyError } from './project-layer-errors.js';
 
 export const updateCommand = async (opts: { force: boolean }): Promise<void> => {
   const basePath = resolveBasePath();
@@ -32,7 +32,13 @@ export const updateCommand = async (opts: { force: boolean }): Promise<void> => 
     return;
   }
 
-  const result = updateProjectLayer({ basePath, manifest });
+  let result: ReturnType<typeof updateProjectLayer>;
+  try {
+    result = updateProjectLayer({ basePath, manifest });
+  } catch (error) {
+    reportProjectLayerApplyError({ error, outro: 'ai-ops update 실패' });
+    return;
+  }
 
   p.log.success(`managed 파일 갱신: ${result.manifest.managed_files.length}개`);
   if (result.createdProjectFiles.length > 0) {

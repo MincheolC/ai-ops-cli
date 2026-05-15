@@ -1,11 +1,12 @@
 import * as p from '@clack/prompts';
 import {
   installProjectLayer,
+  readProjectLayerManifest,
   resolveProjectLayerTools,
   type ProjectLayerTool,
 } from '@/core/index.js';
 import { resolveBasePath } from '../lib/paths.js';
-import { reportInvalidProjectLayerManifest } from './project-layer-errors.js';
+import { reportInvalidProjectLayerManifest, reportProjectLayerApplyError } from './project-layer-errors.js';
 
 type InitCommandOptions = {
   tool?: string[];
@@ -30,6 +31,7 @@ const promptTools = async (): Promise<ProjectLayerTool[] | null> => {
 
 export const initCommand = async (opts: InitCommandOptions = {}): Promise<void> => {
   p.intro('ai-ops init');
+  const basePath = resolveBasePath();
 
   const tools = opts.tool && opts.tool.length > 0 ? resolveProjectLayerTools(opts.tool) : await promptTools();
   if (tools === null) {
@@ -37,14 +39,23 @@ export const initCommand = async (opts: InitCommandOptions = {}): Promise<void> 
     process.exit(0);
   }
 
+  let previousManifest: ReturnType<typeof readProjectLayerManifest>;
+  try {
+    previousManifest = readProjectLayerManifest(basePath);
+  } catch (error) {
+    reportInvalidProjectLayerManifest({ error, outro: 'ai-ops init 실패' });
+    return;
+  }
+
   let result: ReturnType<typeof installProjectLayer>;
   try {
     result = installProjectLayer({
-      basePath: resolveBasePath(),
+      basePath,
       tools,
+      previousManifest,
     });
   } catch (error) {
-    reportInvalidProjectLayerManifest({ error, outro: 'ai-ops init 실패' });
+    reportProjectLayerApplyError({ error, outro: 'ai-ops init 실패' });
     return;
   }
 

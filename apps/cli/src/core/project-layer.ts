@@ -469,8 +469,10 @@ const retireUnselectedManagedFiles = (params: {
 export const installProjectLayer = (params: {
   basePath: string;
   tools: readonly ProjectLayerTool[];
+  previousManifest?: ProjectLayerManifest | null;
 }): ProjectLayerInstallResult => {
-  const previousManifest = readProjectLayerManifest(params.basePath);
+  const previousManifest =
+    params.previousManifest === undefined ? readProjectLayerManifest(params.basePath) : params.previousManifest;
   const specs = loadProjectLayerTemplateSpecs(params.tools);
   const sourceHash = computeProjectLayerSourceHash(specs);
   const generatedAt = new Date().toISOString();

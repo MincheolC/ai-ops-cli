@@ -1,7 +1,7 @@
 import * as p from '@clack/prompts';
 import { readProjectLayerManifest, uninstallProjectLayer } from '@/core/index.js';
 import { resolveBasePath } from '../lib/paths.js';
-import { reportInvalidProjectLayerManifest } from './project-layer-errors.js';
+import { reportInvalidProjectLayerManifest, reportProjectLayerApplyError } from './project-layer-errors.js';
 
 type UninstallCommandOptions = {
   yes?: boolean;
@@ -48,7 +48,13 @@ export const uninstallCommand = async (opts: UninstallCommandOptions = {}): Prom
     }
   }
 
-  const result = uninstallProjectLayer(basePath, manifest);
+  let result: ReturnType<typeof uninstallProjectLayer>;
+  try {
+    result = uninstallProjectLayer(basePath, manifest);
+  } catch (error) {
+    reportProjectLayerApplyError({ error, outro: 'ai-ops uninstall 실패' });
+    return;
+  }
 
   if (result.deleted.length > 0) {
     p.log.success(`삭제 완료:\n${result.deleted.map((file) => `  ${file}`).join('\n')}`);
