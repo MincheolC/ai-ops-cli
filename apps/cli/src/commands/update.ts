@@ -30,6 +30,9 @@ export const updateCommand = async (opts: { force: boolean }): Promise<void> => 
   if (result.createdProjectFiles.length > 0) {
     p.log.info(`누락된 project-owned 파일 복구:\n${result.createdProjectFiles.map((file) => `  ${file}`).join('\n')}`);
   }
+  if (result.refreshedProjectFiles.length > 0) {
+    p.log.info(`unmodified project-owned 파일 갱신:\n${result.refreshedProjectFiles.map((file) => `  ${file}`).join('\n')}`);
+  }
   if (result.preservedProjectFiles.length > 0) {
     p.log.info(`project-owned 파일 보존:\n${result.preservedProjectFiles.map((file) => `  ${file}`).join('\n')}`);
   }

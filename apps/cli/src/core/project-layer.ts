@@ -46,6 +46,7 @@ export type ProjectLayerInstallResult = {
   written: string[];
   appended: string[];
   createdProjectFiles: string[];
+  refreshedProjectFiles: string[];
   preservedProjectFiles: string[];
 };
 
@@ -83,6 +84,7 @@ type ManagedInstallResult = {
 type ProjectFileInstallResult = {
   records: ProjectLayerProjectFile[];
   created: string[];
+  refreshed: string[];
   preserved: string[];
 };
 
@@ -358,6 +360,7 @@ const installProjectFiles = (params: {
 }): ProjectFileInstallResult => {
   const records: ProjectLayerProjectFile[] = [];
   const created: string[] = [];
+  const refreshed: string[] = [];
   const preserved: string[] = [];
   const previousByPath = new Map((params.previousProjectFiles ?? []).map((file) => [file.path, file]));
 
@@ -377,6 +380,25 @@ const installProjectFiles = (params: {
       continue;
     }
 
+    const existingContent = readFileSync(absolutePath, 'utf-8').trimEnd();
+    const existingHash = computeHash([existingContent]);
+
+    if (previous?.created === true && existingHash === previous.templateHash) {
+      if (existingHash !== spec.contentHash) {
+        writeFileSync(absolutePath, spec.content + '\n', 'utf-8');
+        refreshed.push(spec.path);
+      } else {
+        preserved.push(spec.path);
+      }
+
+      records.push({
+        path: spec.path,
+        templateHash: spec.contentHash,
+        created: true,
+      });
+      continue;
+    }
+
     preserved.push(spec.path);
     records.push({
       path: spec.path,
@@ -385,7 +407,7 @@ const installProjectFiles = (params: {
     });
   }
 
-  return { records, created, preserved };
+  return { records, created, refreshed, preserved };
 };
 
 const buildContextIndexFromDisk = (params: {
@@ -487,6 +509,7 @@ export const installProjectLayer = (params: {
     written: managedResult.written,
     appended: managedResult.appended,
     createdProjectFiles: projectResult.created,
+    refreshedProjectFiles: projectResult.refreshed,
     preservedProjectFiles: projectResult.preserved,
   };
 };
@@ -530,6 +553,7 @@ export const updateProjectLayer = (params: {
     written: managedResult.written,
     appended: managedResult.appended,
     createdProjectFiles: projectResult.created,
+    refreshedProjectFiles: projectResult.refreshed,
     preservedProjectFiles: projectResult.preserved,
   };
 };

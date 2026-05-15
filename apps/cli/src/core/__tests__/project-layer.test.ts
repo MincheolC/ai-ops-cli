@@ -212,8 +212,12 @@ describe('project operating layer lifecycle', () => {
 
       expect(existsSync(join(dir, 'GEMINI.md'))).toBe(false);
       expect(existsSync(join(dir, 'CLAUDE.md'))).toBe(false);
+      expect(readProjectFile(dir, 'docs/docs-status.md')).not.toContain('GEMINI.md');
+      expect(readProjectFile(dir, 'docs/docs-status.md')).not.toContain('CLAUDE.md');
       expect(codexOnly.manifest.managed_files.map((file) => file.path)).not.toContain('GEMINI.md');
       expect(codexOnly.manifest.managed_files.map((file) => file.path)).not.toContain('CLAUDE.md');
+      expect(codexOnly.refreshedProjectFiles).toContain('docs/docs-status.md');
+      expect(auditProjectLayer(dir).issues).toHaveLength(0);
 
       uninstallProjectLayer(dir, codexOnly.manifest);
 
