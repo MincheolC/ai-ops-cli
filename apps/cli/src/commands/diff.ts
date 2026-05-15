@@ -21,5 +21,9 @@ export const diffCommand = async (): Promise<void> => {
     }
   }
 
+  if (report.issues.some((item) => item.level === 'error')) {
+    process.exitCode = 1;
+  }
+
   p.outro('ai-ops diff 완료');
 };

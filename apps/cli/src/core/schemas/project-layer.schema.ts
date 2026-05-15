@@ -6,6 +6,22 @@ export const ProjectLayerDocumentStatusSchema = z.enum(['Active', 'Reserved', 'D
 
 const ShortHashSchema = z.string().regex(/^[a-f0-9]{6}$/, 'hash must be 6 lowercase hex chars');
 
+export const isSafeProjectLayerPath = (value: string): boolean => {
+  if (value.length === 0) return false;
+  if (value.includes('\0')) return false;
+  if (value.includes('\\')) return false;
+  if (value.startsWith('/')) return false;
+  if (/^[A-Za-z]:/.test(value)) return false;
+
+  const segments = value.split('/');
+  return segments.every((segment) => segment.length > 0 && segment !== '.' && segment !== '..');
+};
+
+const ProjectLayerPathSchema = z
+  .string()
+  .min(1)
+  .refine(isSafeProjectLayerPath, 'path must be a safe project-relative path');
+
 export const ProjectLayerFrontmatterSchema = z
   .object({
     status: ProjectLayerDocumentStatusSchema,
@@ -18,14 +34,14 @@ export const ProjectLayerFrontmatterSchema = z
 
 export const ProjectLayerManagedFileSchema = z
   .object({
-    path: z.string().min(1),
+    path: ProjectLayerPathSchema,
     sourceHash: ShortHashSchema,
   })
   .strict();
 
 export const ProjectLayerProjectFileSchema = z
   .object({
-    path: z.string().min(1),
+    path: ProjectLayerPathSchema,
     templateHash: ShortHashSchema,
     created: z.boolean(),
   })
@@ -46,7 +62,7 @@ export const ProjectLayerManifestSchema = z
   .strict();
 
 export const ProjectLayerContextDocumentSchema = ProjectLayerFrontmatterSchema.extend({
-  path: z.string().min(1),
+  path: ProjectLayerPathSchema,
   contentHash: ShortHashSchema,
 }).strict();
 

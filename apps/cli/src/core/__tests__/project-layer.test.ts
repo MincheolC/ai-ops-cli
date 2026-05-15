@@ -1,17 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import {
   auditProjectLayer,
   diffProjectLayer,
   installProjectLayer,
   loadProjectLayerTemplateSpecs,
+  parseProjectLayerManifest,
   readProjectLayerManifest,
   resolveProjectLayerTools,
   uninstallProjectLayer,
   updateProjectLayer,
 } from '../project-layer.js';
+import type { ProjectLayerManifest } from '../schemas/index.js';
 
 const setup = (): { dir: string; cleanup: () => void } => {
   const dir = mkdtempSync(join(tmpdir(), 'project-layer-test-'));
@@ -49,6 +51,22 @@ describe('project operating layer templates', () => {
     } finally {
       cleanup();
     }
+  });
+
+  it('rejects manifest paths that escape the project root', () => {
+    const unsafeManifestJson = JSON.stringify({
+      schemaVersion: 1,
+      kind: 'project-operating-layer',
+      tools: ['codex'],
+      managed_files: [{ path: '../victim.md', sourceHash: 'aaaaaa' }],
+      project_files: [],
+      settings: {},
+      sourceHash: 'aaaaaa',
+      cliVersion: 'test',
+      generatedAt: '2026-01-01T00:00:00.000Z',
+    });
+
+    expect(() => parseProjectLayerManifest(unsafeManifestJson)).toThrow();
   });
 });
 
@@ -178,6 +196,56 @@ describe('project operating layer lifecycle', () => {
       expect(existsSync(join(dir, 'docs/agent/maps/codebase-map.md'))).toBe(false);
       expect(existsSync(join(dir, 'docs/business/business-rules.md'))).toBe(false);
     } finally {
+      cleanup();
+    }
+  });
+
+  it('retires old adapters when init is repeated with a smaller tool set', () => {
+    const { dir, cleanup } = setup();
+    try {
+      installProjectLayer({
+        basePath: dir,
+        tools: resolveProjectLayerTools(['codex', 'gemini', 'claude-code']),
+      });
+
+      const codexOnly = installProjectLayer({ basePath: dir, tools: resolveProjectLayerTools(['codex']) });
+
+      expect(existsSync(join(dir, 'GEMINI.md'))).toBe(false);
+      expect(existsSync(join(dir, 'CLAUDE.md'))).toBe(false);
+      expect(codexOnly.manifest.managed_files.map((file) => file.path)).not.toContain('GEMINI.md');
+      expect(codexOnly.manifest.managed_files.map((file) => file.path)).not.toContain('CLAUDE.md');
+
+      uninstallProjectLayer(dir, codexOnly.manifest);
+
+      expect(existsSync(join(dir, 'GEMINI.md'))).toBe(false);
+      expect(existsSync(join(dir, 'CLAUDE.md'))).toBe(false);
+    } finally {
+      cleanup();
+    }
+  });
+
+  it('does not delete outside files even if uninstall receives an unsafe manifest object', () => {
+    const { dir, cleanup } = setup();
+    const victimName = `${basename(dir)}-victim.md`;
+    const victimPath = join(dirname(dir), victimName);
+    try {
+      writeFileSync(victimPath, 'keep me', 'utf-8');
+      const unsafeManifest: ProjectLayerManifest = {
+        schemaVersion: 1,
+        kind: 'project-operating-layer',
+        tools: ['codex'],
+        managed_files: [{ path: `../${victimName}`, sourceHash: 'aaaaaa' }],
+        project_files: [],
+        settings: {},
+        sourceHash: 'aaaaaa',
+        cliVersion: 'test',
+        generatedAt: '2026-01-01T00:00:00.000Z',
+      };
+
+      expect(() => uninstallProjectLayer(dir, unsafeManifest)).toThrow('Unsafe project layer path');
+      expect(readFileSync(victimPath, 'utf-8')).toBe('keep me');
+    } finally {
+      rmSync(victimPath, { force: true });
       cleanup();
     }
   });

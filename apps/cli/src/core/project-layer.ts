@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import { parseMarkdownFrontmatter } from './frontmatter.js';
 import {
   extractAiOpsSectionContent,
@@ -17,6 +17,7 @@ import {
   ProjectLayerFrontmatterSchema,
   ProjectLayerManifestSchema,
   ProjectLayerToolSchema,
+  isSafeProjectLayerPath,
 } from './schemas/index.js';
 import type {
   ProjectLayerContextDocument,
@@ -134,6 +135,22 @@ export const resolveProjectLayerContextIndexPath = (basePath: string): string =>
 const resolveTemplatePath = (relativePath: string): string => join(CONTEXT_LAYER_DATA_DIR, relativePath);
 
 const toRelativeDir = (relativePath: string): string => dirname(relativePath);
+
+const resolveProjectLayerFilePath = (basePath: string, relativePath: string): string => {
+  if (!isSafeProjectLayerPath(relativePath)) {
+    throw new Error(`Unsafe project layer path: ${relativePath}`);
+  }
+
+  const absoluteBasePath = resolve(basePath);
+  const absolutePath = resolve(absoluteBasePath, relativePath);
+  const relativeFromBase = relative(absoluteBasePath, absolutePath);
+
+  if (relativeFromBase === '' || relativeFromBase.startsWith('..') || isAbsolute(relativeFromBase)) {
+    throw new Error(`Unsafe project layer path: ${relativePath}`);
+  }
+
+  return absolutePath;
+};
 
 // ----- parsing and serialization -----
 
@@ -303,7 +320,7 @@ const installManagedFiles = (
   const appended: string[] = [];
 
   for (const spec of specs) {
-    const absolutePath = resolve(basePath, spec.path);
+    const absolutePath = resolveProjectLayerFilePath(basePath, spec.path);
     const wrappedContent = wrapWithSection(spec.content, meta);
 
     if (!existsSync(absolutePath)) {
@@ -345,7 +362,7 @@ const installProjectFiles = (params: {
   const previousByPath = new Map((params.previousProjectFiles ?? []).map((file) => [file.path, file]));
 
   for (const spec of params.specs) {
-    const absolutePath = resolve(params.basePath, spec.path);
+    const absolutePath = resolveProjectLayerFilePath(params.basePath, spec.path);
     const previous = previousByPath.get(spec.path);
 
     if (!existsSync(absolutePath)) {
@@ -377,7 +394,7 @@ const buildContextIndexFromDisk = (params: {
   generatedAt: string;
 }): ProjectLayerContextIndex => {
   const documents = params.documentPaths.map((path) =>
-    parseProjectLayerDocument(path, readFileSync(resolve(params.basePath, path), 'utf-8')),
+    parseProjectLayerDocument(path, readFileSync(resolveProjectLayerFilePath(params.basePath, path), 'utf-8')),
   );
 
   return ProjectLayerContextIndexSchema.parse({
@@ -412,6 +429,21 @@ const buildProjectLayerManifest = (params: {
     generatedAt: params.generatedAt,
   });
 
+const retireUnselectedManagedFiles = (params: {
+  basePath: string;
+  previousManifest: ProjectLayerManifest | null;
+  nextManagedPaths: readonly string[];
+}): void => {
+  if (!params.previousManifest) return;
+
+  const nextManagedPathSet = new Set(params.nextManagedPaths);
+  for (const file of params.previousManifest.managed_files) {
+    if (!nextManagedPathSet.has(file.path)) {
+      removeManagedProjectFile(params.basePath, file.path);
+    }
+  }
+};
+
 export const installProjectLayer = (params: {
   basePath: string;
   tools: readonly ProjectLayerTool[];
@@ -422,6 +454,12 @@ export const installProjectLayer = (params: {
   const generatedAt = new Date().toISOString();
   const managedSpecs = specs.filter((spec) => spec.ownership === 'managed');
   const projectSpecs = specs.filter((spec) => spec.ownership === 'project');
+  const managedPaths = managedSpecs.map((spec) => spec.path);
+  retireUnselectedManagedFiles({
+    basePath: params.basePath,
+    previousManifest,
+    nextManagedPaths: managedPaths,
+  });
   const managedResult = installManagedFiles(params.basePath, managedSpecs, { sourceHash, generatedAt });
   const projectResult = installProjectFiles({
     basePath: params.basePath,
@@ -432,7 +470,7 @@ export const installProjectLayer = (params: {
   const contextIndex = buildContextIndexFromDisk({ basePath: params.basePath, documentPaths, generatedAt });
   const manifest = buildProjectLayerManifest({
     tools: params.tools,
-    managedFiles: managedSpecs.map((spec) => spec.path),
+    managedFiles: managedPaths,
     projectFiles: projectResult.records,
     sourceHash,
     cliVersion: getCliVersion(),
@@ -505,12 +543,12 @@ const issue = (level: ProjectLayerIssueLevel, code: string, message: string): Pr
 });
 
 const readDocumentSafely = (basePath: string, path: string): ProjectLayerDocumentReadResult | ProjectLayerIssue => {
-  const absolutePath = resolve(basePath, path);
-  if (!existsSync(absolutePath)) {
-    return issue('error', 'missing-file', `파일 없음: ${path}`);
-  }
-
   try {
+    const absolutePath = resolveProjectLayerFilePath(basePath, path);
+    if (!existsSync(absolutePath)) {
+      return issue('error', 'missing-file', `파일 없음: ${path}`);
+    }
+
     return parseProjectLayerDocument(path, readFileSync(absolutePath, 'utf-8'));
   } catch (error) {
     const reason = error instanceof Error ? error.message : 'unknown error';
@@ -580,7 +618,17 @@ const compareDocsStatusEntry = (params: {
 };
 
 export const diffProjectLayer = (basePath: string): ProjectLayerReport => {
-  const manifest = readProjectLayerManifest(basePath);
+  let manifest: ProjectLayerManifest | null;
+  try {
+    manifest = readProjectLayerManifest(basePath);
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : 'unknown error';
+    return {
+      currentSourceHash: null,
+      issues: [issue('error', 'invalid-manifest', `${PROJECT_LAYER_MANIFEST_RELATIVE_PATH} 파싱 실패: ${reason}`)],
+    };
+  }
+
   if (!manifest) {
     return {
       currentSourceHash: null,
@@ -590,11 +638,21 @@ export const diffProjectLayer = (basePath: string): ProjectLayerReport => {
 
   const specs = loadProjectLayerTemplateSpecs(manifest.tools);
   const currentSourceHash = computeProjectLayerSourceHash(specs);
-  const contextIndex = readProjectLayerContextIndex(basePath);
+  let contextIndex: ProjectLayerContextIndex | null = null;
+  const issues: ProjectLayerIssue[] = [];
+
+  try {
+    contextIndex = readProjectLayerContextIndex(basePath);
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : 'unknown error';
+    issues.push(
+      issue('error', 'invalid-context-index', `${PROJECT_LAYER_CONTEXT_INDEX_RELATIVE_PATH} 파싱 실패: ${reason}`),
+    );
+  }
+
   const contextMap = buildContextIndexMap(contextIndex);
   const expectedManagedPaths = new Set(specs.filter((spec) => spec.ownership === 'managed').map((spec) => spec.path));
   const manifestManagedPaths = new Set(manifest.managed_files.map((file) => file.path));
-  const issues: ProjectLayerIssue[] = [];
 
   if (manifest.sourceHash !== currentSourceHash) {
     issues.push(
@@ -613,7 +671,7 @@ export const diffProjectLayer = (basePath: string): ProjectLayerReport => {
   }
 
   for (const file of manifest.managed_files) {
-    const absolutePath = resolve(basePath, file.path);
+    const absolutePath = resolveProjectLayerFilePath(basePath, file.path);
     if (!existsSync(absolutePath)) {
       issues.push(issue('error', 'missing-file', `파일 없음: ${file.path}`));
       continue;
@@ -634,7 +692,7 @@ export const diffProjectLayer = (basePath: string): ProjectLayerReport => {
   }
 
   for (const file of manifest.project_files) {
-    if (!existsSync(resolve(basePath, file.path))) {
+    if (!existsSync(resolveProjectLayerFilePath(basePath, file.path))) {
       issues.push(issue('error', 'missing-file', `파일 없음: ${file.path}`));
     }
   }
@@ -653,17 +711,28 @@ export const diffProjectLayer = (basePath: string): ProjectLayerReport => {
 
 export const auditProjectLayer = (basePath: string): ProjectLayerReport => {
   const diffReport = diffProjectLayer(basePath);
-  const manifest = readProjectLayerManifest(basePath);
+  let manifest: ProjectLayerManifest | null;
+  try {
+    manifest = readProjectLayerManifest(basePath);
+  } catch {
+    return diffReport;
+  }
+
   if (!manifest) {
     return diffReport;
   }
 
-  const contextIndex = readProjectLayerContextIndex(basePath);
+  let contextIndex: ProjectLayerContextIndex | null = null;
+  try {
+    contextIndex = readProjectLayerContextIndex(basePath);
+  } catch {
+    contextIndex = null;
+  }
   const documentPaths = collectDocumentPathsFromManifest(manifest);
   const documentPathSet = new Set(documentPaths);
   const contextPathSet = new Set(contextIndex?.documents.map((document) => document.path) ?? []);
   const issues = [...diffReport.issues];
-  const docsStatusPath = resolve(basePath, 'docs/docs-status.md');
+  const docsStatusPath = resolveProjectLayerFilePath(basePath, 'docs/docs-status.md');
 
   if (!existsSync(docsStatusPath)) {
     issues.push(issue('error', 'missing-docs-status', 'docs/docs-status.md가 없습니다.'));
@@ -706,8 +775,8 @@ export const auditProjectLayer = (basePath: string): ProjectLayerReport => {
 
 // ----- uninstall -----
 
-const removeManagedProjectFile = (basePath: string, relativePath: string): ProjectLayerRemoveResult => {
-  const absolutePath = resolve(basePath, relativePath);
+function removeManagedProjectFile(basePath: string, relativePath: string): ProjectLayerRemoveResult {
+  const absolutePath = resolveProjectLayerFilePath(basePath, relativePath);
   if (!existsSync(absolutePath)) {
     return { deleted: [], cleaned: [], preserved: [], notFound: [relativePath] };
   }
@@ -725,10 +794,10 @@ const removeManagedProjectFile = (basePath: string, relativePath: string): Proje
 
   writeFileSync(absolutePath, stripped, 'utf-8');
   return { deleted: [], cleaned: [relativePath], preserved: [], notFound: [] };
-};
+}
 
 const removeCreateOnlyProjectFile = (basePath: string, file: ProjectLayerProjectFile): ProjectLayerRemoveResult => {
-  const absolutePath = resolve(basePath, file.path);
+  const absolutePath = resolveProjectLayerFilePath(basePath, file.path);
   if (!existsSync(absolutePath)) {
     return { deleted: [], cleaned: [], preserved: [], notFound: [file.path] };
   }
@@ -756,7 +825,7 @@ const removeEmptyDirs = (basePath: string, relativePaths: readonly string[]): vo
   );
 
   for (const dir of [...dirs, '.ai-ops']) {
-    const absoluteDir = resolve(basePath, dir);
+    const absoluteDir = resolveProjectLayerFilePath(basePath, dir);
     if (!existsSync(absoluteDir)) continue;
 
     try {
@@ -775,7 +844,7 @@ export const uninstallProjectLayer = (basePath: string, manifest: ProjectLayerMa
   const stateFiles = [PROJECT_LAYER_CONTEXT_INDEX_RELATIVE_PATH, PROJECT_LAYER_MANIFEST_RELATIVE_PATH];
 
   for (const stateFile of stateFiles) {
-    rmSync(resolve(basePath, stateFile), { force: true });
+    rmSync(resolveProjectLayerFilePath(basePath, stateFile), { force: true });
   }
 
   const result = mergeRemoveResults([...managedResults, ...projectResults]);
