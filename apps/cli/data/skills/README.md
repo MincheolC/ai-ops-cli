@@ -45,7 +45,7 @@ apps/cli/data/skills/
 
 1. Directory name must exactly match frontmatter `name`.
 2. `SKILL.md` must start with YAML frontmatter.
-3. `kind`, `supported_tools`, `install_scopes`, preset grouping, and `source_path` live in `skill-registry.json`.
+3. `kind`, `supported_tools`, preset grouping, and `source_path` live in `skill-registry.json`.
 4. A `reference` skill must live under `reference-skills/` and include `references/reference.md`.
 5. A `task` skill must live under `task-skills/` and keep its executable procedure in `SKILL.md`.
 6. Do not duplicate the same detailed content across `SKILL.md` and `references/`.
@@ -71,7 +71,6 @@ apps/cli/data/skills/
 | `id`                  | Yes      | `graphql-contract`                   | Canonical skill id                                |
 | `kind`                | Yes      | `reference` / `task`                 | Skill category                                    |
 | `supported_tools`     | Yes      | `["claude-code", "codex", "gemini"]` | Where the skill may be installed                  |
-| `install_scopes`      | Yes      | `["project", "user"]`                | Allowed install scopes                            |
 | `groups`              | Yes      | `["frontend-web"]`                   | Display/discovery grouping                        |
 | `included_in_presets` | Yes      | `["frontend-web", "backend-ts"]`     | Presets that surface this skill in `ai-ops init`  |
 | `source_path`         | Yes      | `reference-skills/graphql-contract`  | Relative directory that contains the skill source |

@@ -109,7 +109,6 @@ export const loadAllSkills = (skillsDir: string): Skill[] => {
       kind: entry.kind,
       description: parsed.description,
       supported_tools: [...entry.supported_tools],
-      install_scopes: [...entry.install_scopes],
       groups: [...entry.groups],
       included_in_presets: [...entry.included_in_presets],
       directory,

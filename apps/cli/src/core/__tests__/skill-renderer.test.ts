@@ -7,7 +7,6 @@ const makeSkill = (partial?: Partial<Skill>): Skill => ({
   kind: 'reference',
   description: 'Use when editing GraphQL contracts.',
   supported_tools: ['claude-code', 'codex', 'gemini'],
-  install_scopes: ['project', 'user'],
   groups: ['frontend-web'],
   included_in_presets: ['frontend-web'],
   directory: '/tmp/graphql-contract',
@@ -29,7 +28,6 @@ describe('buildSkillInstallPlan', () => {
     const result = buildSkillInstallPlan({
       skill: makeSkill(),
       requestedTools: ['codex', 'gemini'],
-      scope: 'project',
     });
 
     expect(result.packages).toHaveLength(1);
@@ -41,7 +39,6 @@ describe('buildSkillInstallPlan', () => {
     const result = buildSkillInstallPlan({
       skill: makeSkill(),
       requestedTools: ['claude-code'],
-      scope: 'project',
     });
 
     expect(result.packages[0]?.rootDir).toBe('.claude/skills/graphql-contract');
@@ -65,7 +62,6 @@ describe('buildSkillInstallPlan', () => {
         ],
       }),
       requestedTools: ['codex'],
-      scope: 'user',
     });
 
     expect(result.packages[0]?.files.some((file) => file.relativePath.endsWith('scripts/loaded.js'))).toBe(true);

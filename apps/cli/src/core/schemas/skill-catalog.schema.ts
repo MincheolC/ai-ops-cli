@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { SkillKindSchema, SkillScopeSchema, SkillToolSchema } from './skill.schema.js';
+import { SkillKindSchema, SkillToolSchema } from './skill.schema.js';
 
 const SkillIdSchema = z.string().regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, 'id must be kebab-case');
 const SkillCatalogPathSchema = z
@@ -11,7 +11,6 @@ export const SkillCatalogEntrySchema = z
     id: SkillIdSchema,
     kind: SkillKindSchema,
     supported_tools: z.array(SkillToolSchema).min(1),
-    install_scopes: z.array(SkillScopeSchema).min(1),
     groups: z.array(z.string().min(1)),
     included_in_presets: z.array(z.string().min(1)),
     source_path: SkillCatalogPathSchema,

@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  resolveSkillScope,
   resolveRequestedTools,
   mergeSkillTools,
   subtractSkillTools,
@@ -14,24 +13,11 @@ const installedSkill: InstalledSkill = {
   id: 'skill-load-check',
   kind: 'task' as const,
   tools: ['codex'],
-  scope: 'user' as const,
   installed_paths: ['.agents/skills/skill-load-check'],
   sourceHash: 'abc123',
 };
 
 describe('skill-state', () => {
-  it('scope 기본값은 user', () => {
-    expect(resolveSkillScope({})).toBe('user');
-  });
-
-  it('project alias를 해석한다', () => {
-    expect(resolveSkillScope({ project: true })).toBe('project');
-  });
-
-  it('지원하지 않는 scope는 거부한다', () => {
-    expect(() => resolveSkillScope({ scope: 'global' })).toThrow('Unsupported scope');
-  });
-
   it('requested tools가 없으면 supported 전체를 사용한다', () => {
     expect(resolveRequestedTools({ supported: ['codex', 'gemini'] })).toEqual(['codex', 'gemini']);
   });
@@ -56,7 +42,6 @@ describe('skill-state', () => {
       id: 'engineering-standards-pack',
       kind: 'reference' as const,
       tools: ['codex'],
-      scope: 'project' as const,
       installed_paths: ['.agents/skills/engineering-standards-pack'],
       sourceHash: 'abc123',
     };

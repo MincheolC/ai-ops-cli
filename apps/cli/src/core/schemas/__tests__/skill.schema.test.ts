@@ -11,7 +11,6 @@ const validSkillCatalogEntry = {
   id: 'graphql-contract',
   kind: 'reference' as const,
   supported_tools: ['claude-code', 'codex', 'gemini'],
-  install_scopes: ['project', 'user'],
   groups: ['frontend-web', 'backend-ts'],
   included_in_presets: ['frontend-web', 'backend-ts'],
   source_path: 'reference-skills/graphql-contract',
@@ -33,7 +32,7 @@ describe('SkillFrontmatterSchema', () => {
 });
 
 describe('SkillCatalogEntrySchema', () => {
-  it('parses centralized install metadata', () => {
+  it('parses centralized catalog metadata', () => {
     expect(SkillCatalogEntrySchema.parse(validSkillCatalogEntry)).toEqual(validSkillCatalogEntry);
   });
 
@@ -54,17 +53,16 @@ describe('InstalledSkillSchema', () => {
         id: 'graphql-contract',
         kind: 'reference',
         tools: ['codex'],
-        scope: 'project',
         installed_paths: ['.agents/skills/graphql-contract'],
         sourceHash: 'a1b2c3',
       }),
     ).toMatchObject({
       id: 'graphql-contract',
-      scope: 'project',
+      tools: ['codex'],
     });
   });
 
-  it('strips legacy source_rules from installed skill metadata', () => {
+  it('strips legacy fields from installed skill metadata', () => {
     expect(
       InstalledSkillSchema.parse({
         id: 'graphql-contract',
@@ -79,7 +77,6 @@ describe('InstalledSkillSchema', () => {
       id: 'graphql-contract',
       kind: 'reference',
       tools: ['codex'],
-      scope: 'project',
       installed_paths: ['.agents/skills/graphql-contract'],
       sourceHash: 'a1b2c3',
     });

@@ -72,6 +72,16 @@ skills와 subagents는 프로젝트에 복사하지 않습니다. 각 도구의 
 - task skills
 - subagents
 
+현재 skill lifecycle은 global registry만 사용합니다.
+
+```bash
+ai-ops skill list
+ai-ops skill install skill-load-check --tool codex
+ai-ops skill diff
+ai-ops skill update
+ai-ops skill uninstall skill-load-check
+```
+
 ## Optional Specs Pack
 
 `docs/specs/`는 optional pack 위치로 고정합니다. spec lifecycle이 필요한 프로젝트만 설치합니다.

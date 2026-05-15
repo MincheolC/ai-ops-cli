@@ -5,11 +5,6 @@ export const SKILL_KIND = {
   TASK: 'task',
 } as const;
 
-export const SKILL_SCOPE = {
-  PROJECT: 'project',
-  USER: 'user',
-} as const;
-
 export const SKILL_TOOL = {
   CLAUDE_CODE: 'claude-code',
   CODEX: 'codex',
@@ -17,7 +12,6 @@ export const SKILL_TOOL = {
 } as const;
 
 export const SkillKindSchema = z.union([z.literal(SKILL_KIND.REFERENCE), z.literal(SKILL_KIND.TASK)]);
-export const SkillScopeSchema = z.union([z.literal(SKILL_SCOPE.PROJECT), z.literal(SKILL_SCOPE.USER)]);
 export const SkillToolSchema = z.union([
   z.literal(SKILL_TOOL.CLAUDE_CODE),
   z.literal(SKILL_TOOL.CODEX),
@@ -45,7 +39,6 @@ export type Skill = {
   kind: z.infer<typeof SkillKindSchema>;
   description: string;
   supported_tools: z.infer<typeof SkillToolSchema>[];
-  install_scopes: z.infer<typeof SkillScopeSchema>[];
   groups: string[];
   included_in_presets: string[];
   directory: string;
@@ -57,7 +50,6 @@ export const InstalledSkillSchema = z
     id: z.string().regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, 'id must be kebab-case'),
     kind: SkillKindSchema,
     tools: z.array(SkillToolSchema).min(1),
-    scope: SkillScopeSchema,
     installed_paths: z.array(z.string().min(1)).min(1),
     sourceHash: z.string().regex(/^[a-f0-9]{6}$/, 'sourceHash must be 6 lowercase hex chars'),
   })

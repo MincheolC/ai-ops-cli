@@ -72,6 +72,16 @@ Commands:
 
 `--tool`은 유지합니다. Codex, Claude Code, Gemini CLI가 서로 다른 discovery 위치와 adapter 파일을 사용하기 때문입니다.
 
+Skill lifecycle:
+
+```bash
+ai-ops skill list
+ai-ops skill install skill-load-check --tool codex
+ai-ops skill diff
+ai-ops skill update
+ai-ops skill uninstall skill-load-check
+```
+
 ## Deprecated Old Model
 
 다음 동작은 현재 코드나 과거 README에 남아 있을 수 있지만 새 계약에서는 제거 대상입니다.
@@ -88,21 +98,16 @@ Commands:
 
 ## Old Model Command Notes
 
-후속 phase 전까지 현재 CLI help에는 아래 old model 명령이 보일 수 있습니다.
+Deprecated old model 문맥에서만 아래 명령을 과거 project scope skill 설치 예시로 남깁니다. 현재 skill CLI는 global-only이며 `--project`, `--global`, `--scope`를 공개 옵션으로 제공하지 않습니다.
 
 ```bash
-ai-ops init
-ai-ops skill install skill-load-check --tool codex
 ai-ops skill install skill-load-check --project --tool codex
-ai-ops spec init
-ai-ops diff
-ai-ops update
-ai-ops uninstall
 ```
 
 Deprecated old model 문맥에서만 유지되는 항목:
 
 - `--project`는 project scope skill 설치용 old option입니다.
+- `--global`, `--scope`는 skill scope를 직접 지정하던 old option입니다.
 - `spec init`은 root `specs/`를 만드는 old command입니다.
 - `.ai-ops-manifest.json`는 old project manifest입니다.
 

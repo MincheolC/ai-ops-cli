@@ -31,7 +31,6 @@ describe('skill-registry-io', () => {
           id: 'skill-load-check',
           kind: 'task' as const,
           tools: ['codex'],
-          scope: 'user' as const,
           installed_paths: ['.agents/skills/skill-load-check'],
           sourceHash: 'abc123',
         },

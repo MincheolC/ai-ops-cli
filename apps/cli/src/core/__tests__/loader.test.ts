@@ -30,7 +30,6 @@ const makeSkill = (id: string): Skill => ({
   kind: 'reference',
   description: `${id} description`,
   supported_tools: ['claude-code', 'codex', 'gemini'],
-  install_scopes: ['project', 'user'],
   groups: ['frontend-web'],
   included_in_presets: ['frontend-web'],
   directory: `/tmp/${id}`,

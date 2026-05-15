@@ -61,7 +61,16 @@ describe.skipIf(!distExists)('bin subprocess', () => {
 });
 
 describe.skipIf(!distExists)('skill subprocess', () => {
-  it('project scope skill install writes project manifest and .agents skill dir', () => {
+  it('skill install help only exposes --tool', () => {
+    const output = execFileSync(process.execPath, [BIN_PATH, 'skill', 'install', '--help'], { encoding: 'utf-8' });
+
+    expect(output).toContain('--tool');
+    expect(output).not.toContain('--project');
+    expect(output).not.toContain('--global');
+    expect(output).not.toContain('--scope');
+  });
+
+  it('project scope skill install option is rejected', () => {
     const { dir, cleanup } = setup();
     try {
       const result = spawnSync(
@@ -73,18 +82,16 @@ describe.skipIf(!distExists)('skill subprocess', () => {
         },
       );
 
-      expect(result.status).toBe(0);
-      expect(existsSync(join(dir, '.agents/skills/skill-load-check/SKILL.md'))).toBe(true);
-
-      const manifest = readManifest(resolveManifestPath(dir));
-      expect(manifest?.installed_skills?.[0]?.id).toBe('skill-load-check');
-      expect(manifest?.installed_skills?.[0]?.scope).toBe('project');
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain("error: unknown option '--project'");
+      expect(existsSync(join(dir, '.agents/skills/skill-load-check/SKILL.md'))).toBe(false);
+      expect(existsSync(resolveManifestPath(dir))).toBe(false);
     } finally {
       cleanup();
     }
   });
 
-  it('user scope skill install writes global registry under AI_OPS_HOME', () => {
+  it('skill install writes global registry under AI_OPS_HOME without touching cwd', () => {
     const { dir, cleanup } = setup();
     const userHome = mkdtempSync(join(tmpdir(), 'ai-ops-home-'));
     try {
@@ -103,7 +110,10 @@ describe.skipIf(!distExists)('skill subprocess', () => {
 
       const registryRaw = readFileSync(join(userHome, '.ai-ops/skills-manifest.json'), 'utf-8');
       expect(registryRaw).toContain('"id": "skill-load-check"');
-      expect(registryRaw).toContain('"scope": "user"');
+      expect(registryRaw).not.toContain('"scope"');
+      expect(existsSync(join(dir, '.agents/skills'))).toBe(false);
+      expect(existsSync(join(dir, '.claude/skills'))).toBe(false);
+      expect(existsSync(resolveManifestPath(dir))).toBe(false);
     } finally {
       rmSync(userHome, { recursive: true, force: true });
       cleanup();

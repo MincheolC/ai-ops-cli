@@ -47,32 +47,28 @@ program
 
 const skillCommand = program.command('skill').description('에이전트 skill 설치/조회/갱신');
 
-const applySkillScopeOptions = (command: Command): Command =>
-  command
-    .option('-g, --global', 'user scope에 설치/조회')
-    .option('--project', 'project scope에 설치/조회')
-    .option('--scope <scope>', 'explicit scope (user|project)')
-    .option('--tool <tool...>', '대상 도구 지정');
+const applySkillInstallOptions = (command: Command): Command => command.option('--tool <tool...>', '대상 도구 지정');
 
-applySkillScopeOptions(skillCommand.command('list').description('사용 가능한 skill 목록')).action((opts) =>
-  skillListCommand(opts),
-);
+skillCommand.command('list').description('사용 가능한 skill 목록').action(() => skillListCommand());
 
-applySkillScopeOptions(skillCommand.command('install <skillId>').description('skill 설치')).action((skillId, opts) =>
+applySkillInstallOptions(skillCommand.command('install <skillId>').description('skill 설치')).action((skillId, opts) =>
   skillInstallCommand(skillId, opts),
 );
 
-applySkillScopeOptions(skillCommand.command('diff [skillId]').description('skill 변경 비교')).action((skillId, opts) =>
-  skillDiffCommand(skillId, opts),
-);
+skillCommand
+  .command('diff [skillId]')
+  .description('skill 변경 비교')
+  .action((skillId) => skillDiffCommand(skillId));
 
-applySkillScopeOptions(skillCommand.command('update [skillId]').description('skill 갱신')).action((skillId, opts) =>
-  skillUpdateCommand(skillId, opts),
-);
+skillCommand
+  .command('update [skillId]')
+  .description('skill 갱신')
+  .action((skillId) => skillUpdateCommand(skillId));
 
-applySkillScopeOptions(skillCommand.command('uninstall <skillId>').description('skill 제거')).action((skillId, opts) =>
-  skillUninstallCommand(skillId, opts),
-);
+skillCommand
+  .command('uninstall <skillId>')
+  .description('skill 제거')
+  .action((skillId) => skillUninstallCommand(skillId));
 
 const specCommand = program.command('spec').description('spec 파이프라인 관리');
 
