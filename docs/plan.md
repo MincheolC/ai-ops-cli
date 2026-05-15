@@ -147,11 +147,13 @@ project operating layer 설치 상태를 기록한다.
 - project scope는 operating layer 문서만 관리한다.
 - global scope는 skills/subagents만 관리한다.
 - `skill` 명령은 project-local 설치 옵션을 제공하지 않는다.
+- `skill` 명령에서 `--project`, `--global`, `--scope` 공개 옵션은 제거한다.
 - `--tool`은 유지한다. 각 도구의 skill/subagent discovery 위치가 다르기 때문이다.
 
 Deprecated old model:
 
 - `--project` skill 설치는 제거 대상이다.
+- `--global`과 `--scope`로 skill scope를 직접 지정하는 모델은 제거 대상이다.
 - project scope skill 설치와 project-installed skill manifest 추적은 제거 대상이다.
 - old `.ai-ops-manifest.json`는 새 `.ai-ops/manifest.json`로 대체한다.
 - legacy manifest migration은 제공하지 않는다.

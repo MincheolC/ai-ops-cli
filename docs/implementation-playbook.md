@@ -96,7 +96,7 @@ node apps/cli/dist/bin/index.js uninstall --cwd "$tmpdir"
 - project-installed skill 경로와 manifest 추적을 제거한다.
 - `skill list/install/diff/update/uninstall`은 user/global registry만 다룬다.
 - `--tool`은 유지한다.
-- Deprecated old model: `--project` skill 옵션과 project scope skill 동작을 제거한다.
+- Deprecated old model: `--project`, `--global`, `--scope` skill 옵션과 project scope skill 동작을 제거한다.
 
 완료 기준:
 
@@ -104,6 +104,7 @@ node apps/cli/dist/bin/index.js uninstall --cwd "$tmpdir"
 - global registry만 skill 상태를 추적한다.
 - Codex/Gemini/Claude별 global discovery 위치가 명확히 검증된다.
 - old project skill metadata가 새 manifest에 들어가지 않는다.
+- 공개 CLI 표면에 skill scope 지정 옵션이 남지 않는다.
 
 검증:
 
@@ -143,6 +144,7 @@ AI_OPS_HOME="$(mktemp -d)" node apps/cli/dist/bin/index.js subagent install <fix
 - `spec-lifecycle` pack을 추가한다.
 - 설치 위치는 `docs/specs/`로 고정한다.
 - 기존 root `specs/` scaffolding은 제거하거나 deprecated old model로만 남긴다.
+- `spec-to-packet`의 `spec-product-*`, `spec-baseline-sync`, `spec-shared-glossary-sync`는 이 pack의 global skill 후보로 이관한다.
 - 실제 spec 절차 실행은 global skill 후보로 분리한다.
 
 완료 기준:
