@@ -20,6 +20,22 @@ A `task skill` is a procedural workflow.
 - `references/` is optional supporting material only
 - Use it for repeatable checks, actions, and guided workflows
 
+### Task Skill Usage
+
+반복되는 운영 절차는 task skill로 둔다. 예를 들어 `doc-impact-reviewer`는 변경 완료 또는 커밋 직전에 diff를 확인하고, 갱신 후보 문서를 `required / recommended / not needed`로 제안한 뒤 사용자 승인 후 승인된 문서만 수정한다.
+
+승인이 필요한 task skill은 자동 호출을 막는다.
+
+- Codex: `agents/openai.yaml`에 `policy.allow_implicit_invocation: false`를 둔다.
+- Claude Code: `SKILL.md` frontmatter에 `disable-model-invocation: true`를 둔다.
+- Gemini CLI: skill-level explicit-only flag가 없으므로 본문에 명시 호출 전용 규칙을 적는다.
+
+설치 예시:
+
+```bash
+ai-ops skill install doc-impact-reviewer --tool codex
+```
+
 ## Directory Shape
 
 ```text
@@ -154,3 +170,12 @@ task-skills/skill-load-check/
 - Keep the description narrow and test-focused
 - Keep the body short and procedural
 - It is acceptable to delete this skill later once the install/load workflow is proven
+
+## Operating Task Skills
+
+`doc-impact-reviewer`는 운영 문서 영향도를 수동으로 검토하는 task skill이다.
+
+- git status, diff, 변경 파일, 관련 operating-layer 문서를 읽는다.
+- 편집 전에 문서 후보와 리스크를 보고한다.
+- 사용자 확인 전에는 편집하지 않는다.
+- staging, commit, hook 설치를 직접 수행하지 않는다.

@@ -174,17 +174,35 @@ node "$repo/apps/cli/dist/bin/index.js" audit
 
 범위:
 
-- commit 직전 또는 변경 완료 시 쓸 global skill/subagent를 추가한다.
-- diff를 보고 갱신 후보 문서를 제안한다.
+- commit 직전 또는 변경 완료 시 쓸 global task skill `doc-impact-reviewer`를 추가한다.
+- v1은 subagent나 git hook이 아니라 수동 호출 skill로 둔다.
+- diff를 보고 갱신 후보 문서를 `required / recommended / not needed`로 제안한다.
 - 사용자 확인 후 문서 업데이트를 수행한다.
 - 자동 git hook은 기본 설치하지 않는다. opt-in hook은 후속 기능으로만 둔다.
 
 완료 기준:
 
+- `doc-impact-reviewer`가 `task-skills/doc-impact-reviewer`와 `skill-registry.json`에 등록된다.
+- Codex metadata는 `policy.allow_implicit_invocation: false`를 포함한다.
+- Claude Code metadata는 `disable-model-invocation: true`를 포함한다.
+- skill 설치는 기존 global skill lifecycle을 사용하며 project repo에 `.agents`, `.ai-ops`, `.codex`, `.claude`, `.gemini`를 만들지 않는다.
 - reviewer는 직접 commit하지 않는다.
+- reviewer는 직접 staging하지 않는다.
 - `Reserved` 문서를 사실 근거로 승격하지 않는다.
 - 갱신 후보, 이유, 미갱신 리스크를 짧게 보고한다.
 - hook 없이도 수동 실행이 가능하다.
+
+검증:
+
+```bash
+npm run check
+npm run build
+AI_OPS_HOME="$(mktemp -d)" node apps/cli/dist/bin/index.js skill install doc-impact-reviewer --tool codex
+rg -n "diff 확인|문서 후보 제안|사용자 컨펌 전 편집 금지|직접 커밋 금지|Reserved 승격 금지" apps/cli/data/skills/task-skills/doc-impact-reviewer/SKILL.md
+npm run compile
+```
+
+설치 smoke에서는 `AI_OPS_HOME/.agents/skills/doc-impact-reviewer/SKILL.md`와 `agents/openai.yaml`만 생기는지 확인한다. 실행 cwd에는 `.agents`, `.ai-ops`, `.codex`, `.claude`, `.gemini`가 새로 생기면 안 된다.
 
 ## Phase 6: 통합 검증과 dogfood
 

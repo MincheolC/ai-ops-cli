@@ -113,6 +113,14 @@
       "source_path": "reference-skills/python-language"
     },
     {
+      "id": "doc-impact-reviewer",
+      "kind": "task",
+      "supported_tools": ["claude-code", "codex", "gemini"],
+      "groups": ["agent-operating-layer"],
+      "included_in_presets": [],
+      "source_path": "task-skills/doc-impact-reviewer"
+    },
+    {
       "id": "skill-load-check",
       "kind": "task",
       "supported_tools": ["claude-code", "codex", "gemini"],

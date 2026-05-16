@@ -79,10 +79,13 @@ Skill lifecycle 명령:
 ```bash
 ai-ops skill list
 ai-ops skill install skill-load-check --tool codex
+ai-ops skill install doc-impact-reviewer --tool codex
 ai-ops skill diff
 ai-ops skill update
 ai-ops skill uninstall skill-load-check
 ```
+
+`doc-impact-reviewer`는 변경 완료 또는 커밋 직전에 운영 문서 영향도를 확인하는 수동 task skill입니다. `$doc-impact-reviewer`로 호출하면 git status/diff를 보고 `required / recommended / not needed` 문서 후보와 미갱신 리스크를 제안합니다. 사용자 승인 전에는 문서를 수정하지 않고, 직접 staging/commit도 하지 않습니다.
 
 Subagent lifecycle 명령:
 

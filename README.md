@@ -81,10 +81,13 @@ global asset 명령은 `AI_OPS_HOME` 또는 `HOME`이 있어야 실행됩니다.
 ```bash
 ai-ops skill list
 ai-ops skill install skill-load-check --tool codex
+ai-ops skill install doc-impact-reviewer --tool codex
 ai-ops skill diff
 ai-ops skill update
 ai-ops skill uninstall skill-load-check
 ```
+
+`doc-impact-reviewer`는 변경 완료 또는 커밋 직전에 diff를 보고 갱신해야 할 운영 문서 후보를 판정하는 task skill입니다. 수동으로 `$doc-impact-reviewer`를 호출해 사용하며, 사용자 확인 전에는 문서를 수정하지 않고 직접 staging/commit도 하지 않습니다.
 
 Subagent lifecycle도 global registry만 사용합니다.
 

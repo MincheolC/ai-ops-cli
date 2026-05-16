@@ -119,6 +119,37 @@ describe.skipIf(!distExists)('skill subprocess', () => {
       cleanup();
     }
   });
+
+  it('doc-impact-reviewer installs only under global AI_OPS_HOME', () => {
+    const { dir, cleanup } = setup();
+    const userHome = mkdtempSync(join(tmpdir(), 'ai-ops-home-'));
+    try {
+      const result = spawnSync(
+        process.execPath,
+        [BIN_PATH, 'skill', 'install', 'doc-impact-reviewer', '--tool', 'codex'],
+        {
+          cwd: dir,
+          encoding: 'utf-8',
+          env: { ...process.env, AI_OPS_HOME: userHome },
+        },
+      );
+
+      expect(result.status).toBe(0);
+      expect(existsSync(join(userHome, '.agents/skills/doc-impact-reviewer/SKILL.md'))).toBe(true);
+      expect(existsSync(join(userHome, '.agents/skills/doc-impact-reviewer/agents/openai.yaml'))).toBe(true);
+
+      const registryRaw = readFileSync(join(userHome, '.ai-ops/skills-manifest.json'), 'utf-8');
+      expect(registryRaw).toContain('"id": "doc-impact-reviewer"');
+      expect(existsSync(join(dir, '.agents'))).toBe(false);
+      expect(existsSync(join(dir, '.ai-ops'))).toBe(false);
+      expect(existsSync(join(dir, '.codex'))).toBe(false);
+      expect(existsSync(join(dir, '.claude'))).toBe(false);
+      expect(existsSync(join(dir, '.gemini'))).toBe(false);
+    } finally {
+      rmSync(userHome, { recursive: true, force: true });
+      cleanup();
+    }
+  });
 });
 
 describe.skipIf(!distExists)('subagent subprocess', () => {
