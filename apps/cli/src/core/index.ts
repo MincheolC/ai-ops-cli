@@ -15,6 +15,6 @@ export * from './subagent-manifest-io.js';
 export * from './diff.js';
 export * from './install-plan.js';
 export * from './project-layer.js';
-export * from './spec-plan.js';
+export * from './pack.js';
 export * from './uninstall-plan.js';
 export * from './paths.js';

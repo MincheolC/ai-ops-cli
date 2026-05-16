@@ -18,11 +18,17 @@ import {
   subagentUninstallCommand,
   subagentUpdateCommand,
 } from '../commands/subagent.js';
-import { specInitCommand } from '../commands/spec.js';
+import {
+  packDiffCommand,
+  packInstallCommand,
+  packListCommand,
+  packUninstallCommand,
+  packUpdateCommand,
+} from '../commands/pack.js';
 
 const program = new Command();
 
-program.name('ai-ops').description('AI 에이전트 규칙 스캐폴더').version('0.1.0');
+program.name('ai-ops').description('AI agent operating layer manager').version('0.1.0');
 
 program
   .command('init')
@@ -102,12 +108,28 @@ subagentCommand
   .description('subagent 제거')
   .action((subagentId) => subagentUninstallCommand(subagentId));
 
-const specCommand = program.command('spec').description('spec 파이프라인 관리');
+const packCommand = program.command('pack').description('optional project operating layer pack 설치/조회/갱신');
 
-specCommand
-  .command('init')
-  .description('specs/ 디렉토리 구조 초기화')
-  .option('--force', '이미 존재해도 강제 재생성', false)
-  .action((opts: { force: boolean }) => specInitCommand(opts));
+packCommand.command('list').description('사용 가능한 pack 목록').action(() => packListCommand());
+
+packCommand
+  .command('install <packId>')
+  .description('pack 설치')
+  .action((packId) => packInstallCommand(packId));
+
+packCommand
+  .command('diff [packId]')
+  .description('pack 변경 비교')
+  .action((packId) => packDiffCommand(packId));
+
+packCommand
+  .command('update [packId]')
+  .description('pack 갱신')
+  .action((packId) => packUpdateCommand(packId));
+
+packCommand
+  .command('uninstall <packId>')
+  .description('pack 제거')
+  .action((packId) => packUninstallCommand(packId));
 
 program.parse();

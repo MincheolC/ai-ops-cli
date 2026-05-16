@@ -1,0 +1,6 @@
+interface:
+  display_name: "spec-product-04-product-spec-to-ui-spec"
+  short_description: "Create initial UI spec, optional Stitch prompt, and first-build visual guidance."
+  default_prompt: "Use $spec-product-04-product-spec-to-ui-spec to create an initial Korean 20_ui-spec.md, optional English 21_stitch-prompt.md, and practical first-build visual guidance from approved product specs and reference inputs."
+policy:
+  allow_implicit_invocation: false

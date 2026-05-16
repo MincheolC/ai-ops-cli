@@ -47,6 +47,23 @@ export const ProjectLayerProjectFileSchema = z
   })
   .strict();
 
+export const ProjectLayerPackFileRecordSchema = z
+  .object({
+    path: ProjectLayerPathSchema,
+    sourceHash: ShortHashSchema,
+  })
+  .strict();
+
+export const ProjectLayerPackRecordSchema = z
+  .object({
+    id: z.string().regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, 'id must be kebab-case'),
+    sourceHash: ShortHashSchema,
+    documents: z.array(ProjectLayerPackFileRecordSchema),
+    files: z.array(ProjectLayerPackFileRecordSchema),
+    installedAt: z.string().datetime({ offset: true }),
+  })
+  .strict();
+
 export const ProjectLayerManifestSchema = z
   .object({
     schemaVersion: z.literal(1),
@@ -54,6 +71,7 @@ export const ProjectLayerManifestSchema = z
     tools: z.array(ProjectLayerToolSchema).min(1),
     managed_files: z.array(ProjectLayerManagedFileSchema),
     project_files: z.array(ProjectLayerProjectFileSchema),
+    packs: z.array(ProjectLayerPackRecordSchema).default([]),
     settings: z.record(z.unknown()),
     sourceHash: ShortHashSchema,
     cliVersion: z.string().min(1),
@@ -80,6 +98,8 @@ export type ProjectLayerDocumentStatus = z.infer<typeof ProjectLayerDocumentStat
 export type ProjectLayerFrontmatter = z.infer<typeof ProjectLayerFrontmatterSchema>;
 export type ProjectLayerManagedFile = z.infer<typeof ProjectLayerManagedFileSchema>;
 export type ProjectLayerProjectFile = z.infer<typeof ProjectLayerProjectFileSchema>;
+export type ProjectLayerPackFileRecord = z.infer<typeof ProjectLayerPackFileRecordSchema>;
+export type ProjectLayerPackRecord = z.infer<typeof ProjectLayerPackRecordSchema>;
 export type ProjectLayerManifest = z.infer<typeof ProjectLayerManifestSchema>;
 export type ProjectLayerContextDocument = z.infer<typeof ProjectLayerContextDocumentSchema>;
 export type ProjectLayerContextIndex = z.infer<typeof ProjectLayerContextIndexSchema>;

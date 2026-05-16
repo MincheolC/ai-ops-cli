@@ -16,7 +16,7 @@ flowchart TD
 
   skill["ai-ops skill ..."] --> globalSkills["Global skills only"]
   subagent["ai-ops subagent ..."] --> globalSubagents["Global subagents only"]
-  specs["optional pack"] --> docsSpecs["docs/specs/"]
+  pack["ai-ops pack ..."] --> docsSpecs["optional docs/specs/ pack"]
 ```
 
 핵심 경계:
@@ -69,6 +69,7 @@ Commands:
   uninstall  Remove project-managed operating layer files
   skill      Manage global agent skills
   subagent   Manage global agent subagents
+  pack       Manage optional project operating layer packs
 ```
 
 `--tool`은 유지합니다. Codex, Claude Code, Gemini CLI가 서로 다른 discovery 위치와 adapter 파일을 사용하기 때문입니다.
@@ -95,6 +96,19 @@ ai-ops subagent uninstall security-gate
 
 Subagent는 항상 global tool home에 설치됩니다. Codex는 `.codex/agents/<id>.toml`, Claude Code는 `.claude/agents/<id>.md`, Gemini CLI는 `.gemini/agents/<id>.md`를 사용하고, 상태는 `.ai-ops/subagents-manifest.json`에만 기록합니다.
 
+Pack lifecycle 명령:
+
+```bash
+ai-ops init --tool codex
+ai-ops pack list
+ai-ops pack install spec-lifecycle
+ai-ops pack diff spec-lifecycle
+ai-ops pack update spec-lifecycle
+ai-ops pack uninstall spec-lifecycle
+```
+
+`spec-lifecycle` pack은 `docs/specs/README.md`, `docs/specs/baseline/.gitkeep`, `docs/specs/initial-build/.gitkeep`를 설치합니다. Markdown 문서만 context-layer와 `docs/docs-status.md` 감사 대상이고, `.gitkeep`은 manifest의 일반 pack file로만 기록됩니다.
+
 ## Deprecated Old Model
 
 다음 동작은 현재 코드나 과거 README에 남아 있을 수 있지만 새 계약에서는 제거 대상입니다.
@@ -106,6 +120,7 @@ Subagent는 항상 global tool home에 설치됩니다. Codex는 `.codex/agents/
 - `.ai-ops-manifest.json`
 - legacy manifest migration
 - root `specs/`
+- `ai-ops spec init`
 
 기존 프로젝트 자동 마이그레이션은 제공하지 않습니다. 기존 사용자는 old CLI로 `ai-ops uninstall`을 실행한 뒤 새 major CLI로 `ai-ops init`을 다시 실행합니다.
 
@@ -121,7 +136,7 @@ Deprecated old model 문맥에서만 유지되는 항목:
 
 - `--project`는 project scope skill 설치용 old option입니다.
 - `--global`, `--scope`는 skill scope를 직접 지정하던 old option입니다.
-- `spec init`은 root `specs/`를 만드는 old command입니다.
+- `spec init`은 root `specs/`를 만들던 제거된 old command입니다.
 - `.ai-ops-manifest.json`는 old project manifest입니다.
 
 ## 개발

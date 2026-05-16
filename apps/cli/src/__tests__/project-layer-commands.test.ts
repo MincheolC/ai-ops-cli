@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { installProjectLayer, resolveProjectLayerTools } from '@/core/index.js';
 import { auditCommand } from '../commands/audit.js';
 import { diffCommand } from '../commands/diff.js';
 import { initCommand } from '../commands/init.js';
+import { packInstallCommand, packUpdateCommand } from '../commands/pack.js';
 import { uninstallCommand } from '../commands/uninstall.js';
 import { updateCommand } from '../commands/update.js';
 
@@ -125,6 +126,36 @@ describe('project layer commands', () => {
       writeUnsafeManifest(dir);
 
       await expect(runInDirectory(dir, () => uninstallCommand({ yes: true }))).resolves.toBe(1);
+    } finally {
+      cleanup();
+    }
+  });
+
+  it('pack install exits non-zero before ai-ops init', async () => {
+    const { dir, cleanup } = setup();
+    try {
+      await expect(runInDirectory(dir, () => packInstallCommand('spec-lifecycle'))).resolves.toBe(1);
+    } finally {
+      cleanup();
+    }
+  });
+
+  it('pack update exits non-zero before ai-ops init', async () => {
+    const { dir, cleanup } = setup();
+    try {
+      await expect(runInDirectory(dir, () => packUpdateCommand('spec-lifecycle'))).resolves.toBe(1);
+    } finally {
+      cleanup();
+    }
+  });
+
+  it('pack install creates docs/specs after ai-ops init', async () => {
+    const { dir, cleanup } = setup();
+    try {
+      installProjectLayer({ basePath: dir, tools: resolveProjectLayerTools(['codex']) });
+
+      await expect(runInDirectory(dir, () => packInstallCommand('spec-lifecycle'))).resolves.toBeUndefined();
+      expect(existsSync(join(dir, 'docs/specs/README.md'))).toBe(true);
     } finally {
       cleanup();
     }

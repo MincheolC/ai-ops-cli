@@ -1,0 +1,8 @@
+{
+  "packs": [
+    {
+      "id": "spec-lifecycle",
+      "source_path": "spec-lifecycle"
+    }
+  ]
+}

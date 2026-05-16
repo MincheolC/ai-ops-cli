@@ -9,6 +9,8 @@ export const resolveSkillsDir = (): string => join(COMPILER_DATA_DIR, 'skills');
 
 export const resolveSubagentsDir = (): string => join(COMPILER_DATA_DIR, 'subagents');
 
+export const resolvePacksDir = (): string => join(COMPILER_DATA_DIR, 'packs');
+
 export const resolveReferenceSkillsDir = (): string => join(resolveSkillsDir(), 'reference-skills');
 
 export const resolveTaskSkillsDir = (): string => join(resolveSkillsDir(), 'task-skills');

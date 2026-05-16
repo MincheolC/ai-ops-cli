@@ -24,6 +24,8 @@ import type {
   ProjectLayerContextIndex,
   ProjectLayerFrontmatter,
   ProjectLayerManifest,
+  ProjectLayerPackFileRecord,
+  ProjectLayerPackRecord,
   ProjectLayerProjectFile,
   ProjectLayerTool,
 } from './schemas/index.js';
@@ -88,7 +90,7 @@ type ProjectFileInstallResult = {
   preserved: string[];
 };
 
-type ProjectLayerDocumentReadResult = ProjectLayerContextDocument & {
+export type ProjectLayerDocumentReadResult = ProjectLayerContextDocument & {
   content: string;
 };
 
@@ -138,7 +140,7 @@ const resolveTemplatePath = (relativePath: string): string => join(CONTEXT_LAYER
 
 const toRelativeDir = (relativePath: string): string => dirname(relativePath);
 
-const resolveProjectLayerFilePath = (basePath: string, relativePath: string): string => {
+export const resolveProjectLayerFilePath = (basePath: string, relativePath: string): string => {
   if (!isSafeProjectLayerPath(relativePath)) {
     throw new Error(`Unsafe project layer path: ${relativePath}`);
   }
@@ -173,7 +175,7 @@ const parseProjectLayerFrontmatter = (content: string): ProjectLayerFrontmatter 
   return ProjectLayerFrontmatterSchema.parse(frontmatter);
 };
 
-const parseProjectLayerDocument = (path: string, rawContent: string): ProjectLayerDocumentReadResult => {
+export const parseProjectLayerDocument = (path: string, rawContent: string): ProjectLayerDocumentReadResult => {
   const managedContent = extractAiOpsSectionContent(rawContent);
   const content = managedContent ?? rawContent;
   const frontmatter = parseProjectLayerFrontmatter(content);
@@ -427,10 +429,109 @@ const buildContextIndexFromDisk = (params: {
   });
 };
 
+const computeProjectFileHash = (basePath: string, relativePath: string): string =>
+  computeHash([readFileSync(resolveProjectLayerFilePath(basePath, relativePath), 'utf-8').trimEnd()]);
+
+const collectDocumentPathsFromManifest = (manifest: ProjectLayerManifest): string[] =>
+  [
+    ...manifest.managed_files.map((file) => file.path),
+    ...manifest.project_files.map((file) => file.path),
+    ...manifest.packs.flatMap((pack) => pack.documents.map((file) => file.path)),
+  ].sort();
+
+const buildDocsStatusRowsFromDisk = (params: {
+  basePath: string;
+  documentPaths: readonly string[];
+}): string[] =>
+  params.documentPaths.map((path) => {
+    const document = parseProjectLayerDocument(path, readFileSync(resolveProjectLayerFilePath(params.basePath, path), 'utf-8'));
+    return `| ${document.path} | ${document.status} | ${document.owner} |`;
+  });
+
+const replaceDocsStatusRows = (content: string, rows: readonly string[]): string => {
+  const lines = content.trimEnd().split('\n');
+  const headerIndex = lines.findIndex((line) => line.trim() === '| path | status | owner |');
+  const dividerIndex = headerIndex + 1;
+
+  if (headerIndex < 0 || !lines[dividerIndex]?.trim().startsWith('| ---')) {
+    throw new Error('docs/docs-status.md table header not found');
+  }
+
+  let tableEndIndex = dividerIndex + 1;
+  while (tableEndIndex < lines.length && lines[tableEndIndex]?.trim().startsWith('|')) {
+    tableEndIndex += 1;
+  }
+
+  return [...lines.slice(0, dividerIndex + 1), ...rows, ...lines.slice(tableEndIndex)].join('\n') + '\n';
+};
+
+const updateDocsStatusTable = (basePath: string, documentPaths: readonly string[]): { beforeHash: string; afterHash: string } => {
+  const docsStatusPath = 'docs/docs-status.md';
+  const absolutePath = resolveProjectLayerFilePath(basePath, docsStatusPath);
+  const beforeHash = computeProjectFileHash(basePath, docsStatusPath);
+  const rows = buildDocsStatusRowsFromDisk({ basePath, documentPaths });
+  const nextContent = replaceDocsStatusRows(readFileSync(absolutePath, 'utf-8'), rows);
+  writeFileSync(absolutePath, nextContent, 'utf-8');
+
+  return {
+    beforeHash,
+    afterHash: computeProjectFileHash(basePath, docsStatusPath),
+  };
+};
+
+const updateDocsStatusProjectFileRecord = (params: {
+  manifest: ProjectLayerManifest;
+  beforeHash: string;
+  afterHash: string;
+}): ProjectLayerManifest =>
+  ProjectLayerManifestSchema.parse({
+    ...params.manifest,
+    project_files: params.manifest.project_files.map((file) => {
+      if (file.path !== 'docs/docs-status.md' || !file.created || file.templateHash !== params.beforeHash) {
+        return file;
+      }
+
+      return {
+        ...file,
+        templateHash: params.afterHash,
+      };
+    }),
+  });
+
+export const refreshProjectLayerDerivedState = (params: {
+  basePath: string;
+  manifest: ProjectLayerManifest;
+  generatedAt: string;
+}): {
+  manifest: ProjectLayerManifest;
+  contextIndex: ProjectLayerContextIndex;
+} => {
+  const documentPaths = collectDocumentPathsFromManifest(params.manifest);
+  const docsStatusHashes = updateDocsStatusTable(params.basePath, documentPaths);
+  const manifest = updateDocsStatusProjectFileRecord({
+    manifest: params.manifest,
+    beforeHash: docsStatusHashes.beforeHash,
+    afterHash: docsStatusHashes.afterHash,
+  });
+  const contextIndex = buildContextIndexFromDisk({
+    basePath: params.basePath,
+    documentPaths,
+    generatedAt: params.generatedAt,
+  });
+
+  writeProjectLayerContextIndex(params.basePath, contextIndex);
+
+  return {
+    manifest,
+    contextIndex,
+  };
+};
+
 const buildProjectLayerManifest = (params: {
   tools: readonly ProjectLayerTool[];
   managedFiles: readonly string[];
   projectFiles: readonly ProjectLayerProjectFile[];
+  packs: readonly ProjectLayerPackRecord[];
   sourceHash: string;
   cliVersion: string;
   generatedAt: string;
@@ -445,6 +546,7 @@ const buildProjectLayerManifest = (params: {
       sourceHash: params.sourceHash,
     })),
     project_files: [...params.projectFiles],
+    packs: [...params.packs],
     settings: params.settings ?? {},
     sourceHash: params.sourceHash,
     cliVersion: params.cliVersion,
@@ -490,20 +592,23 @@ export const installProjectLayer = (params: {
     specs: projectSpecs,
     previousProjectFiles: previousManifest?.project_files,
   });
-  const documentPaths = specs.map((spec) => spec.path);
-  const contextIndex = buildContextIndexFromDisk({ basePath: params.basePath, documentPaths, generatedAt });
-  const manifest = buildProjectLayerManifest({
+  const provisionalManifest = buildProjectLayerManifest({
     tools: params.tools,
     managedFiles: managedPaths,
     projectFiles: projectResult.records,
+    packs: previousManifest?.packs ?? [],
     sourceHash,
     cliVersion: getCliVersion(),
     generatedAt,
     settings: previousManifest?.settings,
   });
+  const { manifest, contextIndex } = refreshProjectLayerDerivedState({
+    basePath: params.basePath,
+    manifest: provisionalManifest,
+    generatedAt,
+  });
 
   writeProjectLayerManifest(params.basePath, manifest);
-  writeProjectLayerContextIndex(params.basePath, contextIndex);
 
   return {
     manifest,
@@ -531,23 +636,23 @@ export const updateProjectLayer = (params: {
     specs: projectSpecs,
     previousProjectFiles: params.manifest.project_files,
   });
-  const contextIndex = buildContextIndexFromDisk({
-    basePath: params.basePath,
-    documentPaths: specs.map((spec) => spec.path),
-    generatedAt,
-  });
-  const manifest = buildProjectLayerManifest({
+  const provisionalManifest = buildProjectLayerManifest({
     tools: params.manifest.tools,
     managedFiles: managedSpecs.map((spec) => spec.path),
     projectFiles: projectResult.records,
+    packs: params.manifest.packs,
     sourceHash,
     cliVersion: getCliVersion(),
     generatedAt,
     settings: params.manifest.settings,
   });
+  const { manifest, contextIndex } = refreshProjectLayerDerivedState({
+    basePath: params.basePath,
+    manifest: provisionalManifest,
+    generatedAt,
+  });
 
   writeProjectLayerManifest(params.basePath, manifest);
-  writeProjectLayerContextIndex(params.basePath, contextIndex);
 
   return {
     manifest,
@@ -581,9 +686,6 @@ const readDocumentSafely = (basePath: string, path: string): ProjectLayerDocumen
     return issue('error', 'invalid-frontmatter', `${path} frontmatter 파싱 실패: ${reason}`);
   }
 };
-
-const collectDocumentPathsFromManifest = (manifest: ProjectLayerManifest): string[] =>
-  [...manifest.managed_files.map((file) => file.path), ...manifest.project_files.map((file) => file.path)].sort();
 
 const buildContextIndexMap = (contextIndex: ProjectLayerContextIndex | null): Map<string, ProjectLayerContextDocument> =>
   new Map((contextIndex?.documents ?? []).map((document) => [document.path, document]));
@@ -723,6 +825,14 @@ export const diffProjectLayer = (basePath: string): ProjectLayerReport => {
     }
   }
 
+  for (const pack of manifest.packs) {
+    for (const file of [...pack.documents, ...pack.files]) {
+      if (!existsSync(resolveProjectLayerFilePath(basePath, file.path))) {
+        issues.push(issue('error', 'missing-file', `파일 없음: ${file.path}`));
+      }
+    }
+  }
+
   for (const path of collectDocumentPathsFromManifest(manifest)) {
     const document = readDocumentSafely(basePath, path);
     if ('code' in document) {
@@ -838,6 +948,21 @@ const removeCreateOnlyProjectFile = (basePath: string, file: ProjectLayerProject
   return { deleted: [], cleaned: [], preserved: [file.path], notFound: [] };
 };
 
+const removePackOwnedFile = (basePath: string, file: ProjectLayerPackFileRecord): ProjectLayerRemoveResult => {
+  const absolutePath = resolveProjectLayerFilePath(basePath, file.path);
+  if (!existsSync(absolutePath)) {
+    return { deleted: [], cleaned: [], preserved: [], notFound: [file.path] };
+  }
+
+  const currentHash = computeHash([readFileSync(absolutePath, 'utf-8').trimEnd()]);
+  if (currentHash === file.sourceHash) {
+    rmSync(absolutePath);
+    return { deleted: [file.path], cleaned: [], preserved: [], notFound: [] };
+  }
+
+  return { deleted: [], cleaned: [], preserved: [file.path], notFound: [] };
+};
+
 const mergeRemoveResults = (results: readonly ProjectLayerRemoveResult[]): ProjectLayerRemoveResult => ({
   deleted: results.flatMap((result) => result.deleted),
   cleaned: results.flatMap((result) => result.cleaned),
@@ -867,13 +992,16 @@ const removeEmptyDirs = (basePath: string, relativePaths: readonly string[]): vo
 export const uninstallProjectLayer = (basePath: string, manifest: ProjectLayerManifest): ProjectLayerRemoveResult => {
   const managedResults = manifest.managed_files.map((file) => removeManagedProjectFile(basePath, file.path));
   const projectResults = manifest.project_files.map((file) => removeCreateOnlyProjectFile(basePath, file));
+  const packResults = manifest.packs.flatMap((pack) =>
+    [...pack.documents, ...pack.files].map((file) => removePackOwnedFile(basePath, file)),
+  );
   const stateFiles = [PROJECT_LAYER_CONTEXT_INDEX_RELATIVE_PATH, PROJECT_LAYER_MANIFEST_RELATIVE_PATH];
 
   for (const stateFile of stateFiles) {
     rmSync(resolveProjectLayerFilePath(basePath, stateFile), { force: true });
   }
 
-  const result = mergeRemoveResults([...managedResults, ...projectResults]);
+  const result = mergeRemoveResults([...managedResults, ...projectResults, ...packResults]);
   removeEmptyDirs(basePath, [...result.deleted, ...stateFiles]);
   return result;
 };

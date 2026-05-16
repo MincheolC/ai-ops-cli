@@ -15,6 +15,7 @@ flowchart LR
   project --> adapters["GEMINI.md / CLAUDE.md<br/>thin adapters"]
   project --> docs["docs/agent/*<br/>docs/business/*<br/>docs/docs-status.md"]
   project --> state[".ai-ops/manifest.json<br/>.ai-ops/context-layer.json"]
+  project --> packs["optional packs<br/>docs/specs/*"]
 
   global --> skills["reference / task skills"]
   global --> subagents["subagents"]
@@ -34,6 +35,7 @@ flowchart LR
 │       ├── data/
 │       │   ├── rules/      # old model core rule data
 │       │   ├── skills/     # global skill source/catalog data
+│       │   ├── packs/      # optional project pack source data
 │       │   ├── subagents/  # global subagent source/catalog 데이터
 │       │   └── presets.yaml
 │       └── README.md       # package-level transition contract
@@ -105,10 +107,21 @@ ai-ops subagent uninstall security-gate
 
 `docs/specs/`는 optional pack 위치로 고정합니다. spec lifecycle이 필요한 프로젝트만 설치합니다.
 
+```bash
+ai-ops init --tool codex
+ai-ops pack list
+ai-ops pack install spec-lifecycle
+ai-ops pack diff spec-lifecycle
+ai-ops pack update spec-lifecycle
+ai-ops pack uninstall spec-lifecycle
+```
+
+`spec-lifecycle` pack은 `.ai-ops/manifest.json`이 있는 project operating layer 안에서만 동작합니다. 설치 시 `docs/specs/README.md`는 `Reserved` 문서로 context-layer와 `docs/docs-status.md`에 기록하고, `.gitkeep` 파일은 일반 pack file로만 manifest에 기록합니다.
+
 Deprecated old model:
 
 - root `specs/`는 새 모델의 설치 위치가 아닙니다.
-- old `ai-ops spec init` 방식은 후속 phase에서 optional pack 설치 모델로 대체합니다.
+- old `ai-ops spec init` 방식은 optional pack 설치 모델로 대체되었습니다.
 
 ## Deprecated Old Model
 

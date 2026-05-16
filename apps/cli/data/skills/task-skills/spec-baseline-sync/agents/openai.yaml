@@ -1,0 +1,6 @@
+interface:
+  display_name: "spec-baseline-sync"
+  short_description: "Sync implemented changes into baseline docs, archive the plan, and update the changelog."
+  default_prompt: "Use $spec-baseline-sync to update affected docs/specs/baseline documents from an implemented .codex/plans change, archive the completed plan, and append a compact .codex/CHANGE_LOG.md entry."
+policy:
+  allow_implicit_invocation: false

@@ -159,13 +159,16 @@ AI_OPS_HOME="$(mktemp -d)" node apps/cli/dist/bin/index.js subagent install secu
 
 ```bash
 npm run check
+repo="/Users/charles/ai-projects/ai-ops-scaffolder"
 tmpdir="$(mktemp -d)"
-node apps/cli/dist/bin/index.js pack install spec-lifecycle --cwd "$tmpdir"
+cd "$tmpdir"
+node "$repo/apps/cli/dist/bin/index.js" init --tool codex
+node "$repo/apps/cli/dist/bin/index.js" pack install spec-lifecycle
 find "$tmpdir/docs/specs" -maxdepth 3 -type f | sort
-node apps/cli/dist/bin/index.js audit --cwd "$tmpdir"
+node "$repo/apps/cli/dist/bin/index.js" audit
 ```
 
-명령 이름은 구현 phase에서 확정한다.
+`pack install`은 project operating layer를 자동 설치하지 않으므로, 검증은 항상 `ai-ops init --tool codex` 후에 진행한다.
 
 ## Phase 5: Doc Impact Reviewer
 

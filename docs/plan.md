@@ -62,7 +62,7 @@ Global tool home
 Deprecated old model:
 
 - root `specs/`는 더 이상 새 모델의 설치 위치가 아니다.
-- 기존 `ai-ops spec init`의 root `specs/` scaffolding은 후속 phase에서 `docs/specs/` pack 설치로 대체한다.
+- 기존 `ai-ops spec init`의 root `specs/` scaffolding은 `ai-ops pack install spec-lifecycle`로 대체한다.
 
 ### Global assets
 
