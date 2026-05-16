@@ -134,7 +134,8 @@ AI_OPS_HOME="$(mktemp -d)" node apps/cli/dist/bin/index.js skill install skill-l
 
 ```bash
 npm run check
-AI_OPS_HOME="$(mktemp -d)" node apps/cli/dist/bin/index.js subagent install <fixture-id> --tool codex
+AI_OPS_HOME="$(mktemp -d)" node apps/cli/dist/bin/index.js subagent install security-gate --tool codex
+AI_OPS_HOME="$(mktemp -d)" node apps/cli/dist/bin/index.js subagent install security-reviewer --tool codex --tool claude-code --tool gemini
 ```
 
 ## Phase 4: Optional `docs/specs/` Pack

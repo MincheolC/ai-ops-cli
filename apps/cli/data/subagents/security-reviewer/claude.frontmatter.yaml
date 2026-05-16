@@ -1,0 +1,9 @@
+name: security-reviewer
+description: Review a code or contract change for material security risks and missing controls.
+tools: Read, Glob, Grep
+model: sonnet
+permissionMode: plan
+maxTurns: 10
+skills:
+  - spec-security-01-triage
+  - spec-security-02-review

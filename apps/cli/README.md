@@ -26,6 +26,7 @@ flowchart TD
 - `AGENTS.md`가 canonical entrypoint입니다.
 - `GEMINI.md`와 `CLAUDE.md`는 `AGENTS.md`를 기준으로 삼게 하는 adapter입니다.
 - `docs/specs/`는 optional pack 위치입니다.
+- global asset 명령은 `AI_OPS_HOME` 또는 `HOME`이 없으면 cwd fallback 없이 실패합니다.
 
 ## 설치 대상
 
@@ -72,7 +73,7 @@ Commands:
 
 `--tool`은 유지합니다. Codex, Claude Code, Gemini CLI가 서로 다른 discovery 위치와 adapter 파일을 사용하기 때문입니다.
 
-Skill lifecycle:
+Skill lifecycle 명령:
 
 ```bash
 ai-ops skill list
@@ -81,6 +82,18 @@ ai-ops skill diff
 ai-ops skill update
 ai-ops skill uninstall skill-load-check
 ```
+
+Subagent lifecycle 명령:
+
+```bash
+ai-ops subagent list
+ai-ops subagent install security-gate --tool codex
+ai-ops subagent diff
+ai-ops subagent update
+ai-ops subagent uninstall security-gate
+```
+
+Subagent는 항상 global tool home에 설치됩니다. Codex는 `.codex/agents/<id>.toml`, Claude Code는 `.claude/agents/<id>.md`, Gemini CLI는 `.gemini/agents/<id>.md`를 사용하고, 상태는 `.ai-ops/subagents-manifest.json`에만 기록합니다.
 
 ## Deprecated Old Model
 

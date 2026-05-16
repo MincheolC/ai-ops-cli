@@ -34,6 +34,7 @@ flowchart LR
 │       ├── data/
 │       │   ├── rules/      # old model core rule data
 │       │   ├── skills/     # global skill source/catalog data
+│       │   ├── subagents/  # global subagent source/catalog 데이터
 │       │   └── presets.yaml
 │       └── README.md       # package-level transition contract
 ├── docs/
@@ -65,6 +66,7 @@ flowchart LR
 ## Global Assets
 
 skills와 subagents는 프로젝트에 복사하지 않습니다. 각 도구의 user/global discovery 규칙에 맞춰 설치하고, project manifest에는 기록하지 않습니다.
+global asset 명령은 `AI_OPS_HOME` 또는 `HOME`이 있어야 실행됩니다. 둘 다 없으면 cwd fallback 없이 실패합니다.
 
 유지하는 global asset 종류:
 
@@ -81,6 +83,23 @@ ai-ops skill diff
 ai-ops skill update
 ai-ops skill uninstall skill-load-check
 ```
+
+Subagent lifecycle도 global registry만 사용합니다.
+
+```bash
+ai-ops subagent list
+ai-ops subagent install security-gate --tool codex
+ai-ops subagent diff
+ai-ops subagent update
+ai-ops subagent uninstall security-gate
+```
+
+설치 위치는 도구별 global discovery 경로입니다.
+
+- Codex: `.codex/agents/<id>.toml`
+- Claude Code: `.claude/agents/<id>.md`
+- Gemini CLI: `.gemini/agents/<id>.md`
+- 상태 파일: `.ai-ops/subagents-manifest.json`
 
 ## Optional Specs Pack
 

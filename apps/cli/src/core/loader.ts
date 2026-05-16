@@ -2,8 +2,17 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { parse } from 'yaml';
 import { parseMarkdownFrontmatter } from './frontmatter.js';
-import { RuleSchema, PresetSchema, SkillCatalogSchema, SkillFrontmatterSchema } from './schemas/index.js';
-import type { Rule, Preset, Skill, SkillCatalog } from './schemas/index.js';
+import { parseFlatToml } from './subagent-toml.js';
+import {
+  CodexSubagentFrontmatterSchema,
+  RuleSchema,
+  PresetSchema,
+  SkillCatalogSchema,
+  SkillFrontmatterSchema,
+  SubagentCatalogSchema,
+  SubagentMarkdownFrontmatterSchema,
+} from './schemas/index.js';
+import type { Rule, Preset, Skill, SkillCatalog, Subagent, SubagentCatalog } from './schemas/index.js';
 
 // priority 내림차순 정렬 (높을수록 상단 → U-shaped attention)
 export const sortRulesByPriority = (rules: readonly Rule[]): Rule[] =>
@@ -113,6 +122,66 @@ export const loadAllSkills = (skillsDir: string): Skill[] => {
       included_in_presets: [...entry.included_in_presets],
       directory,
       files,
+    };
+  });
+};
+
+const readRequiredTextFile = (filePath: string): string => {
+  try {
+    return readFileSync(filePath, 'utf-8');
+  } catch (error) {
+    const cause = error instanceof Error ? `: ${error.message}` : '';
+    throw new Error(`Required subagent source file is missing: ${filePath}${cause}`);
+  }
+};
+
+const assertSubagentFrontmatterName = (params: { id: string; tool: string; name: string }): void => {
+  if (params.name !== params.id) {
+    throw new Error(`Subagent ${params.tool} frontmatter name mismatch: ${params.id} != ${params.name}`);
+  }
+};
+
+export const loadSubagentCatalog = (subagentsDir: string): SubagentCatalog =>
+  SubagentCatalogSchema.parse(JSON.parse(readFileSync(resolve(subagentsDir, 'subagent-registry.json'), 'utf-8')));
+
+export const loadAllSubagents = (subagentsDir: string): Subagent[] => {
+  const catalog = loadSubagentCatalog(subagentsDir);
+  const entries = [...catalog.subagents].sort((a, b) => a.id.localeCompare(b.id));
+
+  return entries.map((entry) => {
+    const directory = resolve(subagentsDir, entry.source_path);
+    const prompt = readRequiredTextFile(join(directory, 'PROMPT.md'));
+    const claudeRaw = readRequiredTextFile(join(directory, 'claude.frontmatter.yaml'));
+    const codexRaw = readRequiredTextFile(join(directory, 'codex.frontmatter.toml'));
+    const geminiRaw = readRequiredTextFile(join(directory, 'gemini.frontmatter.yaml'));
+    const claude = SubagentMarkdownFrontmatterSchema.parse(parse(claudeRaw));
+    const codex = CodexSubagentFrontmatterSchema.parse(parseFlatToml(codexRaw));
+    const gemini = SubagentMarkdownFrontmatterSchema.parse(parse(geminiRaw));
+
+    assertSubagentFrontmatterName({ id: entry.id, tool: 'claude', name: claude.name });
+    assertSubagentFrontmatterName({ id: entry.id, tool: 'codex', name: codex.name });
+    assertSubagentFrontmatterName({ id: entry.id, tool: 'gemini', name: gemini.name });
+
+    return {
+      id: entry.id,
+      supported_tools: [...entry.supported_tools],
+      source_path: entry.source_path,
+      directory,
+      prompt,
+      frontmatter: {
+        claude: {
+          raw: claudeRaw,
+          parsed: claude,
+        },
+        codex: {
+          raw: codexRaw,
+          parsed: codex,
+        },
+        gemini: {
+          raw: geminiRaw,
+          parsed: gemini,
+        },
+      },
     };
   });
 };

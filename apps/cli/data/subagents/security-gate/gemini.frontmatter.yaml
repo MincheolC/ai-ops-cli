@@ -1,0 +1,6 @@
+name: security-gate
+description: Decide whether a spec artifact or code change needs deeper security review.
+kind: local
+model: gemini-3-flash-preview
+temperature: 0
+max_turns: 6

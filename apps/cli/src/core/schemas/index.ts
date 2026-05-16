@@ -3,5 +3,8 @@ export * from './preset.schema.js';
 export * from './skill.schema.js';
 export * from './skill-catalog.schema.js';
 export * from './skill-registry.schema.js';
+export * from './subagent.schema.js';
+export * from './subagent-catalog.schema.js';
+export * from './subagent-manifest.schema.js';
 export * from './manifest.schema.js';
 export * from './project-layer.schema.js';
