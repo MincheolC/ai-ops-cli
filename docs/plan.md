@@ -4,7 +4,7 @@
 
 `ai-ops`는 프로젝트 안에 AI agent operating layer를 설치하고 유지하는 bash CLI다. 프로젝트에는 에이전트가 항상 읽어야 하는 운영 문서와 상태 인덱스만 둔다. skills와 subagents는 프로젝트에 복사하지 않고 사용자 환경의 global asset으로 설치한다.
 
-Phase 0 문서는 코드 동작을 바꾸지 않는 계약 고정 단계다. 현재 CLI 구현은 아직 old rules + skills scaffolder 모델을 포함할 수 있지만, 이 문서가 다음 major breaking release의 기준 계약이다.
+이 문서는 다음 major breaking release의 기준 계약이다. 현재 repo 구현은 project operating layer, global skills, global subagents, optional packs 경계를 기준으로 동작하며, old rules + skills scaffolder 모델은 deprecated 문맥으로만 남긴다.
 
 ```text
 Project repo
@@ -225,4 +225,4 @@ global subagent lifecycle만 관리한다. Phase 3에서 도입한다.
 - legacy externalized rule migration
 - root `specs/`
 
-Phase 0에서는 코드와 스키마를 수정하지 않는다. 위 항목은 후속 phase의 제거 방향을 고정하기 위해 deprecated로 표시한다.
+위 항목은 새 operating layer 계약 밖에 있는 historical/deprecated 모델로만 남긴다.

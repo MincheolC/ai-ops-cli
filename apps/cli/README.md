@@ -1,10 +1,10 @@
 # ai-ops-cli
 
-`ai-ops-cli`는 다음 major release에서 프로젝트에 AI agent operating layer를 설치하고, 사용자 환경에 agent skills/subagents를 설치하는 CLI로 전환됩니다.
+`ai-ops-cli`는 프로젝트에 AI agent operating layer를 설치하고, 사용자 환경에 agent skills/subagents를 설치하는 CLI입니다.
 
-이 문서는 Phase 0에서 고정한 planned breaking model을 설명합니다. 현재 npm 배포 또는 현재 코드의 일부 명령은 아직 old rules + skills scaffolder 모델로 동작할 수 있습니다.
+이 문서는 현재 구현된 breaking model을 설명합니다. old rules + skills scaffolder 모델은 deprecated 문맥으로만 남깁니다.
 
-## Planned Breaking Model
+## Current Breaking Model
 
 ```mermaid
 flowchart TD
@@ -160,7 +160,9 @@ npm run build --workspace=apps/cli
 npm run test --workspace=apps/cli
 ```
 
-코드 변경 phase에서는 `npm run check`를 기본 검증으로 사용합니다. Phase 0은 문서 계약만 수정하므로 `npm test`가 필수 완료 기준은 아닙니다.
+코드와 운영 문서 변경은 `npm run check`를 기본 검증으로 사용합니다. CLI 배포 산출물 확인은 `npm run build`와 `npm run compile`을 함께 사용합니다.
+
+Self-dogfood 검증은 `npm run build` 후 이 repo에 `init --tool codex --tool gemini --tool claude-code`를 적용하고, `diff`, `audit`, `update --force`, `uninstall --yes`, 재-`init`, 재-`audit` 순서로 확인합니다. 이 repo에는 `spec-lifecycle` pack을 설치하지 않고 `pack list`에서 `not installed` 상태만 확인합니다.
 
 ## 관련 문서
 

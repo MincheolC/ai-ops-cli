@@ -1,8 +1,8 @@
 # ai-ops-scaffolder
 
-`ai-ops`의 다음 major breaking model을 설계하고 구현하는 모노레포입니다. 새 제품 정의는 “프로젝트에는 AI agent operating layer를 설치하고, 사용자 환경에는 agent skills/subagents를 설치한다”입니다.
+`ai-ops`의 다음 major breaking model을 설계하고 구현한 모노레포입니다. 새 제품 정의는 “프로젝트에는 AI agent operating layer를 설치하고, 사용자 환경에는 agent skills/subagents를 설치한다”입니다.
 
-현재 코드는 old rules + skills scaffolder 모델에서 새 모델로 전환 중입니다. 이 README는 Phase 0에서 고정한 목표 계약을 설명하며, 실제 CLI 동작은 후속 phase 구현 전까지 일부 old model과 다를 수 있습니다.
+현재 repo 구현은 이 operating layer 모델을 기준으로 동작합니다. old rules + skills scaffolder 모델은 deprecated 문맥으로만 남깁니다.
 
 ## 목표 모델
 
@@ -29,16 +29,16 @@ flowchart LR
 │   └── cli/
 │       ├── src/
 │       │   ├── bin/        # CLI entrypoint
-│       │   ├── commands/   # init/skill/update/diff/uninstall
-│       │   ├── core/       # schemas, loader, renderer, registry
-│       │   └── lib/        # install/uninstall/settings helpers
+│       │   ├── commands/   # init/diff/audit/update/uninstall/skill/subagent/pack
+│       │   ├── core/       # schemas, loader, renderer, registry, project layer
+│       │   └── lib/        # global asset and legacy helper utilities
 │       ├── data/
-│       │   ├── rules/      # old model core rule data
+│       │   ├── context-layer/ # project operating layer templates
 │       │   ├── skills/     # global skill source/catalog data
 │       │   ├── packs/      # optional project pack source data
 │       │   ├── subagents/  # global subagent source/catalog 데이터
 │       │   └── presets.yaml
-│       └── README.md       # package-level transition contract
+│       └── README.md       # package-level operating layer contract
 ├── docs/
 │   ├── plan.md                     # master blueprint
 │   ├── implementation-playbook.md  # phase execution guide
@@ -162,7 +162,9 @@ npm run dev
 npm run check
 ```
 
-Phase 0은 문서 계약 고정 단계라 코드 검증은 필수 완료 기준이 아닙니다. 코드 phase에서는 `npm run check`를 기본 검증으로 사용합니다.
+코드와 운영 문서 변경은 `npm run check`를 기본 검증으로 사용합니다. CLI 배포 산출물 확인은 `npm run build`와 `npm run compile`을 함께 사용합니다.
+
+Self-dogfood 검증은 이 repo에서 root `AGENTS.md`, `GEMINI.md`, `CLAUDE.md`, `docs/agent/*`, `docs/business/*`, `docs/docs-status.md`, `.ai-ops/manifest.json`, `.ai-ops/context-layer.json`를 실제 설치한 뒤 수행합니다. legacy `.claude/CLAUDE.md`와 `.claude/rules/*`는 공식 operating layer가 아니며, Claude Code adapter는 root `CLAUDE.md`만 사용합니다.
 
 ## Docs
 

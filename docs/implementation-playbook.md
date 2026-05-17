@@ -2,7 +2,7 @@
 
 이 문서는 [docs/plan.md](./plan.md)의 agent operating layer 계약을 실제 phase 실행 순서와 검증 기준으로 옮긴다.
 
-Phase 0은 문서 계약 고정 단계다. CLI 구현, schema, renderer, manifest, 테스트 코드는 수정하지 않는다.
+Phase 0은 문서 계약 고정 단계였다. 현재 repo 구현은 Phase 1-6 operating layer 모델을 기준으로 동작한다.
 
 ## 공통 실행 원칙
 
@@ -18,7 +18,7 @@ Phase 0은 문서 계약 고정 단계다. CLI 구현, schema, renderer, manifes
 범위:
 
 - `docs/plan.md`를 새 master blueprint로 고정한다.
-- README 계열 문서에 planned breaking model과 deprecated old model을 명시한다.
+- README 계열 문서에 breaking model과 deprecated old model을 명시한다.
 - historical 문서는 현재 계약으로 오해되지 않도록 상태를 표시한다.
 
 완료 기준:
@@ -208,9 +208,9 @@ npm run compile
 
 범위:
 
-- 모든 phase 구현 후 실제 프로젝트에서 old uninstall 후 new init을 수행한다.
+- 모든 phase 구현 후 실제 프로젝트에서 old artifact 정리 후 new init을 수행한다.
 - 첫 dogfood 대상은 이 repo다.
-- 이후 대표 프로젝트 1개에 적용한다.
+- 외부 대표 프로젝트는 이번 phase에서 직접 수정하지 않고 적용 체크리스트 기준으로 후속 실행한다.
 - Codex/Gemini/Claude에서 adapter가 `AGENTS.md` canonical 흐름을 실제로 유도하는지 확인한다.
 
 완료 기준:
@@ -220,9 +220,74 @@ npm run compile
 - global skills/subagents가 project repo에 복사되지 않는다.
 - optional `docs/specs/` pack이 필요한 프로젝트에만 설치된다.
 
+Self-dogfood 절차:
+
+```bash
+npm run build
+node apps/cli/dist/bin/index.js init --tool codex --tool gemini --tool claude-code
+node apps/cli/dist/bin/index.js diff
+node apps/cli/dist/bin/index.js audit
+node apps/cli/dist/bin/index.js update --force
+node apps/cli/dist/bin/index.js diff
+node apps/cli/dist/bin/index.js uninstall --yes
+node apps/cli/dist/bin/index.js init --tool codex --tool gemini --tool claude-code
+node apps/cli/dist/bin/index.js audit
+```
+
+이 repo의 최종 project layer:
+
+- root `AGENTS.md`, `GEMINI.md`, `CLAUDE.md`
+- `docs/agent/*`
+- `docs/business/*`
+- `docs/docs-status.md`
+- `.ai-ops/manifest.json`
+- `.ai-ops/context-layer.json`
+
+이 repo에서는 legacy `.claude/CLAUDE.md`와 `.claude/rules/*`를 제거하고, Claude Code adapter는 root `CLAUDE.md`만 둔다. Claude Code는 project rules로 `./.claude/rules/*.md`도 로드하므로, old sourceHash 규칙 파일을 남기면 new operating layer와 old model 지침이 함께 주입된다. `.claude/plans/*`와 `.claude/settings.local.json` 같은 기존 운영/로컬 파일은 Claude runtime rule 경로가 아니므로 이번 phase의 project layer adapter에서는 제외한다.
+
+Optional pack 검증:
+
+```bash
+node apps/cli/dist/bin/index.js pack list
+```
+
+이 repo는 `.codex/plans/*` 중심으로 phase plan을 관리하므로 `spec-lifecycle` pack을 설치하지 않는다. `pack list`에서 `spec-lifecycle - not installed` 상태를 확인한다.
+
+Global asset smoke:
+
+```bash
+home="$(mktemp -d)"
+AI_OPS_HOME="$home" node apps/cli/dist/bin/index.js skill install doc-impact-reviewer --tool codex
+AI_OPS_HOME="$home" node apps/cli/dist/bin/index.js subagent install security-gate --tool codex --tool claude-code --tool gemini
+AI_OPS_HOME="$home" node apps/cli/dist/bin/index.js subagent install security-reviewer --tool codex --tool claude-code --tool gemini
+```
+
+검증 후 repo에 다음 경로가 생기면 실패다.
+
+- `.agents/skills`
+- `.codex/agents`
+- `.claude/agents`
+- `.gemini/agents`
+- `.ai-ops/skills-manifest.json`
+- `.ai-ops/subagents-manifest.json`
+- `.claude/rules`
+
+`.codex/plans`는 이 repo의 기존 운영 파일이므로 global asset 침범 여부 판단 대상에서 제외한다.
+
+외부 대표 프로젝트 적용 체크리스트:
+
+- 적용 전 old `AGENTS.md`, `GEMINI.md`, `.claude/CLAUDE.md`, `.claude/rules/*`, `.ai-ops-manifest.json`, root `specs/` 존재 여부를 기록한다.
+- old CLI가 설치되어 있으면 old `ai-ops uninstall`로 제거하고, 불가능하면 제거할 legacy artifact를 명시적으로 review한다.
+- 새 CLI로 `init --tool codex` 또는 해당 프로젝트가 실제 사용하는 tool set을 지정해 설치한다.
+- `diff`, `audit`, `update --force`, `diff`를 실행한다.
+- 해당 프로젝트가 spec lifecycle을 실제로 쓰는 경우에만 `pack install spec-lifecycle`을 실행한다.
+- temp `AI_OPS_HOME` 또는 실제 사용자 home 중 하나를 명시해 skill/subagent 설치 위치가 repo 밖인지 확인한다.
+- 적용 후 root `AGENTS.md`가 canonical entrypoint이고 tool adapter가 중복 운영 규칙을 담지 않는지 확인한다.
+- `git status --short`로 project-owned 문서 변경과 ai-ops managed 변경을 분리해 리뷰한다.
+
 ## 운영 규칙
 
 - 계약이 바뀌면 먼저 [docs/plan.md](./plan.md)를 수정한다.
 - phase 실행 절차나 검증 기준이 바뀌면 이 문서를 수정한다.
 - temporary compatibility는 명시적으로 만료 조건을 적는다.
-- 실제 프로젝트 재설치는 통합 검증 phase 전까지 하지 않는다.
+- 외부 프로젝트 재설치는 Phase 6 체크리스트 기준으로 별도 review 가능한 변경으로 수행한다.

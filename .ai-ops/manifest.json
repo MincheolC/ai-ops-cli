@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "kind": "project-operating-layer",
+  "tools": [
+    "codex",
+    "gemini",
+    "claude-code"
+  ],
+  "managed_files": [
+    {
+      "path": "AGENTS.md",
+      "sourceHash": "3f6980"
+    },
+    {
+      "path": "CLAUDE.md",
+      "sourceHash": "3f6980"
+    },
+    {
+      "path": "docs/agent/checks/impact-checklist.md",
+      "sourceHash": "3f6980"
+    },
+    {
+      "path": "docs/agent/checks/review-checklist.md",
+      "sourceHash": "3f6980"
+    },
+    {
+      "path": "docs/agent/rules/doc-update-rules.md",
+      "sourceHash": "3f6980"
+    },
+    {
+      "path": "docs/agent/rules/routing-rules.md",
+      "sourceHash": "3f6980"
+    },
+    {
+      "path": "docs/agent/rules/stop-rules.md",
+      "sourceHash": "3f6980"
+    },
+    {
+      "path": "docs/agent/workflow.md",
+      "sourceHash": "3f6980"
+    },
+    {
+      "path": "GEMINI.md",
+      "sourceHash": "3f6980"
+    }
+  ],
+  "project_files": [
+    {
+      "path": "docs/agent/maps/codebase-map.md",
+      "templateHash": "6907af",
+      "created": true
+    },
+    {
+      "path": "docs/business/business-rules.md",
+      "templateHash": "9eddc3",
+      "created": true
+    },
+    {
+      "path": "docs/docs-status.md",
+      "templateHash": "8211f3",
+      "created": true
+    }
+  ],
+  "packs": [],
+  "settings": {},
+  "sourceHash": "3f6980",
+  "cliVersion": "0.2.6",
+  "generatedAt": "2026-05-16T11:06:18.637Z"
+}
