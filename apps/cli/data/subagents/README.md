@@ -1,5 +1,7 @@
 # Subagent Authoring Guide
 
+[Korean](./README.ko.md)
+
 This directory is the source of truth for global agent subagents.
 
 ## Directory Shape

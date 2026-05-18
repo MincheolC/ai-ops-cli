@@ -9,6 +9,8 @@ update_when:
 ---
 # Specs
 
+[Korean](./README.ko.md)
+
 This document is Reserved. Do not use this document as current decision-making evidence until the project fills in real spec lifecycle documents.
 
 ## Directory Structure

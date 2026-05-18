@@ -1,10 +1,12 @@
 # ai-ops-cli
 
-`ai-ops-cli`의 다음 major breaking model을 설계하고 구현한 모노레포입니다. 새 제품 정의는 “프로젝트에는 AI agent operating layer를 설치하고, 사용자 환경에는 agent skills/subagents를 설치한다”입니다.
+[Korean](./README.ko.md)
 
-현재 repo 구현은 이 operating layer 모델을 기준으로 동작합니다. old rules + skills scaffolder 모델은 deprecated 문맥으로만 남깁니다.
+`ai-ops-cli` is the monorepo for designing and implementing the next major breaking model of `ai-ops-cli`. The new product definition is: install an AI agent operating layer into a project, and install reusable agent skills/subagents into the user's global tool environment.
 
-## 목표 모델
+The current implementation follows this operating-layer model. The old rules + skills scaffolder model remains only as deprecated context.
+
+## Target Model
 
 ```mermaid
 flowchart LR
@@ -34,10 +36,10 @@ flowchart LR
 │       │   └── lib/        # global asset and legacy helper utilities
 │       ├── data/
 │       │   ├── context-layer/ # project operating layer templates
-│       │   ├── skills/     # global skill source/catalog data
-│       │   ├── packs/      # optional project pack source data
-│       │   └── subagents/  # global subagent source/catalog 데이터
-│       └── README.md       # package-level operating layer contract
+│       │   ├── skills/        # global skill source/catalog data
+│       │   ├── packs/         # optional project pack source data
+│       │   └── subagents/     # global subagent source/catalog data
+│       └── README.md          # package-level operating layer contract
 ├── docs/
 │   ├── plan.md                     # master blueprint
 │   ├── implementation-playbook.md  # phase execution guide
@@ -48,7 +50,7 @@ flowchart LR
 
 ## Project Operating Layer
 
-새 모델에서 project repo에 설치되는 대상은 다음 운영 문서와 상태 파일입니다.
+In the new model, the project repo receives these operating documents and state files:
 
 - `AGENTS.md`
 - `GEMINI.md`
@@ -63,20 +65,41 @@ flowchart LR
 - `.ai-ops/manifest.json`
 - `.ai-ops/context-layer.json`
 
-`AGENTS.md`가 canonical entrypoint입니다. `docs/agent/rules/00-agent-baseline.md`는 협업 태도, 커뮤니케이션, 코드 철학, naming, planning 기본값을 담고 `AGENTS.md` 직후 먼저 읽습니다. `GEMINI.md`와 `CLAUDE.md`는 tool adapter로만 두고 운영 규칙을 중복하지 않습니다.
+`AGENTS.md` is the canonical entrypoint. `docs/agent/rules/00-agent-baseline.md` is read immediately after `AGENTS.md` and contains the default collaboration posture, communication rules, code philosophy, naming rules, and planning defaults. `GEMINI.md` and `CLAUDE.md` are thin tool adapters and should not duplicate canonical operating rules.
+
+## Editing FAQ
+
+### What does `ai-ops update` overwrite?
+
+`AGENTS.md`, `GEMINI.md`, `CLAUDE.md`, `docs/agent/rules/*`, `docs/agent/checks/*`, and `docs/agent/workflow.md` are ai-ops managed documents. In these files, the region from `<!-- ai-ops:start -->` through `<!-- ai-ops:end -->` is CLI template content. `ai-ops update` reapplies the current CLI template to that region. User edits inside that region are not preserved across update.
+
+`.ai-ops/manifest.json` and `.ai-ops/context-layer.json` are also not direct-edit files. They are CLI state files for installation state and document indexing.
+
+### Which files should users edit directly?
+
+Project knowledge belongs in project-owned documents. The default project-owned documents are `docs/agent/maps/codebase-map.md`, `docs/business/business-rules.md`, and `docs/docs-status.md`. `docs/agent/maps/codebase-map.md` and `docs/business/business-rules.md` start as Reserved templates, but once the project fills them with real content, update does not automatically overwrite them.
+
+`docs/docs-status.md` is project-owned, but it is not a free-form notebook. It is the context-layer registry. Update it together with document status/frontmatter changes; the update flow may also normalize its table from the manifest and current document frontmatter.
+
+### Where should project-specific agent rules go?
+
+The default layer currently has project-owned documents for project structure and business rules, but it does not yet provide a first-class Active template for project-specific agent behavior rules. Because of that, adding rules inside the managed region of `AGENTS.md` or inside a tool adapter is not an update-safe contract.
+
+To support project-specific agent rules safely, the next product extension should add a project-owned Active document such as `docs/agent/rules/project-rules.md` and have the manifest, context-layer index, and docs-status table track it together.
 
 ## Global Assets
 
-skills와 subagents는 프로젝트에 복사하지 않습니다. 각 도구의 user/global discovery 규칙에 맞춰 설치하고, project manifest에는 기록하지 않습니다.
-global asset 명령은 `AI_OPS_HOME` 또는 `HOME`이 있어야 실행됩니다. 둘 다 없으면 cwd fallback 없이 실패합니다.
+Skills and subagents are not copied into the project repo. The CLI installs them into each tool's user/global discovery path and does not record them in the project manifest.
 
-유지하는 global asset 종류:
+Global asset commands require `AI_OPS_HOME` or `HOME`. If neither exists, they fail closed instead of falling back to the current working directory.
+
+Maintained global asset types:
 
 - reference skills
 - task skills
 - subagents
 
-현재 skill lifecycle은 global registry만 사용합니다.
+The current skill lifecycle uses only the global registry.
 
 ```bash
 ai-ops skill list
@@ -87,9 +110,9 @@ ai-ops skill update
 ai-ops skill uninstall skill-load-check
 ```
 
-`doc-impact-reviewer`는 변경 완료 또는 커밋 직전에 diff를 보고 갱신해야 할 운영 문서 후보를 판정하는 task skill입니다. 수동으로 `$doc-impact-reviewer`를 호출해 사용하며, 사용자 확인 전에는 문서를 수정하지 않고 직접 staging/commit도 하지 않습니다.
+`doc-impact-reviewer` is a task skill that reviews diffs near the end of work or before commit and classifies operating-document update candidates. It is invoked manually with `$doc-impact-reviewer`; it does not edit documents, stage files, or commit before user approval.
 
-Subagent lifecycle도 global registry만 사용합니다.
+The subagent lifecycle also uses only the global registry.
 
 ```bash
 ai-ops subagent list
@@ -99,16 +122,16 @@ ai-ops subagent update
 ai-ops subagent uninstall security-gate
 ```
 
-설치 위치는 도구별 global discovery 경로입니다.
+Tool-specific install paths:
 
 - Codex: `.codex/agents/<id>.toml`
 - Claude Code: `.claude/agents/<id>.md`
 - Gemini CLI: `.gemini/agents/<id>.md`
-- 상태 파일: `.ai-ops/subagents-manifest.json`
+- State file: `.ai-ops/subagents-manifest.json`
 
 ## Optional Specs Pack
 
-`docs/specs/`는 optional pack 위치로 고정합니다. spec lifecycle이 필요한 프로젝트만 설치합니다.
+`docs/specs/` is the fixed optional pack location. Install it only for projects that need the spec lifecycle.
 
 ```bash
 ai-ops init --tool codex
@@ -119,29 +142,29 @@ ai-ops pack update spec-lifecycle
 ai-ops pack uninstall spec-lifecycle
 ```
 
-`spec-lifecycle` pack은 `.ai-ops/manifest.json`이 있는 project operating layer 안에서만 동작합니다. 설치 시 `docs/specs/README.md`와 `docs/specs/README.ko.md`는 `Reserved` 문서로 context-layer와 `docs/docs-status.md`에 기록하고, `.gitkeep` 파일은 일반 pack file로만 manifest에 기록합니다.
+The `spec-lifecycle` pack runs only inside a project operating layer with `.ai-ops/manifest.json`. On install, `docs/specs/README.md` and `docs/specs/README.ko.md` are registered as Reserved documents in the context-layer and `docs/docs-status.md`; `.gitkeep` files are tracked only as regular pack files in the manifest.
 
 Deprecated old model:
 
-- root `specs/`는 새 모델의 설치 위치가 아닙니다.
-- old `ai-ops spec init` 방식은 optional pack 설치 모델로 대체되었습니다.
+- root `specs/` is no longer the install location.
+- old `ai-ops spec init` is replaced by the optional pack install model.
 
 ## Deprecated Old Model
 
-다음 항목은 현재 코드나 과거 문서에 남아 있을 수 있지만 새 계약에서는 제거 대상입니다.
+The following items may still appear in current code or older docs, but they are outside the new contract:
 
 - preset-first init UX
-- project scope skill 설치
+- project-scope skill installation
 - `ai-ops skill install --project`
 - `.ai-ops-manifest.json`
 - legacy manifest migration
 - root `specs/`
 
-이번 전환은 breaking release입니다. 기존 프로젝트는 old CLI로 uninstall한 뒤 새 major CLI로 다시 init합니다.
+This transition is a breaking release. Existing projects should run uninstall with the old CLI, install the new major CLI, and run init again with the new model.
 
 ## Development
 
-저장소 루트 기준:
+From the repository root:
 
 ```bash
 npm install
@@ -149,7 +172,7 @@ npm run build
 npm test
 ```
 
-자주 쓰는 명령:
+Common commands:
 
 ```bash
 # Build and print CLI help from dist
@@ -162,9 +185,9 @@ npm run dev
 npm run check
 ```
 
-코드와 운영 문서 변경은 `npm run check`를 기본 검증으로 사용합니다. CLI 배포 산출물 확인은 `npm run build`와 `npm run compile`을 함께 사용합니다.
+Use `npm run check` as the default validation for code and operating-document changes. For CLI release artifacts, run both `npm run build` and `npm run compile`.
 
-Self-dogfood 검증은 이 repo에서 root `AGENTS.md`, `GEMINI.md`, `CLAUDE.md`, `docs/agent/*`, `docs/business/*`, `docs/docs-status.md`, `.ai-ops/manifest.json`, `.ai-ops/context-layer.json`를 실제 설치한 뒤 수행합니다. legacy `.claude/CLAUDE.md`와 `.claude/rules/*`는 공식 operating layer가 아니며, Claude Code adapter는 root `CLAUDE.md`만 사용합니다.
+Self-dogfood validation installs the root `AGENTS.md`, `GEMINI.md`, `CLAUDE.md`, `docs/agent/*`, `docs/business/*`, `docs/docs-status.md`, `.ai-ops/manifest.json`, and `.ai-ops/context-layer.json` in this repo. Legacy `.claude/CLAUDE.md` and `.claude/rules/*` are not part of the official operating layer; the Claude Code adapter is the root `CLAUDE.md`.
 
 ## Docs
 

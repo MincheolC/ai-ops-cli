@@ -1,6 +1,8 @@
-# Official Documentation Compression Prompt
+# 공식 문서 압축 프롬프트
 
-[Korean](./README.ko.md)
+[English](./README.md)
+
+아래 프롬프트는 긴 공식 문서를 agent instruction reference로 압축할 때 사용하는 기준입니다. 프롬프트 본문은 도구 간 공유를 위해 영어로 유지합니다.
 
 ```txt
 [System Role]

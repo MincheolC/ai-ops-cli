@@ -1,5 +1,7 @@
 # Skill 작성 가이드
 
+[English](./README.md)
+
 이 디렉터리는 설치 가능한 agent skill의 source of truth입니다.
 
 ## 용어

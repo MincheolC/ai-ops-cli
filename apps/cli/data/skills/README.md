@@ -1,5 +1,7 @@
 # Skill Authoring Guide
 
+[Korean](./README.ko.md)
+
 This directory is the source of truth for installable agent skills.
 
 ## Terms

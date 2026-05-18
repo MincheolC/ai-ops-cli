@@ -1,5 +1,7 @@
 # Subagent 작성 가이드
 
+[English](./README.md)
+
 이 디렉터리는 global agent subagent의 source of truth입니다.
 
 ## 디렉터리 구조
