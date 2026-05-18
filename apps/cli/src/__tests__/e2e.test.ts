@@ -6,6 +6,7 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { resolveManifestPath } from '@/core/index.js';
 
 const BIN_PATH = new URL('../../dist/bin/index.js', import.meta.url).pathname;
+const PACKAGE_JSON_PATH = new URL('../../package.json', import.meta.url).pathname;
 
 // dist/ 빌드가 없어도 compiler API 통합 테스트는 실행 가능
 // subprocess 테스트는 dist 존재 시에만 실행
@@ -20,9 +21,10 @@ const setup = () => {
 // subprocess: --version / --help (dist 빌드 필요)
 // ─────────────────────────────────────────────────────────────
 describe.skipIf(!distExists)('bin subprocess', () => {
-  it('--version returns 0.1.0', () => {
+  it('--version returns package version', () => {
+    const packageJson = JSON.parse(readFileSync(PACKAGE_JSON_PATH, 'utf-8')) as { version: string };
     const output = execFileSync(process.execPath, [BIN_PATH, '--version'], { encoding: 'utf-8' });
-    expect(output.trim()).toBe('0.1.0');
+    expect(output.trim()).toBe(packageJson.version);
   });
 
   it('--help contains command names', () => {

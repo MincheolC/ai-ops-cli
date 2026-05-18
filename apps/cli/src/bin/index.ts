@@ -37,10 +37,11 @@ import {
   codexHookStatusCommand,
   codexHookUninstallCommand,
 } from '../commands/codex-hook.js';
+import { getCliVersion } from '../core/index.js';
 
 const program = new Command();
 
-program.name('ai-ops').description('AI agent operating layer manager').version('0.1.0');
+program.name('ai-ops').description('AI agent operating layer manager').version(getCliVersion());
 
 program
   .command('init')
