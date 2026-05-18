@@ -5,6 +5,35 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-05-18
+
+### Breaking
+
+- `ai-ops`의 제품 모델을 기존 rules/skills scaffolder에서 프로젝트 AI agent operating layer 관리자로 전환. 기존 사용자는 자동 migration을 기대하지 말고 새 setup 경로로 재설치하는 breaking release로 다뤄야 함.
+- project-owned docs/state와 user/global agent assets의 ownership boundary를 분리. 프로젝트 운영 문서와 `.ai-ops/*` 상태는 repo-local로 관리하고, skills/subagents는 사용자 환경의 global manifest로 관리함.
+
+### Added
+
+- `feat(cli)`: project operating layer lifecycle 추가 — `.ai-ops/manifest.json`과 `.ai-ops/context-layer.json`을 기준으로 `init`, `update`, `diff`, `audit`, `uninstall` 동작을 관리
+- `feat(skill)`: global skill lifecycle 단순화 — skills manifest를 user/global scope로 이동하고 project directory를 설치 상태 저장소로 사용하지 않도록 변경
+- `feat(subagent)`: `subagent install|uninstall` lifecycle 추가 — `security-gate`, `security-reviewer` subagent를 Codex, Claude Code, Gemini용 renderer로 설치
+- `feat(pack)`: 선택형 `spec-lifecycle` pack 추가 — `docs/specs/README.md`, `README.ko.md`, `baseline/`, `initial-build/` 구조를 project-local pack으로 설치
+- `feat(skill)`: `doc-impact-reviewer` task skill 추가 — working tree와 staged diff를 모두 확인하도록 계약화
+- `docs`: `AGENTS.md`, `GEMINI.md`, `CLAUDE.md`, `docs/agent/*`, `docs/docs-status.md` 기반의 canonical agent operating layer 문서 세트 추가
+
+### Changed
+
+- `refactor(cli)`: `init`, `update`, `diff`, `audit`, `uninstall`이 공통 project-layer 엔진과 manifest 기준을 공유하도록 재구성
+- `refactor(cli)`: 기존 `spec init` 흐름을 optional pack lifecycle로 이동하고 `docs/specs/`를 기준 경로로 정리
+- `docs`: README, CLI README, implementation playbook, plan 문서를 현재 agent operating layer contract 기준으로 갱신
+- `chore`: package/workspace naming과 repository metadata를 `ai-ops-cli` 기준으로 정리
+
+### Fixed
+
+- `fix(cli)`: invalid manifest와 project-layer apply error를 명확히 분리해 실패 메시지와 exit behavior를 안정화
+- `fix(cli)`: project-owned status가 re-init 시 stale 상태로 남지 않도록 refresh
+- `fix(cli)`: `pack update`가 project operating layer 미설치 상태에서 조용히 성공하지 않고 복구 가능한 메시지와 함께 실패하도록 수정
+
 ## [0.2.6] - 2026-05-05
 
 ## [0.2.5] - 2026-05-05
