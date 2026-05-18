@@ -126,7 +126,10 @@ const PROJECT_OWNED_PATHS = new Set<string>([
   'docs/business/business-rules.md',
 ]);
 
-const RESERVED_DOCUMENT_WARNING = '판단 근거로 사용하지 마세요';
+const RESERVED_DOCUMENT_WARNINGS = [
+  '판단 근거로 사용하지 마세요',
+  'Do not use this document as current decision-making evidence',
+] as const;
 
 // ----- path helpers -----
 
@@ -240,11 +243,14 @@ const shouldIncludeTemplate = (relativePath: string, tools: readonly ProjectLaye
 const buildDocsStatusRows = (specs: readonly ProjectLayerTemplateSpec[]): string =>
   specs.map((spec) => `| ${spec.path} | ${spec.frontmatter.status} | ${spec.frontmatter.owner} |`).join('\n');
 
+const includesReservedDocumentWarning = (content: string): boolean =>
+  RESERVED_DOCUMENT_WARNINGS.some((warning) => content.includes(warning));
+
 const loadTemplateSpec = (relativePath: string, content: string): ProjectLayerTemplateSpec => {
   const frontmatter = parseProjectLayerFrontmatter(content);
   const ownership = PROJECT_OWNED_PATHS.has(relativePath) ? 'project' : 'managed';
 
-  if (frontmatter.status === 'Reserved' && !content.includes(RESERVED_DOCUMENT_WARNING)) {
+  if (frontmatter.status === 'Reserved' && !includesReservedDocumentWarning(content)) {
     throw new Error(`Reserved template must include warning text: ${relativePath}`);
   }
 

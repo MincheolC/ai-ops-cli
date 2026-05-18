@@ -29,12 +29,20 @@ describe('pack source loading', () => {
     const packs = loadAllPacks(join(COMPILER_DATA_DIR, 'packs'));
 
     expect(packs.map((pack) => pack.id)).toEqual(['spec-lifecycle']);
-    expect(packs[0]?.documents.map((file) => file.path)).toEqual(['docs/specs/README.md']);
+    expect(packs[0]?.documents.map((file) => file.path)).toEqual([
+      'docs/specs/README.ko.md',
+      'docs/specs/README.md',
+    ]);
     expect(packs[0]?.files.map((file) => file.path)).toEqual([
       'docs/specs/baseline/.gitkeep',
       'docs/specs/initial-build/.gitkeep',
     ]);
-    expect(packs[0]?.documents[0]?.content).toContain('판단 근거로 사용하지 마세요');
+    expect(packs[0]?.documents.find((file) => file.path === 'docs/specs/README.md')?.content).toContain(
+      'Do not use this document as current decision-making evidence',
+    );
+    expect(packs[0]?.documents.find((file) => file.path === 'docs/specs/README.ko.md')?.content).toContain(
+      '판단 근거로 사용하지 마세요',
+    );
   });
 });
 
@@ -58,19 +66,27 @@ describe('project layer pack lifecycle', () => {
       const result = installProjectLayerPack({ basePath: dir, packId: 'spec-lifecycle' });
 
       expect(existsSync(join(dir, 'docs/specs/README.md'))).toBe(true);
+      expect(existsSync(join(dir, 'docs/specs/README.ko.md'))).toBe(true);
       expect(existsSync(join(dir, 'docs/specs/baseline/.gitkeep'))).toBe(true);
       expect(existsSync(join(dir, 'docs/specs/initial-build/.gitkeep'))).toBe(true);
       expect(result.manifest.packs.map((pack) => pack.id)).toEqual(['spec-lifecycle']);
-      expect(result.manifest.packs[0]?.documents.map((file) => file.path)).toEqual(['docs/specs/README.md']);
+      expect(result.manifest.packs[0]?.documents.map((file) => file.path)).toEqual([
+        'docs/specs/README.ko.md',
+        'docs/specs/README.md',
+      ]);
       expect(result.manifest.packs[0]?.files.map((file) => file.path)).toEqual([
         'docs/specs/baseline/.gitkeep',
         'docs/specs/initial-build/.gitkeep',
       ]);
       expect(result.contextIndex.documents.map((document) => document.path)).toContain('docs/specs/README.md');
+      expect(result.contextIndex.documents.map((document) => document.path)).toContain('docs/specs/README.ko.md');
       expect(result.contextIndex.documents.map((document) => document.path)).not.toContain(
         'docs/specs/baseline/.gitkeep',
       );
       expect(readProjectFile(dir, 'docs/docs-status.md')).toContain('| docs/specs/README.md | Reserved | project |');
+      expect(readProjectFile(dir, 'docs/docs-status.md')).toContain(
+        '| docs/specs/README.ko.md | Reserved | project |',
+      );
       expect(auditProjectLayer(dir).issues).toHaveLength(0);
     } finally {
       cleanup();
@@ -85,7 +101,10 @@ describe('project layer pack lifecycle', () => {
       const readmePath = join(dir, 'docs/specs/README.md');
       writeFileSync(
         readmePath,
-        readFileSync(readmePath, 'utf-8').replace('## 디렉토리 구조', '## 프로젝트별 보강\n\n- 사용자 작성 내용\n\n## 디렉토리 구조'),
+        readFileSync(readmePath, 'utf-8').replace(
+          '## Directory Structure',
+          '## Project Notes\n\n- 사용자 작성 내용\n\n## Directory Structure',
+        ),
         'utf-8',
       );
 
@@ -107,7 +126,10 @@ describe('project layer pack lifecycle', () => {
       const readmePath = join(dir, 'docs/specs/README.md');
       writeFileSync(
         readmePath,
-        readFileSync(readmePath, 'utf-8').replace('## 디렉토리 구조', '## 프로젝트별 보강\n\n- 사용자 작성 내용\n\n## 디렉토리 구조'),
+        readFileSync(readmePath, 'utf-8').replace(
+          '## Directory Structure',
+          '## Project Notes\n\n- 사용자 작성 내용\n\n## Directory Structure',
+        ),
         'utf-8',
       );
 

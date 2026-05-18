@@ -22,15 +22,15 @@ A `task skill` is a procedural workflow.
 
 ### Task Skill Usage
 
-반복되는 운영 절차는 task skill로 둔다. 예를 들어 `doc-impact-reviewer`는 변경 완료 또는 커밋 직전에 diff를 확인하고, 갱신 후보 문서를 `required / recommended / not needed`로 제안한 뒤 사용자 승인 후 승인된 문서만 수정한다.
+Keep repeatable operating procedures as task skills. For example, `doc-impact-reviewer` checks the diff when work is finished or just before commit, classifies document update candidates as `required / recommended / not needed`, and edits only the documents the user approves.
 
-승인이 필요한 task skill은 자동 호출을 막는다.
+Disable automatic invocation for task skills that require explicit approval.
 
-- Codex: `agents/openai.yaml`에 `policy.allow_implicit_invocation: false`를 둔다.
-- Claude Code: `SKILL.md` frontmatter에 `disable-model-invocation: true`를 둔다.
-- Gemini CLI: skill-level explicit-only flag가 없으므로 본문에 명시 호출 전용 규칙을 적는다.
+- Codex: add `policy.allow_implicit_invocation: false` to `agents/openai.yaml`.
+- Claude Code: add `disable-model-invocation: true` to the `SKILL.md` frontmatter.
+- Gemini CLI: there is no skill-level explicit-only flag, so write the explicit-invocation rule in the skill body.
 
-설치 예시:
+Install example:
 
 ```bash
 ai-ops skill install doc-impact-reviewer --tool codex
@@ -41,6 +41,7 @@ ai-ops skill install doc-impact-reviewer --tool codex
 ```text
 apps/cli/data/skills/
   README.md
+  README.ko.md
   skill-registry.json
   reference-skills/
     <skill-name>/
@@ -173,9 +174,9 @@ task-skills/skill-load-check/
 
 ## Operating Task Skills
 
-`doc-impact-reviewer`는 운영 문서 영향도를 수동으로 검토하는 task skill이다.
+`doc-impact-reviewer` is a task skill for manually reviewing operating-document impact.
 
-- git status, diff, 변경 파일, 관련 operating-layer 문서를 읽는다.
-- 편집 전에 문서 후보와 리스크를 보고한다.
-- 사용자 확인 전에는 편집하지 않는다.
-- staging, commit, hook 설치를 직접 수행하지 않는다.
+- It reads git status, diffs, changed files, and related operating-layer documents.
+- It reports document candidates and risk before editing.
+- It does not edit before user confirmation.
+- It does not stage, commit, or install hooks by itself.

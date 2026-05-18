@@ -1,5 +1,5 @@
 <!-- ai-ops:start -->
-<!-- sourceHash: 3f6980 | generatedAt: 2026-05-16T11:06:18.637Z -->
+<!-- sourceHash: f5750a | generatedAt: 2026-05-18T02:11:46.608Z -->
 
 ---
 status: Active
@@ -15,6 +15,7 @@ update_when:
 ## 갱신 기준
 
 - 구현 동작이 바뀌면 해당 동작을 설명하는 `Active` 문서를 갱신한다.
+- 문서 상태/frontmatter 관리는 모든 Markdown이 아니라 context-layer와 `docs/docs-status.md`에 등록된 operating-layer 문서를 기준으로 한다.
 - `Reserved` 문서를 실제 판단 근거로 승격하려면 frontmatter와 `docs/docs-status.md`를 함께 갱신한다.
 - 오래된 문서는 삭제보다 `Archived` 전환을 우선 검토한다.
 

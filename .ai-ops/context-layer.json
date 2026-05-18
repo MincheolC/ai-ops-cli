@@ -92,7 +92,7 @@
         "document_policy_changes"
       ],
       "path": "docs/agent/rules/doc-update-rules.md",
-      "contentHash": "6867bd"
+      "contentHash": "f15926"
     },
     {
       "status": "Active",
@@ -161,5 +161,5 @@
       "contentHash": "8211f3"
     }
   ],
-  "generatedAt": "2026-05-16T11:06:18.637Z"
+  "generatedAt": "2026-05-18T02:11:46.608Z"
 }

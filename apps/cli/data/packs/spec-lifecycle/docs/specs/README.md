@@ -9,9 +9,9 @@ update_when:
 ---
 # Specs
 
-이 문서는 Reserved 상태입니다. 프로젝트가 실제 spec lifecycle 문서를 보강하기 전까지 현재 판단 근거로 사용하지 마세요.
+This document is Reserved. Do not use this document as current decision-making evidence until the project fills in real spec lifecycle documents.
 
-## 디렉토리 구조
+## Directory Structure
 
 ```text
 docs/specs/
@@ -19,8 +19,8 @@ docs/specs/
 └── initial-build/
 ```
 
-## 기준
+## Rules
 
-- `baseline/`은 승인된 제품/기술/UI 기준 문서를 둡니다.
-- `initial-build/`는 초기 구현 work packet과 관련 산출물을 둡니다.
-- 실제 판단 근거로 쓰기 전에 각 문서의 frontmatter와 `docs/docs-status.md` 상태를 갱신합니다.
+- `baseline/` contains approved product, technical, and UI baseline documents.
+- `initial-build/` contains initial implementation work packets and related artifacts.
+- Before using any document as decision-making evidence, update its frontmatter and its status in `docs/docs-status.md`.

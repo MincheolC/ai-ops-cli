@@ -73,10 +73,16 @@ type PackFileApplyResult = {
 const PACK_REGISTRY_FILENAME = 'pack-registry.json';
 const SPEC_LIFECYCLE_PACK_ID = 'spec-lifecycle';
 const PACK_INSTALL_ROOT = 'docs/specs/';
-const RESERVED_DOCUMENT_WARNING = '판단 근거로 사용하지 마세요';
+const RESERVED_DOCUMENT_WARNINGS = [
+  '판단 근거로 사용하지 마세요',
+  'Do not use this document as current decision-making evidence',
+] as const;
 const DEFAULT_PACKS_DIR = join(COMPILER_DATA_DIR, 'packs');
 
 // ----- source loading -----
+
+const includesReservedDocumentWarning = (content: string): boolean =>
+  RESERVED_DOCUMENT_WARNINGS.some((warning) => content.includes(warning));
 
 const readPackCatalog = (packsDir: string): PackCatalog =>
   PackCatalogSchema.parse(JSON.parse(readFileSync(join(packsDir, PACK_REGISTRY_FILENAME), 'utf-8')));
@@ -130,7 +136,7 @@ const splitPackSourceFiles = (files: readonly ProjectLayerPackSourceFile[]): {
 
     const { frontmatter } = parseMarkdownFrontmatter(file.content);
     const parsed = ProjectLayerFrontmatterSchema.parse(frontmatter);
-    if (parsed.status === 'Reserved' && !file.content.includes(RESERVED_DOCUMENT_WARNING)) {
+    if (parsed.status === 'Reserved' && !includesReservedDocumentWarning(file.content)) {
       throw new Error(`Reserved pack document must include warning text: ${file.path}`);
     }
     documents.push(file);
