@@ -8,7 +8,7 @@ import {
   computeContextPromotionFingerprint,
   CONTEXT_PROMOTION_DECISION,
   CONTEXT_PROMOTION_SCOPE,
-  evaluateContextPromotionPreToolUseHook,
+  evaluateContextPromotionPostToolUseHook,
   getContextPromotionStatus,
   isGitCommitCommand,
   pruneContextPromotionReceipts,
@@ -16,6 +16,8 @@ import {
   resolveContextPromotionReceiptIndexPath,
   upsertContextPromotionReceipt,
 } from '../context-promotion.js';
+
+const TEST_COMMIT_HASH = '0123456789abcdef0123456789abcdef01234567';
 
 const setupGitRepo = (withContextLayer = true): { dir: string; cleanup: () => void } => {
   const dir = mkdtempSync(join(tmpdir(), 'context-promotion-test-'));
@@ -88,6 +90,7 @@ describe('context promotion receipts', () => {
       });
 
       expect(after.receipt?.decision).toBe(CONTEXT_PROMOTION_DECISION.NO_PROMOTION);
+      expect(after.receipt?.commitHash).toBe(execFileSync('git', ['rev-parse', 'HEAD'], { cwd: dir, encoding: 'utf-8' }).trim());
       expect(after.receiptIndexPath?.startsWith(userHome)).toBe(true);
       expect(existsSync(join(dir, '.ai-ops/context-promotion'))).toBe(false);
     } finally {
@@ -100,6 +103,7 @@ describe('context promotion receipts', () => {
     expect(() =>
       buildContextPromotionReceipt({
         fingerprint: '1234567890abcdef',
+        commitHash: TEST_COMMIT_HASH,
         input: {
           decision: CONTEXT_PROMOTION_DECISION.NO_PROMOTION,
           summary: '',
@@ -112,6 +116,7 @@ describe('context promotion receipts', () => {
     expect(() =>
       buildContextPromotionReceipt({
         fingerprint: '1234567890abcdef',
+        commitHash: TEST_COMMIT_HASH,
         input: {
           decision: CONTEXT_PROMOTION_DECISION.PROMOTED,
           summary: 'Promoted core rule',
@@ -139,6 +144,7 @@ describe('context promotion receipts', () => {
           projectRoot: dir,
           receipt: buildContextPromotionReceipt({
             fingerprint,
+            commitHash: `0123456789abcdef0123456789abcdef0123456${fingerprint.at(-1) ?? '0'}`,
             resolvedAt,
             input: {
               decision: CONTEXT_PROMOTION_DECISION.PROMOTED,
@@ -163,7 +169,7 @@ describe('context promotion receipts', () => {
   });
 });
 
-describe('context promotion PreToolUse hook', () => {
+describe('context promotion PostToolUse hook', () => {
   it('detects git commit through common shell wrappers and boundaries', () => {
     expect(isGitCommitCommand('git commit -m test')).toBe(true);
     expect(isGitCommitCommand('cd /repo && git commit -m test')).toBe(true);
@@ -174,15 +180,15 @@ describe('context promotion PreToolUse hook', () => {
     expect(isGitCommitCommand('echo git commit')).toBe(false);
   });
 
-  it('allows non-commit commands and repos without ai-ops context layer', () => {
+  it('ignores non-commit commands, non-Bash tools, failed commands, and repos without ai-ops context layer', () => {
     const { dir, cleanup } = setupGitRepo(false);
     const userHome = mkdtempSync(join(tmpdir(), 'context-promotion-home-'));
     try {
       expect(
-        evaluateContextPromotionPreToolUseHook({
+        evaluateContextPromotionPostToolUseHook({
           userBasePath: userHome,
           hookInput: {
-            hook_event_name: 'PreToolUse',
+            hook_event_name: 'PostToolUse',
             cwd: dir,
             tool_name: 'Bash',
             tool_input: { command: 'git status' },
@@ -191,10 +197,35 @@ describe('context promotion PreToolUse hook', () => {
       ).toBeNull();
 
       expect(
-        evaluateContextPromotionPreToolUseHook({
+        evaluateContextPromotionPostToolUseHook({
           userBasePath: userHome,
           hookInput: {
-            hook_event_name: 'PreToolUse',
+            hook_event_name: 'PostToolUse',
+            cwd: dir,
+            tool_name: 'apply_patch',
+            tool_input: { command: 'git commit -m test' },
+          },
+        }),
+      ).toBeNull();
+
+      expect(
+        evaluateContextPromotionPostToolUseHook({
+          userBasePath: userHome,
+          hookInput: {
+            hook_event_name: 'PostToolUse',
+            cwd: dir,
+            tool_name: 'Bash',
+            tool_input: { command: 'git commit -m test' },
+            tool_response: { exit_code: 1 },
+          },
+        }),
+      ).toBeNull();
+
+      expect(
+        evaluateContextPromotionPostToolUseHook({
+          userBasePath: userHome,
+          hookInput: {
+            hook_event_name: 'PostToolUse',
             cwd: dir,
             tool_name: 'Bash',
             tool_input: { command: 'git commit -m test' },
@@ -207,21 +238,26 @@ describe('context promotion PreToolUse hook', () => {
     }
   });
 
-  it('denies git commit until the current fingerprint has a receipt', () => {
+  it('continues Codex after a git commit until the current HEAD has a receipt', () => {
     const { dir, cleanup } = setupGitRepo();
     const userHome = mkdtempSync(join(tmpdir(), 'context-promotion-home-'));
     try {
       writeFileSync(join(dir, 'tracked.txt'), 'changed\n', 'utf-8');
+      execFileSync('git', ['add', 'tracked.txt'], { cwd: dir });
+      execFileSync('git', ['commit', '-m', 'work'], { cwd: dir, stdio: 'ignore' });
       const hookInput = {
-        hook_event_name: 'PreToolUse',
+        hook_event_name: 'PostToolUse',
         cwd: dir,
         tool_name: 'Bash',
-        tool_input: { command: 'git commit -m test' },
+        tool_input: { command: 'git commit -m work' },
+        tool_response: { exit_code: 0 },
       };
 
-      const before = evaluateContextPromotionPreToolUseHook({ userBasePath: userHome, hookInput });
-      expect(before?.hookSpecificOutput.permissionDecision).toBe('deny');
-      expect(before?.hookSpecificOutput.permissionDecisionReason).toContain('context-promotion-review');
+      const before = evaluateContextPromotionPostToolUseHook({ userBasePath: userHome, hookInput });
+      expect(before?.decision).toBe('block');
+      expect(before?.reason).toContain('context-promotion-review');
+      expect(before?.reason).toContain('git show --stat HEAD');
+      expect(before?.hookSpecificOutput.hookEventName).toBe('PostToolUse');
 
       resolveContextPromotion({
         cwd: dir,
@@ -234,31 +270,31 @@ describe('context promotion PreToolUse hook', () => {
         },
       });
 
-      expect(evaluateContextPromotionPreToolUseHook({ userBasePath: userHome, hookInput })).toBeNull();
+      expect(evaluateContextPromotionPostToolUseHook({ userBasePath: userHome, hookInput })).toBeNull();
     } finally {
       rmSync(userHome, { recursive: true, force: true });
       cleanup();
     }
   });
 
-  it('denies git commit when fingerprint computation fails', () => {
+  it('continues with a status failure prompt when HEAD inspection fails', () => {
     const { dir, cleanup } = setupGitRepo();
     const userHome = mkdtempSync(join(tmpdir(), 'context-promotion-home-'));
     try {
       writeFileSync(join(dir, '.git/index'), 'broken', 'utf-8');
 
-      const output = evaluateContextPromotionPreToolUseHook({
+      const output = evaluateContextPromotionPostToolUseHook({
         userBasePath: userHome,
         hookInput: {
-          hook_event_name: 'PreToolUse',
+          hook_event_name: 'PostToolUse',
           cwd: dir,
           tool_name: 'Bash',
           tool_input: { command: 'git commit -m test' },
         },
       });
 
-      expect(output?.hookSpecificOutput.permissionDecision).toBe('deny');
-      expect(output?.hookSpecificOutput.permissionDecisionReason).toContain('Failing closed');
+      expect(output?.decision).toBe('block');
+      expect(output?.reason).toContain('could not inspect');
     } finally {
       rmSync(userHome, { recursive: true, force: true });
       cleanup();

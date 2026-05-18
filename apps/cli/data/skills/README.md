@@ -184,9 +184,10 @@ task-skills/skill-load-check/
 - It does not edit before user confirmation.
 - It does not stage, commit, or install hooks by itself.
 
-`context-promotion-review` is a Codex-only task skill for reviewing reusable operating knowledge before commit.
+`context-promotion-review` is a Codex-only task skill for reviewing reusable operating knowledge after a work commit.
 
 - It cross-checks the existing context layer before suggesting promotion.
 - It classifies candidates as core, project-local, global, or no-promotion.
 - It records the final decision with `ai-ops context-promotion resolve`.
-- It confirms the receipt with `ai-ops context-promotion status` before commit retry.
+- It leaves approved promotion edits uncommitted for user inspection.
+- It confirms the receipt with `ai-ops context-promotion status` for the current `HEAD`.

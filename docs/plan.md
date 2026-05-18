@@ -216,11 +216,11 @@ global subagent lifecycle만 관리한다. Phase 3에서 도입한다.
 
 ### `ai-ops context-promotion ...`
 
-Codex 커밋 게이트가 사용하는 user-local promotion review receipt를 관리한다. receipt는 source of truth가 아니며 프로젝트 repo의 `.ai-ops/*`에는 기록하지 않는다.
+Codex post-commit review가 사용하는 user-local promotion review receipt를 관리한다. receipt는 source of truth가 아니며 프로젝트 repo의 `.ai-ops/*`에는 기록하지 않는다.
 
 ### `ai-ops codex-hook ...`
 
-Codex 전용 opt-in hook을 설치, 조회, 제거한다. v1 hook은 `git commit` 직전 현재 diff fingerprint receipt가 없으면 commit을 막고 `context-promotion-review` skill 사용을 안내한다.
+Codex 전용 opt-in hook을 설치, 조회, 제거한다. v1 hook은 `git commit` 이후 `PostToolUse`에서 `context-promotion-review` skill 사용을 안내한다. 작업 커밋은 막지 않고, 승격 수정은 사용자 검사 후 별도 커밋으로 다룬다.
 
 ## Deprecated old model
 

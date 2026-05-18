@@ -26,6 +26,7 @@ import {
   packUpdateCommand,
 } from '../commands/pack.js';
 import {
+  contextPromotionPostToolUseHookCommand,
   contextPromotionPreToolUseHookCommand,
   contextPromotionPruneCommand,
   contextPromotionResolveCommand,
@@ -153,7 +154,7 @@ contextPromotionCommand
 
 contextPromotionCommand
   .command('resolve')
-  .description('현재 diff fingerprint에 대한 context promotion review receipt 기록')
+  .description('현재 HEAD 커밋에 대한 context promotion review receipt 기록')
   .requiredOption('--decision <decision>', 'promoted|no-promotion')
   .requiredOption('--summary <summary>', 'review 결정 요약')
   .option('--scope <scope...>', '승격 scope (core|project-local|global)')
@@ -172,8 +173,13 @@ const contextPromotionHookCommand = contextPromotionCommand.command('hook').desc
 
 contextPromotionHookCommand
   .command('pre-tool-use')
-  .description('Codex PreToolUse hook entrypoint')
+  .description('Deprecated no-op Codex PreToolUse hook entrypoint')
   .action(() => contextPromotionPreToolUseHookCommand());
+
+contextPromotionHookCommand
+  .command('post-tool-use')
+  .description('Codex PostToolUse hook entrypoint')
+  .action(() => contextPromotionPostToolUseHookCommand());
 
 const codexHookCommand = program.command('codex-hook').description('Codex hooks 설정 관리');
 

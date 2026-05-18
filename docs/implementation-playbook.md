@@ -205,14 +205,14 @@ npm run compile
 
 설치 smoke에서는 `AI_OPS_HOME/.agents/skills/doc-impact-reviewer/SKILL.md`와 `agents/openai.yaml`만 생기는지 확인한다. 실행 cwd에는 `.agents`, `.ai-ops`, `.codex`, `.claude`, `.gemini`가 새로 생기면 안 된다.
 
-### Phase 5 후속: Context Promotion Review Gate
+### Phase 5 후속: Context Promotion Review Follow-Up
 
 범위:
 
 - `doc-impact-reviewer`와 별개로 `context-promotion-review` Codex 전용 task skill을 추가한다.
-- `ai-ops context-promotion status/resolve/prune`은 user-local receipt만 관리하고 프로젝트 repo에는 receipt를 쓰지 않는다.
-- `ai-ops codex-hook install context-promotion`은 Codex `PreToolUse` Bash hook을 opt-in으로 설치한다.
-- hook은 `git commit` 직전 현재 diff fingerprint receipt가 없을 때만 deny하고, 승격 필요 여부는 판단하지 않는다.
+- `ai-ops context-promotion status/resolve/prune`은 현재 `HEAD` 커밋에 대한 user-local receipt만 관리하고 프로젝트 repo에는 receipt를 쓰지 않는다.
+- `ai-ops codex-hook install context-promotion`은 Codex `PostToolUse` Bash hook을 opt-in으로 설치한다.
+- hook은 `git commit` 이후 Codex에게 `context-promotion-review` 검토를 이어서 요청한다. 작업 커밋은 막지 않고, 승격 수정은 사용자 검사 후 별도 커밋으로 다룬다.
 
 검증:
 

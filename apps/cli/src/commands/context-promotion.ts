@@ -2,7 +2,7 @@ import * as p from '@clack/prompts';
 import {
   CONTEXT_PROMOTION_DECISION,
   CONTEXT_PROMOTION_SCOPE,
-  evaluateContextPromotionPreToolUseHook,
+  evaluateContextPromotionPostToolUseHook,
   getContextPromotionStatus,
   pruneContextPromotionReceipts,
   readContextPromotionReceiptIndex,
@@ -101,6 +101,7 @@ export const contextPromotionStatusCommand = async (opts: ContextPromotionStatus
       [
         `git root: ${status.gitRoot ?? 'not found'}`,
         `context layer: ${status.hasContextLayer ? 'found' : 'not found'}`,
+        `HEAD: ${status.commitHash ?? 'not available'}`,
         `fingerprint: ${status.fingerprint ?? 'not available'}`,
         `receipt: ${status.receipt ? 'found' : 'missing'}`,
         `receipt store: ${status.receiptIndexPath ?? 'not available'}`,
@@ -125,7 +126,7 @@ export const contextPromotionResolveCommand = async (opts: ContextPromotionResol
         targets: opts.target ?? [],
       },
     });
-    p.log.success(`receipt 기록 완료: ${nextStatus.fingerprint ?? 'unknown'}`);
+    p.log.success(`receipt 기록 완료: ${nextStatus.commitHash ?? nextStatus.fingerprint ?? 'unknown'}`);
   } catch (error) {
     reportContextPromotionError(error);
   }
@@ -157,10 +158,14 @@ export const contextPromotionPruneCommand = async (opts: ContextPromotionPruneOp
 };
 
 export const contextPromotionPreToolUseHookCommand = async (): Promise<void> => {
+  await readStdin();
+};
+
+export const contextPromotionPostToolUseHookCommand = async (): Promise<void> => {
   try {
     const raw = await readStdin();
     const hookInput = raw.trim().length > 0 ? JSON.parse(raw) : {};
-    const output = evaluateContextPromotionPreToolUseHook({
+    const output = evaluateContextPromotionPostToolUseHook({
       hookInput,
       userBasePath: resolveUserBasePath(),
     });

@@ -1,15 +1,15 @@
 ---
 name: context-promotion-review
-description: 커밋 직전 현재 작업에서 core, project-local, global로 승격할 운영 지식 후보를 검토하고 사용자 결정 후 receipt를 기록한다.
+description: 방금 완료된 작업 커밋에서 core, project-local, global로 승격할 운영 지식 후보를 검토하고 사용자 결정 후 receipt를 기록한다.
 ---
 
 # context-promotion-review
 
-이 skill은 사용자가 명시적으로 호출했거나 `ai-ops` Codex hook이 커밋을 막았을 때만 사용한다. CLI가 AI 판단을 하지 않으므로, 승격 후보 판정은 현재 Codex 대화 맥락과 diff를 바탕으로 이 skill에서 수행한다.
+이 skill은 사용자가 명시적으로 호출했거나 `ai-ops` Codex PostToolUse hook이 작업 커밋 직후 후속 검토를 요청했을 때만 사용한다. CLI가 AI 판단을 하지 않으므로, 승격 후보 판정은 현재 Codex 대화 맥락과 방금 만든 `HEAD` 커밋을 바탕으로 이 skill에서 수행한다.
 
 ## 목적
 
-이번 작업 과정에서 반복 가능한 운영 지식, 명령 루틴, 판단 기준이 생겼는지 확인하고, 사용자에게 승격 여부를 묻는다.
+방금 완료된 작업 커밋에서 반복 가능한 운영 지식, 명령 루틴, 판단 기준이 생겼는지 확인하고, 사용자에게 승격 여부를 묻는다.
 
 분류는 다음 네 가지로만 한다.
 
@@ -20,12 +20,11 @@ description: 커밋 직전 현재 작업에서 core, project-local, global로 �
 
 ## 절차
 
-1. `ai-ops context-promotion status`를 실행해 현재 fingerprint와 receipt 상태를 확인한다.
-2. 실제 변경을 확인한다.
-   - `git status --short`
-   - `git diff --cached`
-   - `git diff`
-   - `git ls-files --others --exclude-standard`
+1. `ai-ops context-promotion status`를 실행해 현재 `HEAD`, fingerprint, receipt 상태를 확인한다.
+2. 방금 완료된 작업 커밋을 확인한다.
+   - `git show --stat HEAD`
+   - `git show --name-only HEAD`
+   - 필요 시 `git show HEAD`
 3. 기존 context layer를 cross-check한다.
    - `AGENTS.md`
    - `docs/docs-status.md`
@@ -38,7 +37,8 @@ description: 커밋 직전 현재 작업에서 core, project-local, global로 �
 7. 사용자 승인 전에는 파일을 수정하지 않는다.
 8. 승인된 범위만 수정한다.
 9. 마지막에 반드시 `ai-ops context-promotion resolve ...`를 실행한다.
-10. 다시 `ai-ops context-promotion status`를 실행해 receipt 확인을 한다.
+10. 다시 `ai-ops context-promotion status`를 실행해 현재 `HEAD` receipt 확인을 한다.
+11. 승격 파일을 수정했더라도 직접 commit하지 않고 사용자 검사 대기 상태로 멈춘다.
 
 ## 보고 형식
 
@@ -49,11 +49,11 @@ description: 커밋 직전 현재 작업에서 core, project-local, global로 �
 - `no-promotion`: 승격하지 않을 항목과 이유
 - `ask`: 사용자가 선택해야 할 결정
 
-보고에는 각 후보의 근거를 함께 둔다. 근거는 현재 대화에서 반복된 판단, 사용자가 교정한 문장, 실행한 명령 루틴, 최종 diff 중 하나 이상이어야 한다.
+보고에는 각 후보의 근거를 함께 둔다. 근거는 현재 대화에서 반복된 판단, 사용자가 교정한 문장, 실행한 명령 루틴, 방금 완료된 `HEAD` 커밋 중 하나 이상이어야 한다.
 
 ## Resolve 규칙
 
-사용자 결정이 끝나면 receipt를 기록한다.
+사용자 결정이 끝나면 현재 `HEAD` 커밋에 대한 receipt를 기록한다.
 
 승격이 있었으면:
 
@@ -66,15 +66,15 @@ ai-ops context-promotion resolve --decision promoted --scope core --summary "짧
 승격하지 않기로 했으면:
 
 ```bash
-ai-ops context-promotion resolve --decision no-promotion --summary "이번 diff에는 승격할 반복 운영 지식 없음"
+ai-ops context-promotion resolve --decision no-promotion --summary "이번 작업 커밋에는 승격할 반복 운영 지식 없음"
 ```
 
-문서나 규칙을 수정한 경우에는 수정이 끝난 뒤 마지막 fingerprint 기준으로 resolve한다. resolve 이후에 diff가 바뀌면 receipt가 다시 missing이 될 수 있으므로, 최종 커밋 직전에 status를 다시 확인한다.
+문서나 규칙을 수정한 경우에도 작업 커밋을 amend하거나 섞지 않는다. 승인된 승격 수정만 적용하고 receipt를 기록한 뒤, 사용자에게 검사를 요청한다. 승격 커밋은 사용자가 별도로 요청할 때만 진행한다.
 
 ## 보호 규칙
 
 - 사용자 승인 전 편집 금지: 후보 보고와 사용자 결정을 먼저 받는다.
-- receipt 확인 필수: 완료 전에 `ai-ops context-promotion status`에서 receipt가 `found`인지 확인한다.
+- receipt 확인 필수: 완료 전에 `ai-ops context-promotion status`에서 현재 `HEAD` receipt가 `found`인지 확인한다.
 - 기존 규칙 중복 금지: 이미 있는 규칙은 새 문서나 중복 문장으로 승격하지 않는다.
 - `Reserved` 승격 금지: 명시 승인 없이 `Reserved` 문서를 현재 판단 근거로 바꾸지 않는다.
-- 직접 commit 금지: receipt 기록 후에도 commit은 사용자의 원래 요청 범위에 맞춰 별도로 진행한다.
+- 직접 commit 금지: 승격 수정 후에도 commit하지 않고 사용자 검사 대기 상태로 멈춘다.

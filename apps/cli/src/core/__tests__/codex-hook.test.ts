@@ -24,11 +24,11 @@ describe('Codex context promotion hook config', () => {
   it('quotes hook command arguments', () => {
     expect(quoteShellArg("/tmp/it's/node")).toBe("'/tmp/it'\\''s/node'");
     expect(buildContextPromotionHookCommand({ nodePath: '/usr/bin/node', binPath: '/tmp/ai-ops' })).toBe(
-      "'/usr/bin/node' '/tmp/ai-ops' context-promotion hook pre-tool-use",
+      "'/usr/bin/node' '/tmp/ai-ops' context-promotion hook post-tool-use",
     );
   });
 
-  it('installs the context promotion hook without removing existing hooks', () => {
+  it('installs the PostToolUse context promotion hook without removing existing hooks', () => {
     const { hooksPath, cleanup } = setup();
     try {
       writeFileSync(
@@ -52,11 +52,11 @@ describe('Codex context promotion hook config', () => {
 
       const result = installContextPromotionHook({
         hooksPath,
-        command: "'/usr/bin/node' '/tmp/ai-ops' context-promotion hook pre-tool-use",
+        command: "'/usr/bin/node' '/tmp/ai-ops' context-promotion hook post-tool-use",
       });
       const second = installContextPromotionHook({
         hooksPath,
-        command: "'/usr/bin/node' '/tmp/ai-ops' context-promotion hook pre-tool-use",
+        command: "'/usr/bin/node' '/tmp/ai-ops' context-promotion hook post-tool-use",
       });
       const raw = readFileSync(hooksPath, 'utf-8');
 
@@ -64,7 +64,50 @@ describe('Codex context promotion hook config', () => {
       expect(second.changed).toBe(false);
       expect(inspectContextPromotionHook(hooksPath).installed).toBe(true);
       expect(raw).toContain('echo keep');
-      expect(raw.match(/context-promotion hook pre-tool-use/g)?.length).toBe(1);
+      expect(raw.match(/context-promotion hook post-tool-use/g)?.length).toBe(1);
+    } finally {
+      cleanup();
+    }
+  });
+
+  it('replaces legacy PreToolUse context promotion hook during install', () => {
+    const { hooksPath, cleanup } = setup();
+    try {
+      writeFileSync(
+        hooksPath,
+        JSON.stringify(
+          {
+            hooks: {
+              PreToolUse: [
+                {
+                  matcher: '^Bash$',
+                  hooks: [
+                    {
+                      type: 'command',
+                      command: "'/usr/bin/node' '/tmp/ai-ops' context-promotion hook pre-tool-use",
+                    },
+                    { type: 'command', command: 'echo keep' },
+                  ],
+                },
+              ],
+            },
+          },
+          null,
+          2,
+        ) + '\n',
+        'utf-8',
+      );
+
+      const result = installContextPromotionHook({
+        hooksPath,
+        command: "'/usr/bin/node' '/tmp/ai-ops' context-promotion hook post-tool-use",
+      });
+      const raw = readFileSync(hooksPath, 'utf-8');
+
+      expect(result.changed).toBe(true);
+      expect(raw).toContain('echo keep');
+      expect(raw).not.toContain('context-promotion hook pre-tool-use');
+      expect(raw).toContain('context-promotion hook post-tool-use');
     } finally {
       cleanup();
     }
@@ -93,6 +136,17 @@ describe('Codex context promotion hook config', () => {
                   hooks: [{ type: 'command', command: 'echo keep' }],
                 },
               ],
+              PostToolUse: [
+                {
+                  matcher: '^Bash$',
+                  hooks: [
+                    {
+                      type: 'command',
+                      command: "'/usr/bin/node' '/tmp/ai-ops' context-promotion hook post-tool-use",
+                    },
+                  ],
+                },
+              ],
             },
           },
           null,
@@ -108,6 +162,7 @@ describe('Codex context promotion hook config', () => {
       expect(inspectContextPromotionHook(hooksPath).installed).toBe(false);
       expect(raw).toContain('echo keep');
       expect(raw).not.toContain('context-promotion hook pre-tool-use');
+      expect(raw).not.toContain('context-promotion hook post-tool-use');
     } finally {
       cleanup();
     }

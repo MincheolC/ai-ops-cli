@@ -80,13 +80,14 @@ describe('skill data files', () => {
     );
 
     expect(skillRaw).toContain('기존 context layer를 cross-check');
-    expect(skillRaw).toContain('git status --short');
-    expect(skillRaw).toContain('git diff --cached');
-    expect(skillRaw).toContain('git diff');
-    expect(skillRaw).toContain('git ls-files --others --exclude-standard');
+    expect(skillRaw).toContain('git show --stat HEAD');
+    expect(skillRaw).toContain('git show --name-only HEAD');
+    expect(skillRaw).toContain('git show HEAD');
     expect(skillRaw).toContain('사용자 승인 전 편집 금지');
     expect(skillRaw).toContain('ai-ops context-promotion resolve');
     expect(skillRaw).toContain('receipt 확인 필수');
+    expect(skillRaw).toContain('직접 commit 금지');
+    expect(skillRaw).toContain('사용자 검사 대기');
     expect(skillRaw).toContain('core');
     expect(skillRaw).toContain('project-local');
     expect(skillRaw).toContain('global');

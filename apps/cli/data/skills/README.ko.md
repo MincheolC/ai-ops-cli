@@ -184,9 +184,10 @@ task-skills/skill-load-check/
 - 사용자 확인 전에는 편집하지 않습니다.
 - staging, commit, hook 설치를 직접 수행하지 않습니다.
 
-`context-promotion-review`는 커밋 전 반복 운영 지식 승격 후보를 검토하는 Codex 전용 task skill입니다.
+`context-promotion-review`는 작업 커밋 직후 반복 운영 지식 승격 후보를 검토하는 Codex 전용 task skill입니다.
 
 - 기존 context layer를 먼저 cross-check합니다.
 - 후보를 core, project-local, global, no-promotion으로 분류합니다.
 - 최종 결정은 `ai-ops context-promotion resolve`로 기록합니다.
-- 커밋 재시도 전 `ai-ops context-promotion status`로 receipt를 확인합니다.
+- 승인된 승격 수정은 사용자 검사를 위해 커밋하지 않은 상태로 남깁니다.
+- 현재 `HEAD`에 대해 `ai-ops context-promotion status`로 receipt를 확인합니다.

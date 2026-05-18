@@ -32,6 +32,7 @@ const ContextPromotionScopeSchema = z.union([
 const ContextPromotionReceiptSchema = z
   .object({
     fingerprint: z.string().regex(/^[a-f0-9]{16}$/),
+    commitHash: z.string().regex(/^(NO_HEAD|[a-f0-9]{40})$/).optional(),
     decision: ContextPromotionDecisionSchema,
     scopes: z.array(ContextPromotionScopeSchema),
     targets: z.array(z.string().min(1)),
@@ -60,6 +61,7 @@ export type ContextPromotionProjectStatus = {
   gitRoot: string | null;
   hasContextLayer: boolean;
   projectKey: string | null;
+  commitHash: string | null;
   fingerprint: string | null;
   receipt: ContextPromotionReceipt | null;
   receiptIndexPath: string | null;
@@ -72,11 +74,12 @@ export type ContextPromotionResolveInput = {
   targets: readonly string[];
 };
 
-export type ContextPromotionPreToolUseHookOutput = {
+export type ContextPromotionPostToolUseHookOutput = {
+  decision: 'block';
+  reason: string;
   hookSpecificOutput: {
-    hookEventName: 'PreToolUse';
-    permissionDecision: 'deny';
-    permissionDecisionReason: string;
+    hookEventName: 'PostToolUse';
+    additionalContext: string;
   };
 };
 
@@ -234,8 +237,15 @@ const sortReceiptsByResolvedAtDesc = (receipts: readonly ContextPromotionReceipt
 export const findContextPromotionReceipt = (params: {
   index: ContextPromotionReceiptIndex | null;
   fingerprint: string;
-}): ContextPromotionReceipt | null =>
-  params.index?.receipts.find((receipt) => receipt.fingerprint === params.fingerprint) ?? null;
+  commitHash: string;
+}): ContextPromotionReceipt | null => {
+  const receipts = params.index?.receipts ?? [];
+  return (
+    receipts.find((receipt) => receipt.commitHash === params.commitHash) ??
+    receipts.find((receipt) => receipt.fingerprint === params.fingerprint) ??
+    null
+  );
+};
 
 export const upsertContextPromotionReceipt = (params: {
   indexPath: string;
@@ -249,7 +259,15 @@ export const upsertContextPromotionReceipt = (params: {
     previous?.projectKey === params.projectKey
       ? previous
       : buildEmptyReceiptIndex({ projectKey: params.projectKey, projectRoot: params.projectRoot });
-  const remaining = index.receipts.filter((receipt) => receipt.fingerprint !== params.receipt.fingerprint);
+  const remaining = index.receipts.filter((receipt) => {
+    if (receipt.fingerprint === params.receipt.fingerprint) {
+      return false;
+    }
+    if (params.receipt.commitHash && receipt.commitHash === params.receipt.commitHash) {
+      return false;
+    }
+    return true;
+  });
   const maxReceipts = params.maxReceipts ?? DEFAULT_PRUNE_MAX;
   const receipts = sortReceiptsByResolvedAtDesc([params.receipt, ...remaining]).slice(0, maxReceipts);
   const nextIndex = {
@@ -295,6 +313,7 @@ export const getContextPromotionStatus = (params: {
       gitRoot: null,
       hasContextLayer: false,
       projectKey: null,
+      commitHash: null,
       fingerprint: null,
       receipt: null,
       receiptIndexPath: null,
@@ -303,6 +322,7 @@ export const getContextPromotionStatus = (params: {
 
   const hasContextLayer = hasContextPromotionLayer(gitRoot);
   const projectKey = buildContextPromotionProjectKey(gitRoot);
+  const commitHash = readGitHead(gitRoot);
   const receiptIndexPath = resolveContextPromotionReceiptIndexPath({
     userBasePath: params.userBasePath,
     projectKey,
@@ -313,6 +333,7 @@ export const getContextPromotionStatus = (params: {
       gitRoot,
       hasContextLayer,
       projectKey,
+      commitHash,
       fingerprint: null,
       receipt: null,
       receiptIndexPath,
@@ -327,14 +348,16 @@ export const getContextPromotionStatus = (params: {
     gitRoot,
     hasContextLayer,
     projectKey,
+    commitHash,
     fingerprint,
-    receipt: findContextPromotionReceipt({ index, fingerprint }),
+    receipt: findContextPromotionReceipt({ index, fingerprint, commitHash }),
     receiptIndexPath,
   };
 };
 
 export const buildContextPromotionReceipt = (params: {
   fingerprint: string;
+  commitHash: string;
   input: ContextPromotionResolveInput;
   resolvedAt?: string;
 }): ContextPromotionReceipt => {
@@ -349,6 +372,7 @@ export const buildContextPromotionReceipt = (params: {
 
   return ContextPromotionReceiptSchema.parse({
     fingerprint: params.fingerprint,
+    commitHash: params.commitHash,
     decision: params.input.decision,
     scopes: [...params.input.scopes],
     targets: [...params.input.targets],
@@ -363,7 +387,7 @@ export const resolveContextPromotion = (params: {
   input: ContextPromotionResolveInput;
 }): ContextPromotionProjectStatus => {
   const status = getContextPromotionStatus({ cwd: params.cwd, userBasePath: params.userBasePath });
-  if (!status.gitRoot || !status.projectKey || !status.fingerprint || !status.receiptIndexPath) {
+  if (!status.gitRoot || !status.projectKey || !status.commitHash || !status.fingerprint || !status.receiptIndexPath) {
     throw new Error('git repository is required for context promotion receipts');
   }
   if (!status.hasContextLayer) {
@@ -372,6 +396,7 @@ export const resolveContextPromotion = (params: {
 
   const receipt = buildContextPromotionReceipt({
     fingerprint: status.fingerprint,
+    commitHash: status.commitHash,
     input: params.input,
   });
   upsertContextPromotionReceipt({
@@ -392,12 +417,13 @@ const HookToolInputSchema = z
   })
   .passthrough();
 
-const PreToolUseHookInputSchema = z
+const ToolUseHookInputSchema = z
   .object({
     hook_event_name: z.string(),
     cwd: z.string(),
     tool_name: z.string().optional(),
     tool_input: z.unknown().optional(),
+    tool_response: z.unknown().optional(),
   })
   .passthrough();
 
@@ -559,51 +585,100 @@ export const isGitCommitCommand = (command: string): boolean => {
 
 export const buildContextPromotionReviewPrompt = (status: ContextPromotionProjectStatus): string =>
   [
-    'Context Promotion Review receipt is missing for the current diff fingerprint.',
+    'Context Promotion Review should run for the completed work commit.',
     '',
-    'Before committing, use the `context-promotion-review` skill to review this work for reusable operating knowledge.',
+    'Use the `context-promotion-review` skill to review the just-created HEAD commit for reusable operating knowledge.',
     '',
     'Review requirements:',
-    '- Inspect the actual changes before deciding: run `git status --short`, `git diff --cached`, `git diff`, and `git ls-files --others --exclude-standard`.',
+    '- Do not amend, rewrite, or mix changes into the work commit.',
+    '- Inspect the completed commit before deciding: run `git show --stat HEAD`, `git show --name-only HEAD`, and `git show HEAD` when detail is needed.',
     '- Cross-check existing `AGENTS.md`, `docs/agent/*`, `docs/docs-status.md`, and `.ai-ops/context-layer.json` first.',
-    '- Classify candidates as `core`, `project-local`, `global`, or `no-promotion`.',
+    '- Classify candidates as `core`, `project-local`, `global`, `already-covered`, or `no-promotion`.',
     '- Ask the user before editing any file.',
-    '- After approved updates or a no-promotion decision, run `ai-ops context-promotion resolve --decision <promoted|no-promotion> --summary "<summary>"` with any approved `--scope` and `--target` values.',
-    '- Re-run `ai-ops context-promotion status` and confirm a receipt exists before retrying the commit.',
+    '- If promotion is approved, edit only the approved context/global files, then stop for user inspection without committing.',
+    '- After approved updates or a no-promotion/already-covered decision, run `ai-ops context-promotion resolve --decision <promoted|no-promotion> --summary "<summary>"` with any approved `--scope` and `--target` values.',
+    '- Re-run `ai-ops context-promotion status` and confirm a receipt exists for the current HEAD.',
     '',
     `Project: ${status.gitRoot ?? status.cwd}`,
+    `HEAD: ${status.commitHash ?? 'unknown'}`,
     `Fingerprint: ${status.fingerprint ?? 'unknown'}`,
   ].join('\n');
 
-const buildContextPromotionFingerprintFailurePrompt = (cwd: string, error: unknown): string => {
+const buildContextPromotionStatusFailurePrompt = (cwd: string, error: unknown): string => {
   const message = error instanceof Error ? error.message : 'unknown error';
   return [
-    'Context Promotion Review receipt check failed while computing the current diff fingerprint.',
+    'Context Promotion Review could not inspect the completed work commit.',
     '',
-    'Failing closed: do not commit until this is resolved.',
+    'The work command has already finished; do not amend or rewrite it for this hook.',
     '',
-    'Run `ai-ops context-promotion status` to inspect the failure, then fix the git/worktree state or receipt flow before retrying.',
+    'Run `ai-ops context-promotion status` to inspect the failure, then decide whether a manual promotion review is needed.',
     '',
     `Project cwd: ${cwd}`,
     `Error: ${message}`,
   ].join('\n');
 };
 
-export const evaluateContextPromotionPreToolUseHook = (params: {
+const buildPostToolUseOutput = (prompt: string): ContextPromotionPostToolUseHookOutput => ({
+  decision: 'block',
+  reason: prompt,
+  hookSpecificOutput: {
+    hookEventName: 'PostToolUse',
+    additionalContext: prompt,
+  },
+});
+
+const isJsonRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const numberField = (record: Record<string, unknown>, keys: readonly string[]): number | null => {
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === 'number') {
+      return value;
+    }
+  }
+  return null;
+};
+
+const booleanField = (record: Record<string, unknown>, keys: readonly string[]): boolean | null => {
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === 'boolean') {
+      return value;
+    }
+  }
+  return null;
+};
+
+const toolResponseIndicatesFailure = (toolResponse: unknown): boolean => {
+  if (!isJsonRecord(toolResponse)) {
+    return false;
+  }
+
+  const success = booleanField(toolResponse, ['success', 'ok']);
+  if (success === false) {
+    return true;
+  }
+
+  const exitCode = numberField(toolResponse, ['exit_code', 'exitCode', 'status', 'code']);
+  return exitCode !== null && exitCode !== 0;
+};
+
+export const evaluateContextPromotionPostToolUseHook = (params: {
   hookInput: unknown;
   userBasePath: string;
-}): ContextPromotionPreToolUseHookOutput | null => {
-  const hookInput = PreToolUseHookInputSchema.safeParse(params.hookInput);
+}): ContextPromotionPostToolUseHookOutput | null => {
+  const hookInput = ToolUseHookInputSchema.safeParse(params.hookInput);
   if (!hookInput.success) {
     return null;
   }
-  if (hookInput.data.hook_event_name !== 'PreToolUse' || hookInput.data.tool_name !== 'Bash') {
+  if (hookInput.data.hook_event_name !== 'PostToolUse' || hookInput.data.tool_name !== 'Bash') {
     return null;
   }
 
   const toolInput = HookToolInputSchema.safeParse(hookInput.data.tool_input);
   const command = toolInput.success ? (toolInput.data.command ?? '') : '';
-  if (!isGitCommitCommand(command)) {
+  if (!isGitCommitCommand(command) || toolResponseIndicatesFailure(hookInput.data.tool_response)) {
     return null;
   }
 
@@ -614,24 +689,12 @@ export const evaluateContextPromotionPreToolUseHook = (params: {
       userBasePath: params.userBasePath,
     });
   } catch (error) {
-    return {
-      hookSpecificOutput: {
-        hookEventName: 'PreToolUse',
-        permissionDecision: 'deny',
-        permissionDecisionReason: buildContextPromotionFingerprintFailurePrompt(hookInput.data.cwd, error),
-      },
-    };
+    return buildPostToolUseOutput(buildContextPromotionStatusFailurePrompt(hookInput.data.cwd, error));
   }
 
   if (!status.hasContextLayer || status.receipt) {
     return null;
   }
 
-  return {
-    hookSpecificOutput: {
-      hookEventName: 'PreToolUse',
-      permissionDecision: 'deny',
-      permissionDecisionReason: buildContextPromotionReviewPrompt(status),
-    },
-  };
+  return buildPostToolUseOutput(buildContextPromotionReviewPrompt(status));
 };
