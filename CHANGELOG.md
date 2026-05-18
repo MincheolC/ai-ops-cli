@@ -5,6 +5,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-05-18
+
+### Fixed
+
+- `release`: npm registry에 이미 존재하는 `1.0.0` 재배포 대신 patch 버전으로 후속 배포할 수 있도록 release note를 보강
+
 ## [1.0.0] - 2026-05-18
 
 ### Breaking
