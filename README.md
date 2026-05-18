@@ -36,8 +36,7 @@ flowchart LR
 │       │   ├── context-layer/ # project operating layer templates
 │       │   ├── skills/     # global skill source/catalog data
 │       │   ├── packs/      # optional project pack source data
-│       │   ├── subagents/  # global subagent source/catalog 데이터
-│       │   └── presets.yaml
+│       │   └── subagents/  # global subagent source/catalog 데이터
 │       └── README.md       # package-level operating layer contract
 ├── docs/
 │   ├── plan.md                     # master blueprint
@@ -54,6 +53,7 @@ flowchart LR
 - `AGENTS.md`
 - `GEMINI.md`
 - `CLAUDE.md`
+- `docs/agent/rules/00-agent-baseline.md`
 - `docs/agent/workflow.md`
 - `docs/agent/rules/*`
 - `docs/agent/checks/*`
@@ -63,7 +63,7 @@ flowchart LR
 - `.ai-ops/manifest.json`
 - `.ai-ops/context-layer.json`
 
-`AGENTS.md`가 canonical entrypoint입니다. `GEMINI.md`와 `CLAUDE.md`는 tool adapter로만 두고 운영 규칙을 중복하지 않습니다.
+`AGENTS.md`가 canonical entrypoint입니다. `docs/agent/rules/00-agent-baseline.md`는 협업 태도, 커뮤니케이션, 코드 철학, naming, planning 기본값을 담고 `AGENTS.md` 직후 먼저 읽습니다. `GEMINI.md`와 `CLAUDE.md`는 tool adapter로만 두고 운영 규칙을 중복하지 않습니다.
 
 ## Global Assets
 
@@ -170,7 +170,6 @@ Self-dogfood 검증은 이 repo에서 root `AGENTS.md`, `GEMINI.md`, `CLAUDE.md`
 
 - [Master blueprint](./docs/plan.md)
 - [Implementation playbook](./docs/implementation-playbook.md)
-- [Rule authoring guide](./docs/rule-authoring-guide.md)
 
 ## Release
 

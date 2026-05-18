@@ -14,10 +14,11 @@ update_when:
 ## 읽기 순서
 
 1. `AGENTS.md`
-2. `docs/agent/workflow.md`
-3. `docs/agent/rules/*.md`
-4. 작업 성격에 맞는 `docs/agent/checks/*.md`
-5. `docs/docs-status.md`
+2. `docs/agent/rules/00-agent-baseline.md`
+3. `docs/agent/workflow.md`
+4. 나머지 `docs/agent/rules/*.md`
+5. 작업 성격에 맞는 `docs/agent/checks/*.md`
+6. `docs/docs-status.md`
 
 ## 문서 신뢰도
 

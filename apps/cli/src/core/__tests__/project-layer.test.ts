@@ -8,6 +8,7 @@ import {
   installProjectLayer,
   loadProjectLayerTemplateSpecs,
   parseProjectLayerManifest,
+  readProjectLayerContextIndex,
   readProjectLayerManifest,
   resolveProjectLayerTools,
   uninstallProjectLayer,
@@ -32,6 +33,7 @@ describe('project operating layer templates', () => {
     const paths = specs.map((spec) => spec.path);
 
     expect(paths).toContain('AGENTS.md');
+    expect(paths).toContain('docs/agent/rules/00-agent-baseline.md');
     expect(paths).not.toContain('GEMINI.md');
     expect(paths).not.toContain('CLAUDE.md');
 
@@ -83,6 +85,15 @@ describe('project operating layer lifecycle', () => {
       expect(existsSync(join(dir, '.ai-ops/context-layer.json'))).toBe(true);
       expect(result.manifest.kind).toBe('project-operating-layer');
       expect(result.manifest.tools).toEqual(['codex']);
+      expect(result.manifest.managed_files.map((file) => file.path)).toContain(
+        'docs/agent/rules/00-agent-baseline.md',
+      );
+      expect(readProjectFile(dir, 'docs/docs-status.md')).toContain(
+        '| docs/agent/rules/00-agent-baseline.md | Active | ai-ops |',
+      );
+      expect(readProjectLayerContextIndex(dir)?.documents.map((document) => document.path)).toContain(
+        'docs/agent/rules/00-agent-baseline.md',
+      );
       expect(auditProjectLayer(dir).issues).toHaveLength(0);
     } finally {
       cleanup();
@@ -118,6 +129,31 @@ describe('project operating layer lifecycle', () => {
 
       expect(readProjectFile(dir, 'docs/business/business-rules.md')).toContain('결제 정책은 서버 응답을 우선한다.');
       expect(result.preservedProjectFiles).toContain('docs/business/business-rules.md');
+      expect(auditProjectLayer(dir).issues).toHaveLength(0);
+    } finally {
+      cleanup();
+    }
+  });
+
+  it('adds newly introduced managed baseline documents during update', () => {
+    const { dir, cleanup } = setup();
+    try {
+      const installed = installProjectLayer({ basePath: dir, tools: resolveProjectLayerTools(['codex']) });
+      const baselinePath = 'docs/agent/rules/00-agent-baseline.md';
+      const previousManifest: ProjectLayerManifest = {
+        ...installed.manifest,
+        managed_files: installed.manifest.managed_files.filter((file) => file.path !== baselinePath),
+      };
+      rmSync(join(dir, baselinePath));
+
+      const result = updateProjectLayer({ basePath: dir, manifest: previousManifest });
+
+      expect(result.written).toContain(baselinePath);
+      expect(result.manifest.managed_files.map((file) => file.path)).toContain(baselinePath);
+      expect(readProjectFile(dir, 'docs/docs-status.md')).toContain(
+        '| docs/agent/rules/00-agent-baseline.md | Active | ai-ops |',
+      );
+      expect(readProjectLayerContextIndex(dir)?.documents.map((document) => document.path)).toContain(baselinePath);
       expect(auditProjectLayer(dir).issues).toHaveLength(0);
     } finally {
       cleanup();

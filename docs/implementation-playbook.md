@@ -26,13 +26,13 @@ Phase 0은 문서 계약 고정 단계였다. 현재 repo 구현은 Phase 1-6 op
 - 문서가 `ai-ops`를 project agent operating layer CLI로 정의한다.
 - `AGENTS.md` canonical entrypoint와 `GEMINI.md`/`CLAUDE.md` adapter 계약이 명시된다.
 - `docs/specs/`는 optional pack 위치로 고정된다.
-- `--project`, project scope skill, `.ai-ops-manifest.json`, root `specs/`, preset-first는 deprecated/old model 문맥 안에만 남는다.
+- `--project`, project scope skill, `.ai-ops-manifest.json`, root `specs/`, preset-first, `apps/cli/data/rules/*.yaml`, `apps/cli/data/presets.yaml`는 deprecated/old model 문맥 안에만 남는다.
 - 코드 파일은 수정하지 않는다.
 
 검증:
 
 ```bash
-rg -n -- '--project|project scope skill|\.ai-ops-manifest\.json|root `specs/`|preset-first' README.md apps/cli/README.md apps/cli/README.ko.md docs
+rg -n -- '--project|project scope skill|\.ai-ops-manifest\.json|root `specs/`|preset-first|apps/cli/data/rules|apps/cli/data/presets.yaml' README.md apps/cli/README.md apps/cli/README.ko.md docs
 ```
 
 검색 결과가 남아도 된다. 단, 모두 deprecated, old model, historical 문맥이어야 한다.
@@ -52,6 +52,7 @@ rg -n -- '--project|project scope skill|\.ai-ops-manifest\.json|root `specs/`|pr
 - `AGENTS.md`
 - `GEMINI.md`
 - `CLAUDE.md`
+- `docs/agent/rules/00-agent-baseline.md`
 - `docs/agent/workflow.md`
 - `docs/agent/rules/routing-rules.md`
 - `docs/agent/rules/doc-update-rules.md`

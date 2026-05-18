@@ -2,12 +2,10 @@ import { afterEach, describe, it, expect } from 'vitest';
 import { existsSync } from 'node:fs';
 import {
   resolveCompilerDataDir,
-  resolveRulesDir,
   resolveSkillsDir,
   resolveReferenceSkillsDir,
   resolveTaskSkillsDir,
   resolveSkillCatalogPath,
-  resolvePresetsPath,
   resolveBasePath,
   resolveUserBasePath,
 } from '../lib/paths.js';
@@ -34,10 +32,6 @@ describe('resolveCompilerDataDir', () => {
     expect(existsSync(resolveCompilerDataDir())).toBe(true);
   });
 
-  it('data/rules/ 포함', () => {
-    expect(existsSync(resolveRulesDir())).toBe(true);
-  });
-
   it('data/skills/ 포함', () => {
     expect(existsSync(resolveSkillsDir())).toBe(true);
   });
@@ -52,10 +46,6 @@ describe('resolveCompilerDataDir', () => {
 
   it('skill-registry.json 포함', () => {
     expect(existsSync(resolveSkillCatalogPath())).toBe(true);
-  });
-
-  it('data/presets.yaml 포함', () => {
-    expect(existsSync(resolvePresetsPath())).toBe(true);
   });
 });
 

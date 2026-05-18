@@ -36,7 +36,7 @@ const resolveRuleById = (ruleId: string, allRules: readonly Rule[], context?: st
   return found;
 };
 
-// presets.yaml의 Record<id, {description, rules}> → Preset[] 변환
+// legacy preset Record<id, {description, rules}> → Preset[] 변환
 export const parseRawPresets = (raw: Record<string, { description: string; rules: string[] }>): Preset[] =>
   Object.entries(raw).map(([id, value]) => PresetSchema.parse({ id, ...value }));
 

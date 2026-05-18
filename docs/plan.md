@@ -41,6 +41,7 @@ Global tool home
 - `AGENTS.md`
 - `GEMINI.md`
 - `CLAUDE.md`
+- `docs/agent/rules/00-agent-baseline.md`
 - `docs/agent/workflow.md`
 - `docs/agent/rules/routing-rules.md`
 - `docs/agent/rules/doc-update-rules.md`
@@ -63,6 +64,7 @@ Deprecated old model:
 
 - root `specs/`는 더 이상 새 모델의 설치 위치가 아니다.
 - 기존 `ai-ops spec init`의 root `specs/` scaffolding은 `ai-ops pack install spec-lifecycle`로 대체한다.
+- `apps/cli/data/rules/*.yaml`와 `apps/cli/data/presets.yaml`은 새 모델의 설치 원천이 아니다. baseline rule은 `docs/agent/rules/00-agent-baseline.md`가 canonical source다.
 
 ### Global assets
 

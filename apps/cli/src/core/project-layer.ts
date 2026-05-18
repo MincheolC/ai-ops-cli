@@ -110,6 +110,7 @@ const TEMPLATE_PATHS = [
   'GEMINI.md',
   'CLAUDE.md',
   'docs/agent/workflow.md',
+  'docs/agent/rules/00-agent-baseline.md',
   'docs/agent/rules/routing-rules.md',
   'docs/agent/rules/doc-update-rules.md',
   'docs/agent/rules/stop-rules.md',

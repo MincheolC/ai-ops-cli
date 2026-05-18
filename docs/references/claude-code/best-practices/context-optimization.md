@@ -86,14 +86,14 @@ DO NOT guess architectural or stylistic rules. Before modifying or generating
 code, you MUST use the Read tool to load the relevant rule file based on the
 tech stack you are working on.
 
-**Rule Registry Location:** `apps/cli/data/rules/*.yaml`
+**Current Baseline Location:** `docs/agent/rules/00-agent-baseline.md`
 
 **Mapping:**
 
-- **Python / Backend**: Read `python.yaml`, `fastapi.yaml`, `libs-backend-python.yaml`
-- **React / Frontend**: Read `react-typescript.yaml`, `nextjs.yaml`, `shadcn-ui.yaml`
-- **Database**: Read `sqlalchemy.yaml` or `prisma-postgresql.yaml`
-- **GraphQL**: Read `graphql-core.yaml` + one of (`graphql-client-web.yaml`, `graphql-client-app.yaml`, `graphql-server.yaml`) + `nestjs-graphql.yaml`(NestJS일 때)
+- **Python / Backend**: Install and read the matching backend reference skills.
+- **React / Frontend**: Install and read the matching frontend reference skills.
+- **Database**: Install and read the matching database reference skills.
+- **GraphQL**: Install and read the matching GraphQL reference skills.
 ```
 
 ## Decision Matrix

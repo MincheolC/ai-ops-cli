@@ -13,7 +13,7 @@
         "operating_layer_changes"
       ],
       "path": "AGENTS.md",
-      "contentHash": "8cf19c"
+      "contentHash": "b98f8c"
     },
     {
       "status": "Active",
@@ -80,6 +80,19 @@
       ],
       "path": "docs/agent/maps/codebase-map.md",
       "contentHash": "6907af"
+    },
+    {
+      "status": "Active",
+      "layer": "agent",
+      "owner": "ai-ops",
+      "read_when": [
+        "before_task"
+      ],
+      "update_when": [
+        "baseline_rule_changes"
+      ],
+      "path": "docs/agent/rules/00-agent-baseline.md",
+      "contentHash": "43c5d1"
     },
     {
       "status": "Active",
@@ -158,8 +171,8 @@
         "document_status_changes"
       ],
       "path": "docs/docs-status.md",
-      "contentHash": "8211f3"
+      "contentHash": "6105c0"
     }
   ],
-  "generatedAt": "2026-05-18T02:11:46.608Z"
+  "generatedAt": "2026-05-18T03:10:52.831Z"
 }

@@ -6,10 +6,8 @@ import {
   parseRawPresets,
   resolvePresetRules,
   resolvePresetSkills,
-  loadAllRules,
   loadAllSkills,
   loadSkillCatalog,
-  loadPresets,
 } from '../loader.js';
 import type { Rule, Skill } from '../schemas/index.js';
 
@@ -139,11 +137,6 @@ describe('resolvePresetSkills', () => {
 });
 
 describe('I/O', () => {
-  it('loadAllRules: 실제 data/rules/ 5개 로드', () => {
-    const rules = loadAllRules(resolve(dataDir, 'rules'));
-    expect(rules).toHaveLength(5);
-  });
-
   it('loadSkillCatalog: 실제 skill-registry.json 로드', () => {
     const catalog = loadSkillCatalog(resolve(dataDir, 'skills'));
     expect(catalog.skills.length).toBeGreaterThan(0);
@@ -172,10 +165,5 @@ describe('I/O', () => {
     expect(specSkills.every((skill) => skill.included_in_presets.length === 0)).toBe(true);
     expect(contents.some((content) => content.includes('./docs/specs/'))).toBe(true);
     expect(contents.some((content) => content.includes('./specs/'))).toBe(false);
-  });
-
-  it('loadPresets: 실제 data/presets.yaml 4개 로드', () => {
-    const presets = loadPresets(resolve(dataDir, 'presets.yaml'));
-    expect(presets).toHaveLength(4);
   });
 });

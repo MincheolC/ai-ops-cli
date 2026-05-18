@@ -80,8 +80,8 @@ Example registry snippet for root `AGENTS.md`:
 # Dynamic Rule Loading (Critical)
 
 Do not guess architecture or style constraints.
-Before editing code, read the relevant rule files from:
-`apps/cli/data/rules/*.yaml`
+Before editing code, read the relevant operating-layer document or installed reference skill.
+Baseline rules live in `docs/agent/rules/00-agent-baseline.md`.
 
 Mapping:
 

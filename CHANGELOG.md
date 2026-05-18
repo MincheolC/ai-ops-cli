@@ -5,6 +5,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- `feat(agent-layer)`: 기존 `role-persona`, `communication`, `code-philosophy`, `naming-convention`, `plan-mode` baseline rule을 `docs/agent/rules/00-agent-baseline.md` Active operating-layer 문서로 이관
+
+### Removed
+
+- `chore(agent-layer)`: `00-agent-baseline.md`를 canonical source로 삼기 위해 legacy `apps/cli/data/rules/*.yaml`, `apps/cli/data/presets.yaml`, rule authoring/review docs를 제거
+
 ## [1.0.1] - 2026-05-18
 
 ### Fixed

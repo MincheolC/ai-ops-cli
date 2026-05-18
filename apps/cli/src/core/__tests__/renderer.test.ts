@@ -1,6 +1,4 @@
 import { describe, it, expect } from 'vitest';
-import { resolve, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import {
   ruleIdToTitle,
   renderDecisionTable,
@@ -12,10 +10,7 @@ import {
   renderClaudeCodeRule,
   renderForTool,
 } from '../renderer.js';
-import { loadRuleFile } from '../loader.js';
 import type { Rule } from '../schemas/index.js';
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const makeRule = (overrides: Partial<Rule> = {}): Rule => ({
   id: 'test-rule',
@@ -96,15 +91,6 @@ describe('renderRulesToMarkdown', () => {
     const rules = [makeRule({ id: 'a' })];
     const md = renderRulesToMarkdown(rules);
     expect(md).not.toContain('---');
-  });
-});
-
-describe('Snapshot', () => {
-  it('실제 code-philosophy.yaml 로드 후 렌더링 결과 snapshot', () => {
-    const filePath = resolve(__dirname, '../../../data/rules/code-philosophy.yaml');
-    const rule = loadRuleFile(filePath);
-    const md = renderRuleToMarkdown(rule);
-    expect(md).toMatchSnapshot();
   });
 });
 

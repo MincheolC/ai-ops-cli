@@ -46,12 +46,7 @@ describe('computeSourceHash', () => {
     const tmpDataDir = mkdtempSync(join(tmpdir(), 'ai-ops-source-hash-'));
 
     try {
-      mkdirSync(join(tmpDataDir, 'rules'), { recursive: true });
       mkdirSync(join(tmpDataDir, 'skills', 'reference-skills', 'demo-skill', 'references'), { recursive: true });
-      writeFileSync(
-        join(tmpDataDir, 'rules', 'rule.yaml'),
-        'id: role-persona\ncategory: general\ntags: []\npriority: 100\ncontent:\n  constraints: []\n  guidelines: []\n',
-      );
       writeFileSync(
         join(tmpDataDir, 'skills', 'reference-skills', 'demo-skill', 'SKILL.md'),
         '---\nname: demo-skill\ndescription: Demo skill\n---\n# Demo Skill\n',
@@ -78,10 +73,6 @@ describe('computeSourceHash', () => {
           null,
           2,
         ) + '\n',
-      );
-      writeFileSync(
-        join(tmpDataDir, 'presets.yaml'),
-        "frontend-web:\n  description: 'demo'\n  rules:\n    - role-persona\n",
       );
 
       const firstHash = computeSourceHash(tmpDataDir);

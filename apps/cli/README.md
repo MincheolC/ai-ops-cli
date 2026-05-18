@@ -36,6 +36,7 @@ Project repo:
 AGENTS.md
 GEMINI.md
 CLAUDE.md
+docs/agent/rules/00-agent-baseline.md
 docs/agent/workflow.md
 docs/agent/rules/routing-rules.md
 docs/agent/rules/doc-update-rules.md
@@ -48,6 +49,8 @@ docs/docs-status.md
 .ai-ops/manifest.json
 .ai-ops/context-layer.json
 ```
+
+`docs/agent/rules/00-agent-baseline.md`는 기존 `role-persona`, `communication`, `code-philosophy`, `naming-convention`, `plan-mode`의 기본 의도를 새 operating layer 문서로 이관한 Active 규칙입니다. `AGENTS.md` 직후 먼저 읽습니다.
 
 Global tool home:
 

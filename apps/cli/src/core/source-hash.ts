@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ManifestSchema } from './schemas/index.js';
@@ -22,14 +22,6 @@ export const getCliVersion = (): string => {
 export const computeHash = (contents: readonly string[]): string =>
   createHash('sha256').update(contents.join('')).digest('hex').slice(0, 6);
 
-const loadSortedFileContents = (dirPath: string): string[] => {
-  const files = readdirSync(dirPath)
-    .filter((f) => f.endsWith('.yaml'))
-    .sort();
-
-  return files.map((f) => readFileSync(resolve(dirPath, f), 'utf-8'));
-};
-
 const loadDirectoryContents = (baseDir: string): string[] => {
   const contents: string[] = [];
 
@@ -51,33 +43,9 @@ const loadDirectoryContents = (baseDir: string): string[] => {
   return contents;
 };
 
-const loadSkillTreeContents = (skillsDir: string): string[] => {
-  const contents: string[] = [];
-  const registryPath = resolve(skillsDir, 'skill-registry.json');
-
-  if (existsSync(registryPath)) {
-    contents.push(`skill-registry.json:${readFileSync(registryPath, 'utf-8')}`);
-  }
-
-  for (const directoryName of ['reference-skills', 'task-skills']) {
-    const directoryPath = resolve(skillsDir, directoryName);
-    if (!existsSync(directoryPath)) {
-      continue;
-    }
-
-    const directoryContents = loadDirectoryContents(directoryPath).map((content) => `${directoryName}/${content}`);
-    contents.push(...directoryContents);
-  }
-
-  return contents;
-};
-
-// compiler data 전체(rules, skills, presets) 해시
+// compiler data 전체(context-layer, skills, packs, subagents) 해시
 export const computeSourceHash = (dataDir: string): string => {
-  const ruleContents = loadSortedFileContents(resolve(dataDir, 'rules'));
-  const skillContents = loadSkillTreeContents(resolve(dataDir, 'skills'));
-  const presetsContent = readFileSync(resolve(dataDir, 'presets.yaml'), 'utf-8');
-  return computeHash([...ruleContents, ...skillContents, presetsContent]);
+  return computeHash(loadDirectoryContents(resolve(dataDir)));
 };
 
 export const computeInstalledSkillHash = (params: {

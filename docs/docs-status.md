@@ -17,6 +17,7 @@ update_when:
 | docs/agent/checks/impact-checklist.md | Active | ai-ops |
 | docs/agent/checks/review-checklist.md | Active | ai-ops |
 | docs/agent/maps/codebase-map.md | Reserved | project |
+| docs/agent/rules/00-agent-baseline.md | Active | ai-ops |
 | docs/agent/rules/doc-update-rules.md | Active | ai-ops |
 | docs/agent/rules/routing-rules.md | Active | ai-ops |
 | docs/agent/rules/stop-rules.md | Active | ai-ops |
