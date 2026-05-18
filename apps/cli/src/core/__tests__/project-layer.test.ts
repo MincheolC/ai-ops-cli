@@ -135,6 +135,29 @@ describe('project operating layer lifecycle', () => {
     }
   });
 
+  it('updates docs-status when a formatter aligns the table header', () => {
+    const { dir, cleanup } = setup();
+    try {
+      const installed = installProjectLayer({ basePath: dir, tools: resolveProjectLayerTools(['codex']) });
+      const statusPath = join(dir, 'docs/docs-status.md');
+      const formattedStatus = readFileSync(statusPath, 'utf-8').replace(
+        '| path | status | owner |\n| --- | --- | --- |',
+        '| path                                  | status   | owner   |\n| ------------------------------------- | -------- | ------- |',
+      );
+      writeFileSync(statusPath, formattedStatus, 'utf-8');
+
+      const result = updateProjectLayer({ basePath: dir, manifest: installed.manifest });
+
+      expect(result.preservedProjectFiles).toContain('docs/docs-status.md');
+      expect(readProjectFile(dir, 'docs/docs-status.md')).toContain(
+        '| docs/agent/rules/00-agent-baseline.md | Active | ai-ops |',
+      );
+      expect(auditProjectLayer(dir).issues).toHaveLength(0);
+    } finally {
+      cleanup();
+    }
+  });
+
   it('adds newly introduced managed baseline documents during update', () => {
     const { dir, cleanup } = setup();
     try {

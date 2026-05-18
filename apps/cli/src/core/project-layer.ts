@@ -78,6 +78,12 @@ type DocsStatusEntry = {
   owner: string;
 };
 
+type DocsStatusTableBounds = {
+  headerIndex: number;
+  dividerIndex: number;
+  tableEndIndex: number;
+};
+
 type ManagedInstallResult = {
   written: string[];
   appended: string[];
@@ -196,22 +202,65 @@ export const parseProjectLayerDocument = (path: string, rawContent: string): Pro
   };
 };
 
+const parseMarkdownTableCells = (line: string): string[] | null => {
+  const trimmed = line.trim();
+  if (!trimmed.startsWith('|') || !trimmed.endsWith('|')) {
+    return null;
+  }
+
+  return trimmed
+    .slice(1, -1)
+    .split('|')
+    .map((cell) => cell.trim());
+};
+
+const isDocsStatusHeaderLine = (line: string): boolean => {
+  const cells = parseMarkdownTableCells(line);
+  return (
+    cells !== null &&
+    cells.length === 3 &&
+    cells[0] === 'path' &&
+    cells[1] === 'status' &&
+    cells[2] === 'owner'
+  );
+};
+
+const isMarkdownDividerCell = (cell: string): boolean => /^:?-{3,}:?$/.test(cell);
+
+const isDocsStatusDividerLine = (line: string): boolean => {
+  const cells = parseMarkdownTableCells(line);
+  return cells !== null && cells.length === 3 && cells.every(isMarkdownDividerCell);
+};
+
+const findDocsStatusTableBounds = (lines: readonly string[]): DocsStatusTableBounds | null => {
+  const headerIndex = lines.findIndex(isDocsStatusHeaderLine);
+  const dividerIndex = headerIndex + 1;
+
+  if (headerIndex < 0 || !isDocsStatusDividerLine(lines[dividerIndex] ?? '')) {
+    return null;
+  }
+
+  let tableEndIndex = dividerIndex + 1;
+  while (tableEndIndex < lines.length && parseMarkdownTableCells(lines[tableEndIndex] ?? '') !== null) {
+    tableEndIndex += 1;
+  }
+
+  return { headerIndex, dividerIndex, tableEndIndex };
+};
+
 const parseDocsStatusEntries = (content: string): DocsStatusEntry[] => {
   const document = parseProjectLayerDocument('docs/docs-status.md', content);
-  const rows = document.content
-    .split('\n')
-    .filter((line) => line.trim().startsWith('|'))
-    .map((line) => line.trim());
+  const lines = document.content.split('\n');
+  const tableBounds = findDocsStatusTableBounds(lines);
+  if (tableBounds === null) {
+    return [];
+  }
+
+  const rows = lines.slice(tableBounds.dividerIndex + 1, tableBounds.tableEndIndex);
 
   return rows.flatMap((line) => {
-    const cells = line
-      .split('|')
-      .map((cell) => cell.trim())
-      .filter((cell) => cell.length > 0);
-
-    if (cells.length < 3) return [];
-    if (cells[0] === 'path') return [];
-    if (cells[0].startsWith('---')) return [];
+    const cells = parseMarkdownTableCells(line);
+    if (cells === null || cells.length < 3) return [];
 
     return [
       {
@@ -457,19 +506,16 @@ const buildDocsStatusRowsFromDisk = (params: {
 
 const replaceDocsStatusRows = (content: string, rows: readonly string[]): string => {
   const lines = content.trimEnd().split('\n');
-  const headerIndex = lines.findIndex((line) => line.trim() === '| path | status | owner |');
-  const dividerIndex = headerIndex + 1;
+  const tableBounds = findDocsStatusTableBounds(lines);
 
-  if (headerIndex < 0 || !lines[dividerIndex]?.trim().startsWith('| ---')) {
+  if (tableBounds === null) {
     throw new Error('docs/docs-status.md table header not found');
   }
 
-  let tableEndIndex = dividerIndex + 1;
-  while (tableEndIndex < lines.length && lines[tableEndIndex]?.trim().startsWith('|')) {
-    tableEndIndex += 1;
-  }
-
-  return [...lines.slice(0, dividerIndex + 1), ...rows, ...lines.slice(tableEndIndex)].join('\n') + '\n';
+  return (
+    [...lines.slice(0, tableBounds.dividerIndex + 1), ...rows, ...lines.slice(tableBounds.tableEndIndex)].join('\n') +
+    '\n'
+  );
 };
 
 const updateDocsStatusTable = (basePath: string, documentPaths: readonly string[]): { beforeHash: string; afterHash: string } => {
