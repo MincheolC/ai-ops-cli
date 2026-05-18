@@ -5,6 +5,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.0.3] - 2026-05-18
+
 ### Fixed
 
 - `fix(project-layer)`: `docs/docs-status.md` 테이블 헤더가 formatter에 의해 column-aligned 되어도 `update`/`audit`이 문서 상태 테이블을 파싱하고 갱신할 수 있도록 처리
