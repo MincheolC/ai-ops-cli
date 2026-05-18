@@ -214,6 +214,14 @@ global skill lifecycle만 관리한다.
 
 global subagent lifecycle만 관리한다. Phase 3에서 도입한다.
 
+### `ai-ops context-promotion ...`
+
+Codex 커밋 게이트가 사용하는 user-local promotion review receipt를 관리한다. receipt는 source of truth가 아니며 프로젝트 repo의 `.ai-ops/*`에는 기록하지 않는다.
+
+### `ai-ops codex-hook ...`
+
+Codex 전용 opt-in hook을 설치, 조회, 제거한다. v1 hook은 `git commit` 직전 현재 diff fingerprint receipt가 없으면 commit을 막고 `context-promotion-review` skill 사용을 안내한다.
+
 ## Deprecated old model
 
 다음 모델은 문서와 코드에서 단계적으로 제거한다.

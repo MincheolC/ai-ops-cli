@@ -95,6 +95,8 @@ Commands:
   skill      Manage global agent skills
   subagent   Manage global agent subagents
   pack       Manage optional project operating layer packs
+  context-promotion Manage context promotion review receipts
+  codex-hook Manage Codex hook integration
 ```
 
 `--tool`은 유지합니다. Codex, Claude Code, Gemini CLI가 서로 다른 discovery 위치와 adapter 파일을 사용하기 때문입니다.
@@ -105,12 +107,26 @@ Skill lifecycle 명령:
 ai-ops skill list
 ai-ops skill install skill-load-check --tool codex
 ai-ops skill install doc-impact-reviewer --tool codex
+ai-ops skill install context-promotion-review --tool codex
 ai-ops skill diff
 ai-ops skill update
 ai-ops skill uninstall skill-load-check
 ```
 
 `doc-impact-reviewer`는 변경 완료 또는 커밋 직전에 운영 문서 영향도를 확인하는 수동 task skill입니다. `$doc-impact-reviewer`로 호출하면 git status/diff를 보고 `required / recommended / not needed` 문서 후보와 미갱신 리스크를 제안합니다. 사용자 승인 전에는 문서를 수정하지 않고, 직접 staging/commit도 하지 않습니다.
+
+`context-promotion-review`는 완료된 변경에서 core, project-local, global로 승격할 반복 운영 지식이 생겼는지 확인하는 Codex 전용 task skill입니다. 최종 결정은 `ai-ops context-promotion resolve`로 receipt에 기록합니다.
+
+Context promotion과 Codex hook 명령:
+
+```bash
+ai-ops context-promotion status
+ai-ops context-promotion resolve --decision no-promotion --summary "No reusable operating knowledge found"
+ai-ops context-promotion prune --max 50
+ai-ops codex-hook install context-promotion
+ai-ops codex-hook status context-promotion
+ai-ops codex-hook uninstall context-promotion
+```
 
 Subagent lifecycle 명령:
 

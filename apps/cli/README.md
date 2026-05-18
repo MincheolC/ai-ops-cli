@@ -95,6 +95,8 @@ Commands:
   skill      Manage global agent skills
   subagent   Manage global agent subagents
   pack       Manage optional project operating layer packs
+  context-promotion Manage context promotion review receipts
+  codex-hook Manage Codex hook integration
 ```
 
 `--tool` remains because Codex, Claude Code, and Gemini CLI use different discovery locations and adapter files.
@@ -105,12 +107,26 @@ Skill lifecycle commands:
 ai-ops skill list
 ai-ops skill install skill-load-check --tool codex
 ai-ops skill install doc-impact-reviewer --tool codex
+ai-ops skill install context-promotion-review --tool codex
 ai-ops skill diff
 ai-ops skill update
 ai-ops skill uninstall skill-load-check
 ```
 
 `doc-impact-reviewer` is a manual task skill for checking operating-document impact near the end of work or before commit. Invoking `$doc-impact-reviewer` reads git status/diff and reports document update candidates as `required / recommended / not needed`. It does not edit documents, stage files, or commit before user approval.
+
+`context-promotion-review` is a Codex-only task skill for checking whether a completed change created reusable operating knowledge that should be promoted to core, project-local, or global context. It records the final decision with `ai-ops context-promotion resolve`.
+
+Context promotion and Codex hook commands:
+
+```bash
+ai-ops context-promotion status
+ai-ops context-promotion resolve --decision no-promotion --summary "No reusable operating knowledge found"
+ai-ops context-promotion prune --max 50
+ai-ops codex-hook install context-promotion
+ai-ops codex-hook status context-promotion
+ai-ops codex-hook uninstall context-promotion
+```
 
 Subagent lifecycle commands:
 

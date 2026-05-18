@@ -142,9 +142,9 @@ describe('I/O', () => {
     expect(catalog.skills.length).toBeGreaterThan(0);
   });
 
-  it('loadAllSkills: 실제 data/skills/ 24개 로드', () => {
+  it('loadAllSkills: 실제 data/skills/ 25개 로드', () => {
     const skills = loadAllSkills(resolve(dataDir, 'skills'));
-    expect(skills).toHaveLength(24);
+    expect(skills).toHaveLength(25);
   });
 
   it('spec lifecycle task skills는 preset에 자동 포함되지 않고 docs/specs 경로를 사용한다', () => {

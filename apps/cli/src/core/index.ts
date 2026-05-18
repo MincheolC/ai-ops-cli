@@ -18,3 +18,5 @@ export * from './project-layer.js';
 export * from './pack.js';
 export * from './uninstall-plan.js';
 export * from './paths.js';
+export * from './context-promotion.js';
+export * from './codex-hook.js';

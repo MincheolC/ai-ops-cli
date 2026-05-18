@@ -121,6 +121,14 @@
       "source_path": "task-skills/doc-impact-reviewer"
     },
     {
+      "id": "context-promotion-review",
+      "kind": "task",
+      "supported_tools": ["codex"],
+      "groups": ["agent-operating-layer"],
+      "included_in_presets": [],
+      "source_path": "task-skills/context-promotion-review"
+    },
+    {
       "id": "skill-load-check",
       "kind": "task",
       "supported_tools": ["claude-code", "codex", "gemini"],

@@ -25,6 +25,17 @@ import {
   packUninstallCommand,
   packUpdateCommand,
 } from '../commands/pack.js';
+import {
+  contextPromotionPreToolUseHookCommand,
+  contextPromotionPruneCommand,
+  contextPromotionResolveCommand,
+  contextPromotionStatusCommand,
+} from '../commands/context-promotion.js';
+import {
+  codexHookInstallCommand,
+  codexHookStatusCommand,
+  codexHookUninstallCommand,
+} from '../commands/codex-hook.js';
 
 const program = new Command();
 
@@ -131,5 +142,54 @@ packCommand
   .command('uninstall <packId>')
   .description('pack 제거')
   .action((packId) => packUninstallCommand(packId));
+
+const contextPromotionCommand = program.command('context-promotion').description('context promotion review receipt 관리');
+
+contextPromotionCommand
+  .command('status')
+  .description('현재 context promotion receipt 상태 확인')
+  .option('--json', 'JSON으로 출력', false)
+  .action((opts: { json?: boolean }) => contextPromotionStatusCommand(opts));
+
+contextPromotionCommand
+  .command('resolve')
+  .description('현재 diff fingerprint에 대한 context promotion review receipt 기록')
+  .requiredOption('--decision <decision>', 'promoted|no-promotion')
+  .requiredOption('--summary <summary>', 'review 결정 요약')
+  .option('--scope <scope...>', '승격 scope (core|project-local|global)')
+  .option('--target <path...>', '승격 대상 파일 또는 자산')
+  .action((opts: { decision?: string; summary?: string; scope?: string[]; target?: string[] }) =>
+    contextPromotionResolveCommand(opts),
+  );
+
+contextPromotionCommand
+  .command('prune')
+  .description('user-local context promotion receipts 정리')
+  .option('--max <number>', '유지할 receipt 수', '50')
+  .action((opts: { max?: string }) => contextPromotionPruneCommand(opts));
+
+const contextPromotionHookCommand = contextPromotionCommand.command('hook').description('Codex hook 내부 명령');
+
+contextPromotionHookCommand
+  .command('pre-tool-use')
+  .description('Codex PreToolUse hook entrypoint')
+  .action(() => contextPromotionPreToolUseHookCommand());
+
+const codexHookCommand = program.command('codex-hook').description('Codex hooks 설정 관리');
+
+codexHookCommand
+  .command('install <hookId>')
+  .description('Codex hook 설치')
+  .action((hookId) => codexHookInstallCommand(hookId));
+
+codexHookCommand
+  .command('status <hookId>')
+  .description('Codex hook 설치 상태 확인')
+  .action((hookId) => codexHookStatusCommand(hookId));
+
+codexHookCommand
+  .command('uninstall <hookId>')
+  .description('Codex hook 제거')
+  .action((hookId) => codexHookUninstallCommand(hookId));
 
 program.parse();

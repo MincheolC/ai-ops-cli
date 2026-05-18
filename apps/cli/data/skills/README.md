@@ -36,6 +36,7 @@ Install example:
 
 ```bash
 ai-ops skill install doc-impact-reviewer --tool codex
+ai-ops skill install context-promotion-review --tool codex
 ```
 
 ## Directory Shape
@@ -182,3 +183,10 @@ task-skills/skill-load-check/
 - It reports document candidates and risk before editing.
 - It does not edit before user confirmation.
 - It does not stage, commit, or install hooks by itself.
+
+`context-promotion-review` is a Codex-only task skill for reviewing reusable operating knowledge before commit.
+
+- It cross-checks the existing context layer before suggesting promotion.
+- It classifies candidates as core, project-local, global, or no-promotion.
+- It records the final decision with `ai-ops context-promotion resolve`.
+- It confirms the receipt with `ai-ops context-promotion status` before commit retry.

@@ -36,6 +36,7 @@
 
 ```bash
 ai-ops skill install doc-impact-reviewer --tool codex
+ai-ops skill install context-promotion-review --tool codex
 ```
 
 ## 디렉터리 구조
@@ -182,3 +183,10 @@ task-skills/skill-load-check/
 - 편집 전에 문서 후보와 리스크를 보고합니다.
 - 사용자 확인 전에는 편집하지 않습니다.
 - staging, commit, hook 설치를 직접 수행하지 않습니다.
+
+`context-promotion-review`는 커밋 전 반복 운영 지식 승격 후보를 검토하는 Codex 전용 task skill입니다.
+
+- 기존 context layer를 먼저 cross-check합니다.
+- 후보를 core, project-local, global, no-promotion으로 분류합니다.
+- 최종 결정은 `ai-ops context-promotion resolve`로 기록합니다.
+- 커밋 재시도 전 `ai-ops context-promotion status`로 receipt를 확인합니다.

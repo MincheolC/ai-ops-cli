@@ -72,4 +72,24 @@ describe('skill data files', () => {
     expect(skillRaw).toContain('Reserved 승격 금지');
     expect(openaiMetadata.policy.allow_implicit_invocation).toBe(false);
   });
+
+  it('context-promotion-review는 승격 검토와 receipt 계약을 포함한다', () => {
+    const skillRaw = readFileSync(resolve(skillsDir, 'task-skills/context-promotion-review/SKILL.md'), 'utf-8');
+    const openaiMetadata = OpenAiSkillMetadataSchema.parse(
+      parse(readFileSync(resolve(skillsDir, 'task-skills/context-promotion-review/agents/openai.yaml'), 'utf-8')),
+    );
+
+    expect(skillRaw).toContain('기존 context layer를 cross-check');
+    expect(skillRaw).toContain('git status --short');
+    expect(skillRaw).toContain('git diff --cached');
+    expect(skillRaw).toContain('git diff');
+    expect(skillRaw).toContain('git ls-files --others --exclude-standard');
+    expect(skillRaw).toContain('사용자 승인 전 편집 금지');
+    expect(skillRaw).toContain('ai-ops context-promotion resolve');
+    expect(skillRaw).toContain('receipt 확인 필수');
+    expect(skillRaw).toContain('core');
+    expect(skillRaw).toContain('project-local');
+    expect(skillRaw).toContain('global');
+    expect(openaiMetadata.policy.allow_implicit_invocation).toBe(false);
+  });
 });
