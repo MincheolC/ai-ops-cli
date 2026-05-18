@@ -186,7 +186,8 @@ const codexHookCommand = program.command('codex-hook').description('Codex hooks 
 codexHookCommand
   .command('install <hookId>')
   .description('Codex hook 설치')
-  .action((hookId) => codexHookInstallCommand(hookId));
+  .option('--command <command>', 'hook에 저장할 context-promotion 실행 명령')
+  .action((hookId, opts: { command?: string }) => codexHookInstallCommand(hookId, opts));
 
 codexHookCommand
   .command('status <hookId>')

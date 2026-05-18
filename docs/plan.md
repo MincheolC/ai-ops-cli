@@ -220,7 +220,7 @@ Codex post-commit review가 사용하는 user-local promotion review receipt를 
 
 ### `ai-ops codex-hook ...`
 
-Codex 전용 opt-in hook을 설치, 조회, 제거한다. v1 hook은 `git commit` 이후 `PostToolUse`에서 `context-promotion-review` skill 사용을 안내한다. 작업 커밋은 막지 않고, 승격 수정은 사용자 검사 후 별도 커밋으로 다룬다.
+Codex 전용 opt-in hook을 설치, 조회, 제거한다. v1 hook은 npm global `ai-ops` command를 user-level `PostToolUse`에 저장하고, `git commit` 이후 `context-promotion-review` skill 사용을 안내한다. 설치 시 Codex skill도 user-local global 위치에 보장 설치한다. 작업 커밋은 막지 않고, 승격 수정은 사용자 검사 후 별도 커밋으로 다룬다.
 
 ## Deprecated old model
 

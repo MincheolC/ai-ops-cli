@@ -27,6 +27,7 @@ type JsonRecord = Record<string, unknown>;
 export const CONTEXT_PROMOTION_HOOK_ID = 'context-promotion';
 export const CONTEXT_PROMOTION_HOOK_COMMAND_MARKER = 'context-promotion hook post-tool-use';
 export const CONTEXT_PROMOTION_LEGACY_HOOK_COMMAND_MARKER = 'context-promotion hook pre-tool-use';
+export const CONTEXT_PROMOTION_DEFAULT_HOOK_COMMAND = `ai-ops ${CONTEXT_PROMOTION_HOOK_COMMAND_MARKER}`;
 
 const PRE_TOOL_USE_EVENT = 'PreToolUse';
 const POST_TOOL_USE_EVENT = 'PostToolUse';
@@ -153,10 +154,13 @@ const removeContextPromotionHooksFromEvent = (hooks: JsonRecord, eventName: stri
 
 export const resolveCodexHooksPath = (codexHomePath: string): string => join(codexHomePath, 'hooks.json');
 
-export const buildContextPromotionHookCommand = (params: {
-  nodePath: string;
-  binPath: string;
-}): string => `${quoteShellArg(params.nodePath)} ${quoteShellArg(params.binPath)} ${CONTEXT_PROMOTION_HOOK_COMMAND_MARKER}`;
+export const buildContextPromotionHookCommand = (overrideCommand?: string): string => {
+  const command = overrideCommand?.trim() ?? CONTEXT_PROMOTION_DEFAULT_HOOK_COMMAND;
+  if (!command.includes(CONTEXT_PROMOTION_HOOK_COMMAND_MARKER)) {
+    throw new Error(`context promotion hook command must include: ${CONTEXT_PROMOTION_HOOK_COMMAND_MARKER}`);
+  }
+  return command;
+};
 
 export const quoteShellArg = (value: string): string => `'${value.replace(/'/g, "'\\''")}'`;
 

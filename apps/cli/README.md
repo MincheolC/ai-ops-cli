@@ -115,7 +115,7 @@ ai-ops skill uninstall skill-load-check
 
 `doc-impact-reviewer` is a manual task skill for checking operating-document impact near the end of work or before commit. Invoking `$doc-impact-reviewer` reads git status/diff and reports document update candidates as `required / recommended / not needed`. It does not edit documents, stage files, or commit before user approval.
 
-`context-promotion-review` is a Codex-only task skill for checking whether the just-created work commit produced reusable operating knowledge that should be promoted to core, project-local, or global context. The Codex hook runs after `git commit`, never blocks the work commit, and any approved promotion edits stay uncommitted until the user reviews them. It records the final decision with `ai-ops context-promotion resolve`.
+`context-promotion-review` is a Codex-only task skill for checking whether the just-created work commit produced reusable operating knowledge that should be promoted to core, project-local, or global context. The Codex hook runs after `git commit`, never blocks the work commit, and any approved promotion edits stay uncommitted until the user reviews them. Installing the hook also installs the Codex skill globally. It records the final decision with `ai-ops context-promotion resolve`.
 
 Context promotion and Codex hook commands:
 
@@ -124,6 +124,7 @@ ai-ops context-promotion status
 ai-ops context-promotion resolve --decision no-promotion --summary "No reusable operating knowledge found"
 ai-ops context-promotion prune --max 50
 ai-ops codex-hook install context-promotion
+ai-ops codex-hook install context-promotion --command "/custom/bin/ai-ops context-promotion hook post-tool-use"
 ai-ops codex-hook status context-promotion
 ai-ops codex-hook uninstall context-promotion
 ```

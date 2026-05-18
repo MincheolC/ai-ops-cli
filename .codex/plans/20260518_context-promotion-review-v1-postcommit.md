@@ -9,6 +9,8 @@
 ## Key Changes
 
 - Hook 설치는 `PreToolUse` 대신 `PostToolUse` Bash hook을 추가한다. 공식 Codex Hooks 기준으로 `PostToolUse decision: "block"`은 커밋을 되돌리지 않고, hook 메시지로 모델을 이어서 실행시키는 용도로 쓴다: https://developers.openai.com/codex/hooks
+- Hook command 기본값은 npm global 설치를 전제로 `ai-ops context-promotion hook post-tool-use`를 저장한다. 비표준 PATH 환경은 `--command` override로 처리한다.
+- `codex-hook install context-promotion`은 `context-promotion-review` Codex skill도 user-local global 위치에 보장 설치한다.
 - `context-promotion hook pre-tool-use`는 새 설치 경로에서 제거하고, `context-promotion hook post-tool-use`를 추가한다.
 - 새 hook은 `git commit` 계열 Bash 명령 뒤에만 동작한다. `.ai-ops/context-layer.json`이 없는 repo에서는 아무 출력 없이 통과한다.
 - receipt는 diff gate용이 아니라 “현재 `HEAD` 커밋에 대해 promotion review를 처리했다”는 user-local 기록으로 바꾼다. receipt에는 기존 `fingerprint`와 함께 `commitHash`를 추가한다.
@@ -29,8 +31,10 @@
   - `ai-ops context-promotion hook pre-tool-use`
 - Hook config:
   - `codex-hook install context-promotion`은 `PostToolUse` entry를 설치한다.
+  - 기본 command는 `ai-ops context-promotion hook post-tool-use`다.
+  - `--command <command>`로 custom command를 저장할 수 있다.
   - uninstall은 legacy `PreToolUse`와 새 `PostToolUse`의 ai-ops entry를 모두 제거한다.
-  - status는 새 `PostToolUse` 설치 여부를 기준으로 보고한다.
+  - status는 새 `PostToolUse` 설치 여부와 `context-promotion-review` Codex skill 설치 여부를 함께 보고한다.
 
 ## Test Plan
 
@@ -41,9 +45,10 @@
   - `resolve`는 현재 `HEAD` commit hash가 포함된 receipt를 user-local store에 기록한다.
   - `status`는 현재 `HEAD` receipt 유무를 올바르게 보고한다.
   - hook install/status/uninstall은 기존 hooks를 보존하고, legacy PreToolUse entry를 중복/잔존시키지 않는다.
+  - hook install은 portable default command를 쓰고, `--command` override를 반영한다.
 - Data/e2e tests:
   - `context-promotion-review` skill 본문에 `git show --stat HEAD`, `git show --name-only HEAD`, 사용자 승인 전 편집 금지, 직접 커밋 금지, receipt 확인 계약이 포함된다.
-  - `AI_OPS_HOME="$(mktemp -d)" ai-ops skill install context-promotion-review --tool codex`는 user-local 아래에만 설치된다.
+  - `AI_OPS_HOME="$(mktemp -d)" CODEX_HOME="$(mktemp -d)" ai-ops codex-hook install context-promotion`은 user-local hook과 skill만 설치하고 cwd를 건드리지 않는다.
 - Verification:
   - `npm test`
   - `npm run check`

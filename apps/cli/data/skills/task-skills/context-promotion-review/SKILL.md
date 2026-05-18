@@ -11,11 +11,12 @@ description: 방금 완료된 작업 커밋에서 core, project-local, global로
 
 방금 완료된 작업 커밋에서 반복 가능한 운영 지식, 명령 루틴, 판단 기준이 생겼는지 확인하고, 사용자에게 승격 여부를 묻는다.
 
-분류는 다음 네 가지로만 한다.
+검토 결과는 다음 다섯 가지로만 정리한다.
 
 - `core`: 모든 ai-ops 설치 프로젝트에 적용되어야 하는 제품 계약, CLI/Studio/schema/hook 동작
 - `project-local`: 현재 프로젝트에서만 반복 적용되는 agent rule, workflow, QA, business/spec 운영 기준
 - `global`: 여러 프로젝트에서 재사용할 skill, subagent, Codex hook 같은 runtime asset
+- `already-covered`: 이미 기존 context layer에 있는 기준이라 새 승격이 필요 없는 내용
 - `no-promotion`: 일회성 구현 세부사항, 임시 디버깅, 승격 가치가 없는 내용
 
 ## 절차

@@ -196,6 +196,26 @@ describe('context promotion PostToolUse hook', () => {
         }),
       ).toBeNull();
 
+      for (const toolResponse of [
+        'On branch feature/test\nnothing to commit, working tree clean\n',
+        'fatal: cannot run .git/hooks/pre-commit: No such file or directory\n',
+        'husky - pre-commit hook failed (code 1)\n',
+        { stderr: 'error: commit failed because a hook declined the commit\n' },
+      ]) {
+        expect(
+          evaluateContextPromotionPostToolUseHook({
+            userBasePath: userHome,
+            hookInput: {
+              hook_event_name: 'PostToolUse',
+              cwd: dir,
+              tool_name: 'Bash',
+              tool_input: { command: 'git commit -m test' },
+              tool_response: toolResponse,
+            },
+          }),
+        ).toBeNull();
+      }
+
       expect(
         evaluateContextPromotionPostToolUseHook({
           userBasePath: userHome,
@@ -250,7 +270,8 @@ describe('context promotion PostToolUse hook', () => {
         cwd: dir,
         tool_name: 'Bash',
         tool_input: { command: 'git commit -m work' },
-        tool_response: { exit_code: 0 },
+        tool_response:
+          '[main 1234567] fix: handle nothing to commit and command failed text\n 1 file changed, 1 insertion(+), 1 deletion(-)\n',
       };
 
       const before = evaluateContextPromotionPostToolUseHook({ userBasePath: userHome, hookInput });
@@ -258,6 +279,21 @@ describe('context promotion PostToolUse hook', () => {
       expect(before?.reason).toContain('context-promotion-review');
       expect(before?.reason).toContain('git show --stat HEAD');
       expect(before?.hookSpecificOutput.hookEventName).toBe('PostToolUse');
+
+      const objectResponse = evaluateContextPromotionPostToolUseHook({
+        userBasePath: userHome,
+        hookInput: {
+          hook_event_name: 'PostToolUse',
+          cwd: dir,
+          tool_name: 'Bash',
+          tool_input: { command: 'git commit -m work' },
+          tool_response: {
+            stdout:
+              '[main 89abcde] fix: avoid commit failed false positive\n 1 file changed, 1 insertion(+)\n',
+          },
+        },
+      });
+      expect(objectResponse?.decision).toBe('block');
 
       resolveContextPromotion({
         cwd: dir,

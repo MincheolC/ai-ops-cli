@@ -1,12 +1,32 @@
 import * as p from '@clack/prompts';
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
+import type { InstalledSkill, Skill } from '@/core/index.js';
 import {
   buildContextPromotionHookCommand,
   CONTEXT_PROMOTION_HOOK_ID,
+  buildSkillInstallPlan,
+  getCliVersion,
   inspectContextPromotionHook,
   installContextPromotionHook,
+  loadAllSkills,
+  readSkillRegistry,
+  resolveCanonicalSkillId,
   resolveCodexHooksPath,
+  resolveSkillRegistryPath,
+  SKILL_TOOL,
   uninstallContextPromotionHook,
+  writeSkillRegistry,
 } from '@/core/index.js';
+import { installSkillPackages } from '../lib/skill-install.js';
+import { findInstalledSkill, mergeSkillTools, upsertInstalledSkill } from '../lib/skill-state.js';
+import { resolveSkillsDir, resolveUserBasePath } from '../lib/paths.js';
+
+type CodexHookInstallOptions = {
+  command?: string;
+};
+
+const CONTEXT_PROMOTION_REVIEW_SKILL_ID = 'context-promotion-review';
 
 const resolveCodexHomePath = (): string => {
   const codexHome = process.env.CODEX_HOME;
@@ -26,33 +46,86 @@ const assertContextPromotionHookId = (hookId: string): void => {
   }
 };
 
-const resolveCurrentBinPath = (): string => {
-  const binPath = process.argv[1];
-  if (!binPath) {
-    throw new Error('Unable to resolve current ai-ops binary path');
-  }
-  return binPath;
-};
-
 const reportCodexHookError = (error: unknown): void => {
   const message = error instanceof Error ? error.message : 'unknown error';
   p.log.error(message);
   process.exitCode = 1;
 };
 
-export const codexHookInstallCommand = async (hookId: string): Promise<void> => {
+const readInstalledSkills = (basePath: string): InstalledSkill[] =>
+  (readSkillRegistry(resolveSkillRegistryPath(basePath))?.skills ?? []).map((installedSkill) => ({
+    ...installedSkill,
+    id: resolveCanonicalSkillId(installedSkill.id),
+  }));
+
+const resolveContextPromotionReviewSkill = (): Skill => {
+  const skill = loadAllSkills(resolveSkillsDir()).find(
+    (candidate) => candidate.id === CONTEXT_PROMOTION_REVIEW_SKILL_ID,
+  );
+  if (!skill) {
+    throw new Error(`Unknown skill: ${CONTEXT_PROMOTION_REVIEW_SKILL_ID}`);
+  }
+  return skill;
+};
+
+const hasInstalledContextPromotionReviewSkill = (basePath: string): boolean => {
+  const installedSkill = findInstalledSkill(readInstalledSkills(basePath), CONTEXT_PROMOTION_REVIEW_SKILL_ID);
+  return (
+    installedSkill?.tools.includes(SKILL_TOOL.CODEX) === true &&
+    existsSync(join(basePath, '.agents/skills/context-promotion-review/SKILL.md'))
+  );
+};
+
+const ensureContextPromotionReviewSkill = (basePath: string): { changed: boolean; installedSkill: InstalledSkill } => {
+  const skill = resolveContextPromotionReviewSkill();
+  const installedSkills = readInstalledSkills(basePath);
+  const existingInstalledSkill = findInstalledSkill(installedSkills, skill.id);
+  const requestedTools = mergeSkillTools({
+    existing: existingInstalledSkill?.tools,
+    requested: [SKILL_TOOL.CODEX],
+  });
+  const { packages, installedSkill } = buildSkillInstallPlan({
+    skill,
+    requestedTools,
+  });
+  const alreadyInstalled =
+    existingInstalledSkill?.sourceHash === installedSkill.sourceHash &&
+    existingInstalledSkill.tools.includes(SKILL_TOOL.CODEX) &&
+    existsSync(join(basePath, '.agents/skills/context-promotion-review/SKILL.md'));
+
+  if (alreadyInstalled) {
+    return { changed: false, installedSkill };
+  }
+
+  installSkillPackages(basePath, packages);
+  writeSkillRegistry(resolveSkillRegistryPath(basePath), {
+    skills: upsertInstalledSkill(installedSkills, installedSkill),
+    cliVersion: getCliVersion(),
+    generatedAt: new Date().toISOString(),
+  });
+
+  return { changed: true, installedSkill };
+};
+
+export const codexHookInstallCommand = async (
+  hookId: string,
+  opts: CodexHookInstallOptions = {},
+): Promise<void> => {
   p.intro(`ai-ops codex-hook install ${hookId}`);
   try {
     assertContextPromotionHookId(hookId);
+    const skillResult = ensureContextPromotionReviewSkill(resolveUserBasePath());
     const hooksPath = resolveCodexHooksPath(resolveCodexHomePath());
     const result = installContextPromotionHook({
       hooksPath,
-      command: buildContextPromotionHookCommand({
-        nodePath: process.execPath,
-        binPath: resolveCurrentBinPath(),
-      }),
+      command: buildContextPromotionHookCommand(opts.command),
     });
-    p.log.success(result.changed ? `hook 설치 완료: ${result.hooksPath}` : `이미 설치됨: ${result.hooksPath}`);
+    p.log.success(
+      skillResult.changed
+        ? `skill 설치 완료: ${skillResult.installedSkill.id}`
+        : `skill 이미 설치됨: ${skillResult.installedSkill.id}`,
+    );
+    p.log.success(result.changed ? `hook 설치 완료: ${result.hooksPath}` : `hook 이미 설치됨: ${result.hooksPath}`);
   } catch (error) {
     reportCodexHookError(error);
   }
@@ -64,7 +137,14 @@ export const codexHookStatusCommand = async (hookId: string): Promise<void> => {
   try {
     assertContextPromotionHookId(hookId);
     const result = inspectContextPromotionHook(resolveCodexHooksPath(resolveCodexHomePath()));
-    p.log.info([`hooks file: ${result.hooksPath}`, `installed: ${result.installed ? 'yes' : 'no'}`].join('\n'));
+    const skillInstalled = hasInstalledContextPromotionReviewSkill(resolveUserBasePath());
+    p.log.info(
+      [
+        `hooks file: ${result.hooksPath}`,
+        `hook installed: ${result.installed ? 'yes' : 'no'}`,
+        `skill installed: ${skillInstalled ? 'yes' : 'no'}`,
+      ].join('\n'),
+    );
   } catch (error) {
     reportCodexHookError(error);
   }

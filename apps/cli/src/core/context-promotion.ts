@@ -650,7 +650,43 @@ const booleanField = (record: Record<string, unknown>, keys: readonly string[]):
   return null;
 };
 
+const GIT_COMMIT_FAILURE_OUTPUT_PATTERNS = [
+  /(^|\n)\s*fatal:/i,
+  /(^|\n)\s*error:/i,
+  /(^|\n)\s*nothing to commit\b/i,
+  /(^|\n)\s*no changes added to commit\b/i,
+  /(^|\n).*aborting commit\b/i,
+  /(^|\n).*commit failed\b/i,
+  /(^|\n).*failed to .*commit\b/i,
+  /(^|\n).*command failed\b/i,
+  /(^|\n).*non-zero exit\b/i,
+  /(^|\n).*exit (code|status)\s+[1-9]\d*\b/i,
+  /(^|\n).*exited with code\s+[1-9]\d*\b/i,
+  /(^|\n).*hook.*(failed|declined|error|exit(?:ed)? with code|non-zero)/i,
+] as const;
+
+const GIT_COMMIT_SUCCESS_OUTPUT_PATTERN = /(^|\n)\[[^\]\n]+ [a-f0-9]{7,40}\]/i;
+
+const stringIndicatesGitCommitSuccess = (output: string): boolean => GIT_COMMIT_SUCCESS_OUTPUT_PATTERN.test(output);
+
+const stringIndicatesGitCommitFailureOrSuccess = (output: string): boolean | null =>
+  stringIndicatesGitCommitSuccess(output)
+    ? false
+    : GIT_COMMIT_FAILURE_OUTPUT_PATTERNS.some((pattern) => pattern.test(output))
+      ? true
+      : null;
+
+const recordStringFieldsIndicateGitCommitFailure = (record: Record<string, unknown>): boolean =>
+  ['message', 'output', 'stdout', 'stderr', 'error', 'combinedOutput'].some((key) => {
+    const value = record[key];
+    return typeof value === 'string' && stringIndicatesGitCommitFailureOrSuccess(value) === true;
+  });
+
 const toolResponseIndicatesFailure = (toolResponse: unknown): boolean => {
+  if (typeof toolResponse === 'string') {
+    return stringIndicatesGitCommitFailureOrSuccess(toolResponse) === true;
+  }
+
   if (!isJsonRecord(toolResponse)) {
     return false;
   }
@@ -661,7 +697,11 @@ const toolResponseIndicatesFailure = (toolResponse: unknown): boolean => {
   }
 
   const exitCode = numberField(toolResponse, ['exit_code', 'exitCode', 'status', 'code']);
-  return exitCode !== null && exitCode !== 0;
+  if (exitCode !== null && exitCode !== 0) {
+    return true;
+  }
+
+  return recordStringFieldsIndicateGitCommitFailure(toolResponse);
 };
 
 export const evaluateContextPromotionPostToolUseHook = (params: {

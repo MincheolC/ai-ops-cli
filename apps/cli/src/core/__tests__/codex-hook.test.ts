@@ -21,10 +21,14 @@ const setup = (): { dir: string; hooksPath: string; cleanup: () => void } => {
 };
 
 describe('Codex context promotion hook config', () => {
-  it('quotes hook command arguments', () => {
+  it('builds portable hook commands and validates overrides', () => {
     expect(quoteShellArg("/tmp/it's/node")).toBe("'/tmp/it'\\''s/node'");
-    expect(buildContextPromotionHookCommand({ nodePath: '/usr/bin/node', binPath: '/tmp/ai-ops' })).toBe(
-      "'/usr/bin/node' '/tmp/ai-ops' context-promotion hook post-tool-use",
+    expect(buildContextPromotionHookCommand()).toBe('ai-ops context-promotion hook post-tool-use');
+    expect(buildContextPromotionHookCommand('/custom/bin/ai-ops context-promotion hook post-tool-use')).toBe(
+      '/custom/bin/ai-ops context-promotion hook post-tool-use',
+    );
+    expect(() => buildContextPromotionHookCommand('/custom/bin/ai-ops hook')).toThrow(
+      'context promotion hook command must include',
     );
   });
 
@@ -52,11 +56,11 @@ describe('Codex context promotion hook config', () => {
 
       const result = installContextPromotionHook({
         hooksPath,
-        command: "'/usr/bin/node' '/tmp/ai-ops' context-promotion hook post-tool-use",
+        command: 'ai-ops context-promotion hook post-tool-use',
       });
       const second = installContextPromotionHook({
         hooksPath,
-        command: "'/usr/bin/node' '/tmp/ai-ops' context-promotion hook post-tool-use",
+        command: 'ai-ops context-promotion hook post-tool-use',
       });
       const raw = readFileSync(hooksPath, 'utf-8');
 
@@ -100,7 +104,7 @@ describe('Codex context promotion hook config', () => {
 
       const result = installContextPromotionHook({
         hooksPath,
-        command: "'/usr/bin/node' '/tmp/ai-ops' context-promotion hook post-tool-use",
+        command: 'ai-ops context-promotion hook post-tool-use',
       });
       const raw = readFileSync(hooksPath, 'utf-8');
 

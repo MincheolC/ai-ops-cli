@@ -91,6 +91,8 @@ describe('skill data files', () => {
     expect(skillRaw).toContain('core');
     expect(skillRaw).toContain('project-local');
     expect(skillRaw).toContain('global');
+    expect(skillRaw).toContain('already-covered');
+    expect(skillRaw).toContain('다섯 가지');
     expect(openaiMetadata.policy.allow_implicit_invocation).toBe(false);
   });
 });

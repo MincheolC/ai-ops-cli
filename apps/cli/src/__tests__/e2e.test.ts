@@ -166,6 +166,70 @@ describe.skipIf(!distExists)('skill subprocess', () => {
   });
 });
 
+describe.skipIf(!distExists)('codex hook subprocess', () => {
+  it('context-promotion install writes portable hook and installs the Codex skill under AI_OPS_HOME', () => {
+    const { dir, cleanup } = setup();
+    const userHome = mkdtempSync(join(tmpdir(), 'ai-ops-home-'));
+    const codexHome = mkdtempSync(join(tmpdir(), 'codex-home-'));
+    try {
+      const env = { ...process.env, AI_OPS_HOME: userHome, CODEX_HOME: codexHome };
+      const installResult = spawnSync(process.execPath, [BIN_PATH, 'codex-hook', 'install', 'context-promotion'], {
+        cwd: dir,
+        encoding: 'utf-8',
+        env,
+      });
+
+      expect(installResult.status).toBe(0);
+      const hooksRaw = readFileSync(join(codexHome, 'hooks.json'), 'utf-8');
+      expect(hooksRaw).toContain('"command": "ai-ops context-promotion hook post-tool-use"');
+      expect(hooksRaw).not.toContain(BIN_PATH);
+      expect(hooksRaw).not.toContain(process.execPath);
+      expect(existsSync(join(userHome, '.agents/skills/context-promotion-review/SKILL.md'))).toBe(true);
+      expect(existsSync(join(userHome, '.agents/skills/context-promotion-review/agents/openai.yaml'))).toBe(true);
+      expect(existsSync(join(dir, '.agents'))).toBe(false);
+      expect(existsSync(join(dir, '.codex'))).toBe(false);
+
+      const statusResult = spawnSync(process.execPath, [BIN_PATH, 'codex-hook', 'status', 'context-promotion'], {
+        cwd: dir,
+        encoding: 'utf-8',
+        env,
+      });
+      expect(statusResult.status).toBe(0);
+      expect(statusResult.stdout).toContain('hook installed: yes');
+      expect(statusResult.stdout).toContain('skill installed: yes');
+    } finally {
+      rmSync(userHome, { recursive: true, force: true });
+      rmSync(codexHome, { recursive: true, force: true });
+      cleanup();
+    }
+  });
+
+  it('context-promotion install accepts a custom hook command', () => {
+    const { dir, cleanup } = setup();
+    const userHome = mkdtempSync(join(tmpdir(), 'ai-ops-home-'));
+    const codexHome = mkdtempSync(join(tmpdir(), 'codex-home-'));
+    try {
+      const customCommand = '/custom/bin/ai-ops context-promotion hook post-tool-use';
+      const result = spawnSync(
+        process.execPath,
+        [BIN_PATH, 'codex-hook', 'install', 'context-promotion', '--command', customCommand],
+        {
+          cwd: dir,
+          encoding: 'utf-8',
+          env: { ...process.env, AI_OPS_HOME: userHome, CODEX_HOME: codexHome },
+        },
+      );
+
+      expect(result.status).toBe(0);
+      expect(readFileSync(join(codexHome, 'hooks.json'), 'utf-8')).toContain(`"command": "${customCommand}"`);
+    } finally {
+      rmSync(userHome, { recursive: true, force: true });
+      rmSync(codexHome, { recursive: true, force: true });
+      cleanup();
+    }
+  });
+});
+
 describe.skipIf(!distExists)('subagent subprocess', () => {
   it('subagent install help only exposes --tool', () => {
     const output = execFileSync(process.execPath, [BIN_PATH, 'subagent', 'install', '--help'], { encoding: 'utf-8' });
