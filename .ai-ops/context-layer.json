@@ -118,7 +118,7 @@
         "routing_changes"
       ],
       "path": "docs/agent/rules/routing-rules.md",
-      "contentHash": "36303b"
+      "contentHash": "f2684b"
     },
     {
       "status": "Active",
@@ -145,7 +145,7 @@
         "workflow_changes"
       ],
       "path": "docs/agent/workflow.md",
-      "contentHash": "015200"
+      "contentHash": "f5ffcb"
     },
     {
       "status": "Reserved",
@@ -174,5 +174,5 @@
       "contentHash": "6105c0"
     }
   ],
-  "generatedAt": "2026-05-18T03:10:52.831Z"
+  "generatedAt": "2026-05-18T14:27:41.415Z"
 }

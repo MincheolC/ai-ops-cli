@@ -1,5 +1,5 @@
 <!-- ai-ops:start -->
-<!-- sourceHash: 2176ad | generatedAt: 2026-05-18T03:10:52.831Z -->
+<!-- sourceHash: f57bbf | generatedAt: 2026-05-18T14:27:41.415Z -->
 
 ---
 status: Active
@@ -25,6 +25,6 @@ update_when:
 
 - 사용자 변경으로 보이는 diff는 되돌리지 않는다.
 - project-owned 문서는 CLI update가 덮어쓰지 않는다.
-- global skills와 subagents는 project operating layer uninstall 대상이 아니다.
+- user/global integrations와 그 component는 project operating layer uninstall 대상이 아니다.
 
 <!-- ai-ops:end -->

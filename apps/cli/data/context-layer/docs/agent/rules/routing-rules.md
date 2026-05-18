@@ -19,4 +19,5 @@ update_when:
 ## 범위
 
 - project scope: `AGENTS.md`, `GEMINI.md`, `CLAUDE.md`, `docs/agent/*`, `docs/business/*`, `docs/docs-status.md`, `.ai-ops/*`
-- global scope: skills, subagents, tool-specific reusable assets
+- integration scope: user/global runtime integrations and their components
+- component scope: skills, subagents, Codex hooks, hook runners, user-local receipts/config

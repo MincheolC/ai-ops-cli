@@ -2,16 +2,16 @@
 
 [Korean](./README.ko.md)
 
-`ai-ops-cli` is the monorepo for designing and implementing the next major breaking model of `ai-ops-cli`. The new product definition is: install an AI agent operating layer into a project, and install reusable agent skills/subagents into the user's global tool environment.
+`ai-ops-cli` is the monorepo for designing and implementing the next major breaking model of `ai-ops-cli`. The product definition is: install and manage the operating layer and global runtime integrations needed for project/agent work.
 
-The current implementation follows this operating-layer model. The old rules + skills scaffolder model remains only as deprecated context.
+The current implementation follows the project operating layer model and exposes low-level integration component commands for skills, subagents, Codex hooks, and user-local receipts. The old rules + skills scaffolder model remains only as deprecated context.
 
 ## Target Model
 
 ```mermaid
 flowchart LR
   cli["ai-ops CLI"] --> project["Project repo<br/>agent operating layer"]
-  cli --> global["Global tool home<br/>skills / subagents"]
+  cli --> integrations["User/global runtime<br/>ai-ops integrations"]
 
   project --> entry["AGENTS.md<br/>canonical entrypoint"]
   project --> adapters["GEMINI.md / CLAUDE.md<br/>thin adapters"]
@@ -19,8 +19,10 @@ flowchart LR
   project --> state[".ai-ops/manifest.json<br/>.ai-ops/context-layer.json"]
   project --> packs["optional packs<br/>docs/specs/*"]
 
-  global --> skills["reference / task skills"]
-  global --> subagents["subagents"]
+  integrations --> skills["skills"]
+  integrations --> subagents["subagents"]
+  integrations --> hooks["Codex hooks / runners"]
+  integrations --> receipts["user-local receipts / config"]
 ```
 
 ## Repository Layout
@@ -31,15 +33,15 @@ flowchart LR
 │   └── cli/
 │       ├── src/
 │       │   ├── bin/        # CLI entrypoint
-│       │   ├── commands/   # init/diff/audit/update/uninstall/skill/subagent/pack
+│       │   ├── commands/   # init/diff/audit/update/uninstall/skill/subagent/pack/hooks
 │       │   ├── core/       # schemas, loader, renderer, registry, project layer
-│       │   └── lib/        # global asset and legacy helper utilities
+│       │   └── lib/        # integration component and legacy helper utilities
 │       ├── data/
 │       │   ├── context-layer/ # project operating layer templates
-│       │   ├── skills/        # global skill source/catalog data
+│       │   ├── skills/        # skill component source/catalog data
 │       │   ├── packs/         # optional project pack source data
-│       │   └── subagents/     # global subagent source/catalog data
-│       └── README.md          # package-level operating layer contract
+│       │   └── subagents/     # subagent component source/catalog data
+│       └── README.md          # package-level operating layer and integrations contract
 ├── docs/
 │   ├── plan.md                     # master blueprint
 │   ├── implementation-playbook.md  # phase execution guide
@@ -87,24 +89,29 @@ The default layer currently has project-owned documents for project structure an
 
 To support project-specific agent rules safely, the next product extension should add a project-owned Active document such as `docs/agent/rules/project-rules.md` and have the manifest, context-layer index, and docs-status table track it together.
 
-## Global Assets
+## ai-ops Integrations
 
-Skills and subagents are not copied into the project repo. The CLI installs them into each tool's user/global discovery path and does not record them in the project manifest.
+Integrations are user/global runtime features that help agent work happen across projects. They can be composed from skills, subagents, Codex hooks, hook runners, and user-local receipts/config. These components are not copied into the project repo and are not recorded in the project manifest.
 
-Global asset commands require `AI_OPS_HOME` or `HOME`. If neither exists, they fail closed instead of falling back to the current working directory.
+Integration component commands require `AI_OPS_HOME` or `HOME`. If neither exists, they fail closed instead of falling back to the current working directory.
 
-Maintained global asset types:
+Maintained component types:
 
 - reference skills
 - task skills
 - subagents
+- Codex hook integration for context promotion
+- user-local context-promotion receipts
 
-The current skill lifecycle uses only the global registry.
+The current CLI does not yet expose `ai-ops integration ...` as a top-level command. Today, component lifecycle is managed through low-level commands.
+
+Skill lifecycle commands:
 
 ```bash
 ai-ops skill list
 ai-ops skill install skill-load-check --tool codex
 ai-ops skill install doc-impact-reviewer --tool codex
+ai-ops skill install context-promotion-review --tool codex
 ai-ops skill diff
 ai-ops skill update
 ai-ops skill uninstall skill-load-check
@@ -112,7 +119,7 @@ ai-ops skill uninstall skill-load-check
 
 `doc-impact-reviewer` is a task skill that reviews diffs near the end of work or before commit and classifies operating-document update candidates. It is invoked manually with `$doc-impact-reviewer`; it does not edit documents, stage files, or commit before user approval.
 
-The subagent lifecycle also uses only the global registry.
+Subagent lifecycle commands:
 
 ```bash
 ai-ops subagent list
@@ -128,6 +135,12 @@ Tool-specific install paths:
 - Claude Code: `.claude/agents/<id>.md`
 - Gemini CLI: `.gemini/agents/<id>.md`
 - State file: `.ai-ops/subagents-manifest.json`
+
+`context-promotion` is the current integration-like example: it combines the `context-promotion-review` Codex skill, a Codex `PostToolUse` hook, and user-local receipts to review reusable operating knowledge after `git commit`. Its low-level commands are `ai-ops context-promotion ...` and `ai-ops codex-hook ...`.
+
+`pc` is a planned integration candidate: it should combine the `pc` skill, a post-commit handoff hook, and a hook runner so Codex can remind itself to run `$pc:done` after a successful commit without creating new context in unprepared repositories.
+
+Future top-level integration UX should install/status/uninstall these bundles as one unit, for example `ai-ops integration install pc`. That command is target UX, not part of the current CLI surface.
 
 ## Optional Specs Pack
 

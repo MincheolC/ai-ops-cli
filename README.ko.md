@@ -2,16 +2,16 @@
 
 [English](./README.md)
 
-`ai-ops-cli`의 다음 major breaking model을 설계하고 구현한 모노레포입니다. 새 제품 정의는 “프로젝트에는 AI agent operating layer를 설치하고, 사용자 환경에는 agent skills/subagents를 설치한다”입니다.
+`ai-ops-cli`의 다음 major breaking model을 설계하고 구현한 모노레포입니다. 제품 정의는 “프로젝트/에이전트 작업에 필요한 operating layer와 global runtime integration을 설치하고 관리한다”입니다.
 
-현재 repo 구현은 이 operating layer 모델을 기준으로 동작합니다. old rules + skills scaffolder 모델은 deprecated 문맥으로만 남깁니다.
+현재 repo 구현은 project operating layer 모델과 skills, subagents, Codex hooks, user-local receipts를 다루는 low-level integration component 명령을 기준으로 동작합니다. old rules + skills scaffolder 모델은 deprecated 문맥으로만 남깁니다.
 
 ## 목표 모델
 
 ```mermaid
 flowchart LR
   cli["ai-ops CLI"] --> project["Project repo<br/>agent operating layer"]
-  cli --> global["Global tool home<br/>skills / subagents"]
+  cli --> integrations["User/global runtime<br/>ai-ops integrations"]
 
   project --> entry["AGENTS.md<br/>canonical entrypoint"]
   project --> adapters["GEMINI.md / CLAUDE.md<br/>thin adapters"]
@@ -19,8 +19,10 @@ flowchart LR
   project --> state[".ai-ops/manifest.json<br/>.ai-ops/context-layer.json"]
   project --> packs["optional packs<br/>docs/specs/*"]
 
-  global --> skills["reference / task skills"]
-  global --> subagents["subagents"]
+  integrations --> skills["skills"]
+  integrations --> subagents["subagents"]
+  integrations --> hooks["Codex hooks / runners"]
+  integrations --> receipts["user-local receipts / config"]
 ```
 
 ## 저장소 구조
@@ -31,15 +33,15 @@ flowchart LR
 │   └── cli/
 │       ├── src/
 │       │   ├── bin/        # CLI entrypoint
-│       │   ├── commands/   # init/diff/audit/update/uninstall/skill/subagent/pack
+│       │   ├── commands/   # init/diff/audit/update/uninstall/skill/subagent/pack/hooks
 │       │   ├── core/       # schemas, loader, renderer, registry, project layer
-│       │   └── lib/        # global asset and legacy helper utilities
+│       │   └── lib/        # integration component and legacy helper utilities
 │       ├── data/
 │       │   ├── context-layer/ # project operating layer templates
-│       │   ├── skills/        # global skill source/catalog data
+│       │   ├── skills/        # skill component source/catalog data
 │       │   ├── packs/         # optional project pack source data
-│       │   └── subagents/     # global subagent source/catalog data
-│       └── README.md          # package-level operating layer contract
+│       │   └── subagents/     # subagent component source/catalog data
+│       └── README.md          # package-level operating layer and integrations contract
 ├── docs/
 │   ├── plan.md                     # master blueprint
 │   ├── implementation-playbook.md  # phase execution guide
@@ -87,24 +89,29 @@ flowchart LR
 
 프로젝트별 agent rule을 안정적으로 지원하려면 `docs/agent/rules/project-rules.md` 같은 project-owned Active 문서를 추가하고, manifest/context-layer/docs-status가 함께 추적하도록 제품 계약을 확장하는 것이 다음 개선 후보입니다.
 
-## Global Assets
+## ai-ops Integrations
 
-skills와 subagents는 프로젝트에 복사하지 않습니다. 각 도구의 user/global discovery 규칙에 맞춰 설치하고, project manifest에는 기록하지 않습니다.
+Integration은 여러 프로젝트에서 agent 작업을 돕는 user/global runtime 기능 단위입니다. skill, subagent, Codex hook, hook runner, user-local receipt/config 같은 component로 구성될 수 있습니다. 이 component들은 프로젝트에 복사하지 않고 project manifest에도 기록하지 않습니다.
 
-global asset 명령은 `AI_OPS_HOME` 또는 `HOME`이 있어야 실행됩니다. 둘 다 없으면 cwd fallback 없이 실패합니다.
+Integration component 명령은 `AI_OPS_HOME` 또는 `HOME`이 있어야 실행됩니다. 둘 다 없으면 cwd fallback 없이 실패합니다.
 
-유지하는 global asset 종류:
+유지하는 component 종류:
 
 - reference skills
 - task skills
 - subagents
+- context promotion용 Codex hook integration
+- user-local context-promotion receipts
 
-현재 skill lifecycle은 global registry만 사용합니다.
+현재 CLI는 아직 `ai-ops integration ...` 상위 명령을 제공하지 않습니다. 지금은 low-level component 명령으로 lifecycle을 관리합니다.
+
+Skill lifecycle 명령:
 
 ```bash
 ai-ops skill list
 ai-ops skill install skill-load-check --tool codex
 ai-ops skill install doc-impact-reviewer --tool codex
+ai-ops skill install context-promotion-review --tool codex
 ai-ops skill diff
 ai-ops skill update
 ai-ops skill uninstall skill-load-check
@@ -112,7 +119,7 @@ ai-ops skill uninstall skill-load-check
 
 `doc-impact-reviewer`는 변경 완료 또는 커밋 직전에 diff를 보고 갱신해야 할 운영 문서 후보를 판정하는 task skill입니다. 수동으로 `$doc-impact-reviewer`를 호출해 사용하며, 사용자 확인 전에는 문서를 수정하지 않고 직접 staging/commit도 하지 않습니다.
 
-Subagent lifecycle도 global registry만 사용합니다.
+Subagent lifecycle 명령:
 
 ```bash
 ai-ops subagent list
@@ -128,6 +135,12 @@ ai-ops subagent uninstall security-gate
 - Claude Code: `.claude/agents/<id>.md`
 - Gemini CLI: `.gemini/agents/<id>.md`
 - 상태 파일: `.ai-ops/subagents-manifest.json`
+
+`context-promotion`은 현재 존재하는 integration-like 사례입니다. `context-promotion-review` Codex skill, Codex `PostToolUse` hook, user-local receipt를 묶어 `git commit` 이후 재사용 가능한 운영 지식 승격 검토를 돕습니다. low-level 명령은 `ai-ops context-promotion ...`와 `ai-ops codex-hook ...`입니다.
+
+`pc`는 planned integration candidate입니다. `pc` skill, post-commit handoff hook, hook runner를 묶어 성공적인 commit 직후 Codex가 `$pc:done`을 잊지 않게 하되, 준비되지 않은 repository에는 새 context를 만들지 않는 방향입니다.
+
+후속 상위 UX는 이런 묶음을 `ai-ops integration install pc`처럼 한 단위로 설치/조회/제거하는 것입니다. 이 명령은 목표 UX이며 현재 CLI surface는 아닙니다.
 
 ## Optional Specs Pack
 

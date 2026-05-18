@@ -2,9 +2,9 @@
 
 [Korean](./README.ko.md)
 
-`ai-ops-cli` installs an AI agent operating layer into a project and installs reusable agent skills/subagents into the user's global tool environment.
+`ai-ops-cli` installs and manages the operating layer and global runtime integrations needed for project/agent work.
 
-This document describes the currently implemented breaking model. The old rules + skills scaffolder model remains only as deprecated context.
+This document describes the currently implemented breaking model. The current CLI exposes low-level component commands for skills, subagents, Codex hooks, and user-local receipts; the top-level `integration` UX is a target model, not a current command. The old rules + skills scaffolder model remains only as deprecated context.
 
 ## Current Breaking Model
 
@@ -16,19 +16,22 @@ flowchart TD
   layer --> docs["docs/agent/* / docs/business/*"]
   layer --> state[".ai-ops/manifest.json / context-layer.json"]
 
-  skill["ai-ops skill ..."] --> globalSkills["Global skills only"]
-  subagent["ai-ops subagent ..."] --> globalSubagents["Global subagents only"]
+  skill["ai-ops skill ..."] --> skillComponent["Skill components"]
+  subagent["ai-ops subagent ..."] --> subagentComponent["Subagent components"]
+  hook["ai-ops codex-hook ..."] --> hookComponent["Codex hook components"]
+  receipt["ai-ops context-promotion ..."] --> receiptComponent["User-local receipts"]
   pack["ai-ops pack ..."] --> docsSpecs["optional docs/specs/ pack"]
 ```
 
 Core boundaries:
 
 - Project scope manages only operating-layer documents.
-- Global scope manages only skills/subagents.
+- Integration scope manages only user/global runtime workflow.
+- Skills, subagents, Codex hooks, and user-local receipts/config are integration components.
 - `AGENTS.md` is the canonical entrypoint.
 - `GEMINI.md` and `CLAUDE.md` are adapters that point tools back to `AGENTS.md`.
 - `docs/specs/` is the optional pack location.
-- Global asset commands require `AI_OPS_HOME` or `HOME`; they fail closed without cwd fallback when neither exists.
+- Integration component commands require `AI_OPS_HOME` or `HOME`; they fail closed without cwd fallback when neither exists.
 
 ## Install Targets
 
@@ -54,11 +57,13 @@ docs/docs-status.md
 
 `docs/agent/rules/00-agent-baseline.md` is the Active rule that carries the original intent of the old `role-persona`, `communication`, `code-philosophy`, `naming-convention`, and `plan-mode` rules into the new operating layer. It is read immediately after `AGENTS.md`.
 
-Global tool home:
+User/global runtime component home:
 
 ```text
 skills/*
 subagents/*
+hooks/*
+receipts/config/*
 ```
 
 ## Editing FAQ
@@ -92,14 +97,25 @@ Commands:
   update     Re-apply the project operating layer
   audit      Check frontmatter, docs-status, manifest, and context-layer consistency
   uninstall  Remove project-managed operating layer files
-  skill      Manage global agent skills
-  subagent   Manage global agent subagents
+  skill      Manage skill components
+  subagent   Manage subagent components
   pack       Manage optional project operating layer packs
   context-promotion Manage context promotion review receipts
-  codex-hook Manage Codex hook integration
+  codex-hook Manage Codex hook components
 ```
 
 `--tool` remains because Codex, Claude Code, and Gemini CLI use different discovery locations and adapter files.
+
+Target integration UX:
+
+```bash
+ai-ops integration list
+ai-ops integration install pc
+ai-ops integration status pc
+ai-ops integration uninstall pc
+```
+
+These commands are the intended high-level product surface for bundled runtime workflows. They are not implemented in the current CLI. Until then, use the low-level component commands below.
 
 Skill lifecycle commands:
 
@@ -115,7 +131,9 @@ ai-ops skill uninstall skill-load-check
 
 `doc-impact-reviewer` is a manual task skill for checking operating-document impact near the end of work or before commit. Invoking `$doc-impact-reviewer` reads git status/diff and reports document update candidates as `required / recommended / not needed`. It does not edit documents, stage files, or commit before user approval.
 
-`context-promotion-review` is a Codex-only task skill for checking whether the just-created work commit produced reusable operating knowledge that should be promoted to core, project-local, or global context. The Codex hook runs after `git commit`, never blocks the work commit, and any approved promotion edits stay uncommitted until the user reviews them. Installing the hook also installs the Codex skill globally. It records the final decision with `ai-ops context-promotion resolve`.
+`context-promotion-review` is a Codex-only task skill for checking whether the just-created work commit produced reusable operating knowledge that should be promoted to core, project-local, or global context. The Codex hook runs after `git commit`, never blocks the work commit, and any approved promotion edits stay uncommitted until the user reviews them. Installing the hook also installs the Codex skill into the user/global runtime location. It records the final decision with `ai-ops context-promotion resolve`.
+
+`context-promotion` is the current integration-like workflow: it combines the Codex skill, Codex `PostToolUse` hook, and user-local receipts. `pc` is a planned integration candidate that should bundle the `pc` skill, a post-commit handoff hook, and a hook runner so Codex can continue into `$pc:done` after a successful `git commit` without creating context in unprepared repositories.
 
 Context promotion and Codex hook commands:
 
@@ -139,7 +157,7 @@ ai-ops subagent update
 ai-ops subagent uninstall security-gate
 ```
 
-Subagents are always installed into the global tool home. Codex uses `.codex/agents/<id>.toml`, Claude Code uses `.claude/agents/<id>.md`, Gemini CLI uses `.gemini/agents/<id>.md`, and state is recorded only in `.ai-ops/subagents-manifest.json`.
+Subagents are always installed into the user/global runtime home. Codex uses `.codex/agents/<id>.toml`, Claude Code uses `.claude/agents/<id>.md`, Gemini CLI uses `.gemini/agents/<id>.md`, and state is recorded only in `.ai-ops/subagents-manifest.json`.
 
 Pack lifecycle commands:
 

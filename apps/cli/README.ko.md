@@ -2,9 +2,9 @@
 
 [English](./README.md)
 
-`ai-ops-cli`는 프로젝트에 AI agent operating layer를 설치하고, 사용자 환경에 agent skills/subagents를 설치하는 CLI입니다.
+`ai-ops-cli`는 프로젝트/에이전트 작업에 필요한 operating layer와 global runtime integration을 설치하고 관리하는 CLI입니다.
 
-이 문서는 현재 구현된 breaking model을 설명합니다. old rules + skills scaffolder 모델은 deprecated 문맥으로만 남깁니다.
+이 문서는 현재 구현된 breaking model을 설명합니다. 현재 CLI는 skill, subagent, Codex hook, user-local receipt를 다루는 low-level component 명령을 제공합니다. 상위 `integration` UX는 목표 모델이며 현재 명령은 아닙니다. old rules + skills scaffolder 모델은 deprecated 문맥으로만 남깁니다.
 
 ## Current Breaking Model
 
@@ -16,19 +16,22 @@ flowchart TD
   layer --> docs["docs/agent/* / docs/business/*"]
   layer --> state[".ai-ops/manifest.json / context-layer.json"]
 
-  skill["ai-ops skill ..."] --> globalSkills["Global skills only"]
-  subagent["ai-ops subagent ..."] --> globalSubagents["Global subagents only"]
+  skill["ai-ops skill ..."] --> skillComponent["Skill components"]
+  subagent["ai-ops subagent ..."] --> subagentComponent["Subagent components"]
+  hook["ai-ops codex-hook ..."] --> hookComponent["Codex hook components"]
+  receipt["ai-ops context-promotion ..."] --> receiptComponent["User-local receipts"]
   pack["ai-ops pack ..."] --> docsSpecs["optional docs/specs/ pack"]
 ```
 
 핵심 경계:
 
 - project scope는 operating layer 문서만 관리합니다.
-- global scope는 skills/subagents만 관리합니다.
+- integration scope는 user/global runtime workflow만 관리합니다.
+- skill, subagent, Codex hook, user-local receipt/config는 integration component입니다.
 - `AGENTS.md`가 canonical entrypoint입니다.
 - `GEMINI.md`와 `CLAUDE.md`는 `AGENTS.md`를 기준으로 삼게 하는 adapter입니다.
 - `docs/specs/`는 optional pack 위치입니다.
-- global asset 명령은 `AI_OPS_HOME` 또는 `HOME`이 없으면 cwd fallback 없이 실패합니다.
+- integration component 명령은 `AI_OPS_HOME` 또는 `HOME`이 없으면 cwd fallback 없이 실패합니다.
 
 ## 설치 대상
 
@@ -54,11 +57,13 @@ docs/docs-status.md
 
 `docs/agent/rules/00-agent-baseline.md`는 기존 `role-persona`, `communication`, `code-philosophy`, `naming-convention`, `plan-mode`의 기본 의도를 새 operating layer 문서로 이관한 Active 규칙입니다. `AGENTS.md` 직후 먼저 읽습니다.
 
-Global tool home:
+User/global runtime component home:
 
 ```text
 skills/*
 subagents/*
+hooks/*
+receipts/config/*
 ```
 
 ## 수정 FAQ
@@ -92,14 +97,25 @@ Commands:
   update     Re-apply the project operating layer
   audit      Check frontmatter, docs-status, manifest, and context-layer consistency
   uninstall  Remove project-managed operating layer files
-  skill      Manage global agent skills
-  subagent   Manage global agent subagents
+  skill      Manage skill components
+  subagent   Manage subagent components
   pack       Manage optional project operating layer packs
   context-promotion Manage context promotion review receipts
-  codex-hook Manage Codex hook integration
+  codex-hook Manage Codex hook components
 ```
 
 `--tool`은 유지합니다. Codex, Claude Code, Gemini CLI가 서로 다른 discovery 위치와 adapter 파일을 사용하기 때문입니다.
+
+목표 integration UX:
+
+```bash
+ai-ops integration list
+ai-ops integration install pc
+ai-ops integration status pc
+ai-ops integration uninstall pc
+```
+
+이 명령은 runtime workflow 묶음을 설치/조회/제거하기 위한 목표 제품 표면입니다. 현재 CLI에는 아직 구현되어 있지 않습니다. 그전까지는 아래 low-level component 명령을 사용합니다.
 
 Skill lifecycle 명령:
 
@@ -115,7 +131,9 @@ ai-ops skill uninstall skill-load-check
 
 `doc-impact-reviewer`는 변경 완료 또는 커밋 직전에 운영 문서 영향도를 확인하는 수동 task skill입니다. `$doc-impact-reviewer`로 호출하면 git status/diff를 보고 `required / recommended / not needed` 문서 후보와 미갱신 리스크를 제안합니다. 사용자 승인 전에는 문서를 수정하지 않고, 직접 staging/commit도 하지 않습니다.
 
-`context-promotion-review`는 방금 만든 작업 커밋에서 core, project-local, global로 승격할 반복 운영 지식이 생겼는지 확인하는 Codex 전용 task skill입니다. Codex hook은 `git commit` 이후에 동작하며 작업 커밋을 막지 않습니다. hook 설치 시 Codex skill도 global 위치에 함께 설치합니다. 승인된 승격 수정은 사용자 검사를 위해 커밋하지 않은 상태로 남기고, 최종 결정은 `ai-ops context-promotion resolve`로 receipt에 기록합니다.
+`context-promotion-review`는 방금 만든 작업 커밋에서 core, project-local, global로 승격할 반복 운영 지식이 생겼는지 확인하는 Codex 전용 task skill입니다. Codex hook은 `git commit` 이후에 동작하며 작업 커밋을 막지 않습니다. hook 설치 시 Codex skill도 user/global runtime 위치에 함께 설치합니다. 승인된 승격 수정은 사용자 검사를 위해 커밋하지 않은 상태로 남기고, 최종 결정은 `ai-ops context-promotion resolve`로 receipt에 기록합니다.
+
+`context-promotion`은 현재 존재하는 integration-like workflow입니다. Codex skill, Codex `PostToolUse` hook, user-local receipt를 묶습니다. `pc`는 planned integration candidate이며, `pc` skill, post-commit handoff hook, hook runner를 묶어 성공적인 `git commit` 이후 Codex가 `$pc:done`으로 이어가게 하되 준비되지 않은 repository에는 context를 만들지 않는 방향입니다.
 
 Context promotion과 Codex hook 명령:
 
@@ -139,7 +157,7 @@ ai-ops subagent update
 ai-ops subagent uninstall security-gate
 ```
 
-Subagent는 항상 global tool home에 설치됩니다. Codex는 `.codex/agents/<id>.toml`, Claude Code는 `.claude/agents/<id>.md`, Gemini CLI는 `.gemini/agents/<id>.md`를 사용하고, 상태는 `.ai-ops/subagents-manifest.json`에만 기록합니다.
+Subagent는 항상 user/global runtime home에 설치됩니다. Codex는 `.codex/agents/<id>.toml`, Claude Code는 `.claude/agents/<id>.md`, Gemini CLI는 `.gemini/agents/<id>.md`를 사용하고, 상태는 `.ai-ops/subagents-manifest.json`에만 기록합니다.
 
 Pack lifecycle 명령:
 
