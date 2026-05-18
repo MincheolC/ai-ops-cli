@@ -1,0 +1,6 @@
+name: security-reviewer
+description: Review a code or contract change for material security risks and missing controls.
+kind: local
+model: gemini-3-pro-preview
+temperature: 0
+max_turns: 10

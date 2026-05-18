@@ -1,0 +1,165 @@
+{
+  "schemaVersion": 1,
+  "kind": "context-layer-index",
+  "documents": [
+    {
+      "status": "Active",
+      "layer": "agent",
+      "owner": "ai-ops",
+      "read_when": [
+        "before_task"
+      ],
+      "update_when": [
+        "operating_layer_changes"
+      ],
+      "path": "AGENTS.md",
+      "contentHash": "8cf19c"
+    },
+    {
+      "status": "Active",
+      "layer": "agent",
+      "owner": "ai-ops",
+      "read_when": [
+        "before_task"
+      ],
+      "update_when": [
+        "adapter_changes"
+      ],
+      "path": "CLAUDE.md",
+      "contentHash": "8040dc"
+    },
+    {
+      "status": "Active",
+      "layer": "agent",
+      "owner": "ai-ops",
+      "read_when": [
+        "before_task"
+      ],
+      "update_when": [
+        "adapter_changes"
+      ],
+      "path": "GEMINI.md",
+      "contentHash": "c3d85b"
+    },
+    {
+      "status": "Active",
+      "layer": "agent",
+      "owner": "ai-ops",
+      "read_when": [
+        "before_finish"
+      ],
+      "update_when": [
+        "checklist_changes"
+      ],
+      "path": "docs/agent/checks/impact-checklist.md",
+      "contentHash": "7ddaf5"
+    },
+    {
+      "status": "Active",
+      "layer": "agent",
+      "owner": "ai-ops",
+      "read_when": [
+        "review",
+        "before_finish"
+      ],
+      "update_when": [
+        "checklist_changes"
+      ],
+      "path": "docs/agent/checks/review-checklist.md",
+      "contentHash": "5a03cd"
+    },
+    {
+      "status": "Reserved",
+      "layer": "agent",
+      "owner": "project",
+      "read_when": [
+        "codebase_navigation"
+      ],
+      "update_when": [
+        "architecture_changes"
+      ],
+      "path": "docs/agent/maps/codebase-map.md",
+      "contentHash": "6907af"
+    },
+    {
+      "status": "Active",
+      "layer": "agent",
+      "owner": "ai-ops",
+      "read_when": [
+        "document_change"
+      ],
+      "update_when": [
+        "document_policy_changes"
+      ],
+      "path": "docs/agent/rules/doc-update-rules.md",
+      "contentHash": "f15926"
+    },
+    {
+      "status": "Active",
+      "layer": "agent",
+      "owner": "ai-ops",
+      "read_when": [
+        "before_task"
+      ],
+      "update_when": [
+        "routing_changes"
+      ],
+      "path": "docs/agent/rules/routing-rules.md",
+      "contentHash": "36303b"
+    },
+    {
+      "status": "Active",
+      "layer": "agent",
+      "owner": "ai-ops",
+      "read_when": [
+        "before_destructive_action",
+        "before_external_side_effect"
+      ],
+      "update_when": [
+        "safety_policy_changes"
+      ],
+      "path": "docs/agent/rules/stop-rules.md",
+      "contentHash": "29001f"
+    },
+    {
+      "status": "Active",
+      "layer": "agent",
+      "owner": "ai-ops",
+      "read_when": [
+        "before_task"
+      ],
+      "update_when": [
+        "workflow_changes"
+      ],
+      "path": "docs/agent/workflow.md",
+      "contentHash": "015200"
+    },
+    {
+      "status": "Reserved",
+      "layer": "business",
+      "owner": "project",
+      "read_when": [
+        "business_rule_check"
+      ],
+      "update_when": [
+        "business_rule_changes"
+      ],
+      "path": "docs/business/business-rules.md",
+      "contentHash": "9eddc3"
+    },
+    {
+      "status": "Active",
+      "layer": "status",
+      "owner": "project",
+      "read_when": [
+        "before_task"
+      ],
+      "update_when": [
+        "document_status_changes"
+      ],
+      "path": "docs/docs-status.md",
+      "contentHash": "8211f3"
+    }
+  ],
+  "generatedAt": "2026-05-18T02:11:46.608Z"
+}

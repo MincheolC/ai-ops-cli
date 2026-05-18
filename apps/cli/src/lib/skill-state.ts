@@ -1,19 +1,6 @@
 import { resolveCanonicalSkillId, SKILL_TOOL } from '@/core/index.js';
 import type { InstalledSkill, ToolId } from '@/core/index.js';
 
-export type SkillScope = InstalledSkill['scope'];
-
-export const resolveSkillScope = (params: { global?: boolean; project?: boolean; scope?: string }): SkillScope => {
-  if (params.scope !== undefined) {
-    if (params.scope === 'user') return 'user';
-    if (params.scope === 'project') return 'project';
-    throw new Error(`Unsupported scope: ${params.scope}`);
-  }
-
-  if (params.project) return 'project';
-  return 'user';
-};
-
 export const resolveRequestedTools = (params: {
   requested?: readonly string[];
   supported: readonly string[];

@@ -1,0 +1,6 @@
+interface:
+  display_name: "spec-product-05-spec-to-work-packets"
+  short_description: "Split baseline specs into initial-build packets with repo-reality foundation work."
+  default_prompt: "Use $spec-product-05-spec-to-work-packets to convert the approved baseline spec set into initial-build Korean work packets under docs/specs/initial-build, checking the current repository against the approved stack and creating explicit foundation packets when required surfaces are missing."
+policy:
+  allow_implicit_invocation: false

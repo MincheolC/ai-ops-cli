@@ -1,0 +1,6 @@
+interface:
+  display_name: "spec-product-01-idea-to-brief"
+  short_description: "Turn a product idea into a Korean baseline brief."
+  default_prompt: "Use $spec-product-01-idea-to-brief to turn this product idea into a Korean 00_brief.md under docs/specs/baseline."
+policy:
+  allow_implicit_invocation: false

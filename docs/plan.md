@@ -1,213 +1,228 @@
-# ai-ops-cli 계획
-
-## 배경
-
-Claude Code, Codex, Gemini CLI는 모두 instruction 파일 구조와 skill 설치 경로가 다르다. 팀이나 개인이 여러 프로젝트를 바이브코딩하는 환경에서는 같은 규칙과 skill을 여러 도구에 반복 배포해야 하고, 이 상태를 수동으로 맞추면 쉽게 드리프트가 난다.
-
-또한 모든 규칙을 항상 로드하는 방식은 컨텍스트 비용이 크다. 특히 stack/framework/library 가이드는 프로젝트에 따라 필요 여부가 달라지므로, general rule과 lazy-loaded skill을 같은 방식으로 관리하면 유지보수 비용과 컨텍스트 낭비가 동시에 커진다.
-
-## 문제 정의
-
-현재 해결해야 하는 문제는 세 가지다.
-
-- 도구마다 출력 경로와 로딩 모델이 달라 같은 정책을 여러 번 관리하게 된다.
-- general core rule과 stack-specific guidance가 같은 계층에 섞이면 항상 로드 비용이 커지고, rule과 skill 사이에 중복 SSOT가 생기기 쉽다.
-- project-local 설치와 user/global 설치를 함께 지원해야 하는데, 상태 추적과 uninstall/update 경계가 섞이면 운영 실수가 발생한다.
-
-## 솔루션
-
-해법은 source of truth를 명확히 둘로 나누는 것이다.
-
-- 항상 로드해도 되는 general rule만 `apps/cli/data/rules/*.yaml`에 남긴다.
-- stack/framework/library/domain guidance는 `apps/cli/data/skills/<skill-id>/` 디렉토리를 SSOT로 관리한다.
-- preset은 core rules와 recommended skills를 직접 참조한다.
-- CLI는 이 SSOT를 읽어 Claude/Codex/Gemini용 산출물로 렌더링하고, project manifest와 global skill registry를 분리해서 상태를 관리한다.
+# ai-ops agent operating layer master blueprint
 
 ## 요약
 
-`ai-ops-cli`는 두 종류의 source of truth를 관리한다.
+`ai-ops`는 프로젝트 안에 AI agent operating layer를 설치하고 유지하는 bash CLI다. 프로젝트에는 에이전트가 항상 읽어야 하는 운영 문서와 상태 인덱스만 둔다. skills와 subagents는 프로젝트에 복사하지 않고 사용자 환경의 global asset으로 설치한다.
 
-- `apps/cli/data/rules/*.yaml`: 항상 로드되는 core rule만 보관
-- `apps/cli/data/skills/<skill-id>/`: 지연 로딩 가능한 설치형 skill 보관
+이 문서는 다음 major breaking release의 기준 계약이다. 현재 repo 구현은 project operating layer, global skills, global subagents, optional packs 경계를 기준으로 동작하며, old rules + skills scaffolder 모델은 deprecated 문맥으로만 남긴다.
 
-CLI는 이 소스를 읽어 Claude Code, Codex, Gemini CLI용 산출물로 변환하고, project 상태와 user-scope skill 상태를 분리 추적한다.
+```text
+Project repo
+  AGENTS.md
+  GEMINI.md / CLAUDE.md
+  docs/agent/*
+  docs/business/*
+  docs/docs-status.md
+  docs/specs/*        # optional pack
+  .ai-ops/manifest.json
+  .ai-ops/context-layer.json
 
-## 현재 SSOT 경계
-
-### Core Rules
-
-YAML에는 general rule만 남긴다.
-
-- `role-persona`
-- `communication`
-- `code-philosophy`
-- `naming-convention`
-- `plan-mode`
-
-이 규칙들은 짧고, stack과 무관하며, 기본 협업 스타일을 정하기 때문에 항상 로드해도 안전하다.
-
-### Skills
-
-stack/framework/library/domain별 가이드는 모두 `apps/cli/data/skills/` 아래에 둔다.
-
-예시:
-
-- `backend-service-standards`
-- `typescript-language`
-- `python-language`
-- `frontend-web-react-next-runtime`
-- `backend-ts-nestjs-runtime`
-- `graphql-contract`
-- `graphql-client-integration`
-
-`reference skill` 규약:
-
-- `SKILL.md`: 얇은 진입 문서
-- `references/reference.md`: 상세 내용의 canonical source
-
-`task skill` 규약:
-
-- `SKILL.md`: 절차의 canonical source
-
-CLI는 skill 디렉토리 전체를 그대로 복사한다. skill 본문을 따로 생성하지 않는다.
-
-## Preset 모델
-
-`apps/cli/data/presets.yaml`은 이제 core rules와 recommended skills를 직접 참조한다.
-
-```yaml
-frontend-web:
-  description: 웹 프론트엔드 프로젝트를 위한 프리셋
-  rules:
-    - role-persona
-    - communication
-    - code-philosophy
-    - naming-convention
-    - plan-mode
-  skills:
-    - typescript-language
-    - frontend-web-react-next-runtime
-    - frontend-web-shadcn-ui
+Global tool home
+  skills/*
+  subagents/*
 ```
 
-`reference_skill_id`, bundle expansion, `source_rules` 같은 rule-to-skill 간접 연결은 더 이상 사용하지 않는다.
+## 제품 정의
 
-## 도구별 출력 계약
+`ai-ops`의 책임은 프로젝트마다 흩어지는 에이전트 운영 지식을 한 계층으로 설치하고, drift를 감지하고, 안전하게 갱신하는 것이다.
 
-| 도구        | Core rule 출력                                        | Skill 출력                   |
-| ----------- | ----------------------------------------------------- | ---------------------------- |
-| Claude Code | `.claude/rules/<rule-id>.md`, `<workspace>/CLAUDE.md` | `.claude/skills/<skill-id>/` |
-| Codex       | `AGENTS.md`, `<workspace>/AGENTS.override.md`         | `.agents/skills/<skill-id>/` |
-| Gemini CLI  | `GEMINI.md`, `<workspace>/GEMINI.md`                  | `.agents/skills/<skill-id>/` |
+- project scope: agent operating layer 문서와 `.ai-ops/*` 상태 파일
+- global scope: reference/task skills와 subagents
+- adapter scope: `GEMINI.md`, `CLAUDE.md`처럼 도구가 요구하는 얇은 진입 파일
 
-추가 규칙:
+이 경계를 통해 프로젝트별 지식은 repository에 남기고, 재사용 가능한 실행 능력은 사용자 환경에 둔다.
 
-- Claude는 필요한 경우 domain rule에 `paths` frontmatter를 사용한다.
-- Codex와 Gemini는 `.agents/skills`를 공유한다.
-- `agents/openai.yaml` 같은 tool-specific metadata는 source skill 디렉토리의 내용을 그대로 복사한다.
+## 설치 대상
 
-## 상태 추적
+### Project operating layer
 
-### Project Manifest
+기본 설치 대상:
 
-파일: `.ai-ops-manifest.json`
+- `AGENTS.md`
+- `GEMINI.md`
+- `CLAUDE.md`
+- `docs/agent/workflow.md`
+- `docs/agent/rules/routing-rules.md`
+- `docs/agent/rules/doc-update-rules.md`
+- `docs/agent/rules/stop-rules.md`
+- `docs/agent/checks/impact-checklist.md`
+- `docs/agent/checks/review-checklist.md`
+- `docs/agent/maps/codebase-map.md`
+- `docs/business/business-rules.md`
+- `docs/docs-status.md`
+- `.ai-ops/manifest.json`
+- `.ai-ops/context-layer.json`
+
+`AGENTS.md`는 canonical entrypoint다. `GEMINI.md`와 `CLAUDE.md`는 각 도구가 읽을 수 있도록 `AGENTS.md`를 우선 기준으로 삼으라는 adapter 역할만 한다. 중복된 canonical 문서를 피하기 위해 `docs/agent/AGENTS.md`는 만들지 않는다.
+
+### Optional packs
+
+`docs/specs/`는 optional pack 위치로 고정한다. spec lifecycle이 필요한 프로젝트만 설치한다.
+
+Deprecated old model:
+
+- root `specs/`는 더 이상 새 모델의 설치 위치가 아니다.
+- 기존 `ai-ops spec init`의 root `specs/` scaffolding은 `ai-ops pack install spec-lifecycle`로 대체한다.
+
+### Global assets
+
+global 설치 대상:
+
+- reference skills
+- task skills
+- subagents
+
+skills와 subagents는 프로젝트 운영 문서가 아니다. CLI는 각 도구의 global 또는 user-level discovery 규칙에 맞춰 설치한다.
+
+## 문서 신뢰도 모델
+
+operating layer 문서는 frontmatter와 `docs/docs-status.md`로 신뢰도를 관리한다.
+
+공통 frontmatter:
+
+```yaml
+status: Active
+layer: agent
+owner: ai-ops
+read_when:
+  - before_task
+update_when:
+  - workflow_changes
+```
+
+기본 상태:
+
+| 상태       | 의미                                           | 기본 적용 문서                       |
+| ---------- | ---------------------------------------------- | ------------------------------------ |
+| `Active`   | 에이전트가 판단 근거로 사용할 수 있음          | workflow, rules, checks              |
+| `Reserved` | 자리만 만들었고 근거로 쓰면 안 됨             | codebase-map, business-rules, specs  |
+| `Draft`    | 작성 중이며 사용 전 검토가 필요함              | 프로젝트가 직접 작성 중인 확장 문서 |
+| `Archived` | 과거 기록이며 현재 운영 판단에 사용하지 않음   | deprecated 문서                      |
+
+`Reserved` 문서는 비어 있거나 프로젝트별 보강 전 상태일 수 있다. 에이전트는 `Reserved` 문서를 현재 사실로 인용하지 않는다.
+
+## 도구별 entrypoint 계약
+
+| 도구       | entrypoint | 역할 |
+| ---------- | ---------- | ---- |
+| Codex      | `AGENTS.md` | canonical operating layer entrypoint |
+| Gemini CLI | `GEMINI.md` | `AGENTS.md`를 기준으로 읽도록 안내하는 adapter |
+| Claude Code | `CLAUDE.md` | `AGENTS.md`를 기준으로 읽도록 안내하는 adapter |
+
+도구별 adapter에는 중복 운영 규칙을 넣지 않는다. adapter가 길어지는 경우 canonical 문서를 분리한 것이 아니라 중복을 만든 신호로 본다.
+
+## 상태 파일
+
+### `.ai-ops/manifest.json`
+
+project operating layer 설치 상태를 기록한다.
 
 추적 대상:
 
-- 선택된 도구
-- project scope core rule 설치 상태
-- project scope skill 설치 상태
-- workspace별 preset/rule 선택
-- append된 파일과 optional settings
-- compiler `sourceHash`와 CLI 버전
+- 설치된 CLI 버전
+- 선택된 도구 adapter
+- 설치된 project layer 파일 목록
+- 각 파일의 source hash
+- optional pack 설치 여부
+- 생성/갱신 시각
 
-### Global Skill Registry
+### `.ai-ops/context-layer.json`
 
-파일: `~/.ai-ops/skills-manifest.json`
+에이전트가 문서 계층을 빠르게 탐색할 수 있는 index다.
 
 추적 대상:
 
-- user-scope 설치 skill
-- 설치 경로
-- skill source hash
-- CLI 버전과 생성 시각
+- 문서 경로
+- frontmatter 상태
+- layer
+- read/update 조건
+- content hash
 
-project 명령은 user-scope skill을 삭제하지 않는다.
+`audit` 명령은 `manifest.json`, `context-layer.json`, 실제 파일, `docs/docs-status.md`의 불일치를 읽기 전용으로 검사한다.
 
-## Init UX
+## Scope 정책
 
-`ai-ops init`은 preset-first 흐름을 따른다.
+새 모델은 scope를 단순화한다.
+
+- project scope는 operating layer 문서만 관리한다.
+- global scope는 skills/subagents만 관리한다.
+- `skill` 명령은 project-local 설치 옵션을 제공하지 않는다.
+- `skill` 명령에서 `--project`, `--global`, `--scope` 공개 옵션은 제거한다.
+- `--tool`은 유지한다. 각 도구의 skill/subagent discovery 위치가 다르기 때문이다.
+
+Deprecated old model:
+
+- `--project` skill 설치는 제거 대상이다.
+- `--global`과 `--scope`로 skill scope를 직접 지정하는 모델은 제거 대상이다.
+- project scope skill 설치와 project-installed skill manifest 추적은 제거 대상이다.
+- old `.ai-ops-manifest.json`는 새 `.ai-ops/manifest.json`로 대체한다.
+- legacy manifest migration은 제공하지 않는다.
+
+## Breaking policy
+
+이번 전환은 breaking release다. 기존 프로젝트 자동 마이그레이션은 만들지 않는다.
+
+기존 사용자는 다음 절차를 따른다.
+
+1. old CLI로 `ai-ops uninstall`을 실행한다.
+2. 새 major CLI를 설치한다.
+3. 새 모델로 `ai-ops init`을 다시 실행한다.
+4. 필요한 경우 optional `docs/specs/` pack을 설치한다.
+
+이 정책은 복잡한 partial migration보다 운영 계층의 신뢰도를 우선한다. old manifest와 새 context-layer가 한 프로젝트에서 섞이면 에이전트가 stale 계약을 사실로 읽을 수 있기 때문이다.
+
+## 명령 목표 계약
+
+### `ai-ops init`
+
+project operating layer를 설치한다.
 
 ```mermaid
 flowchart TD
-  A[도구 선택] --> B{모노레포인가?}
-  B -->|아니오| C[루트용 preset 선택]
-  B -->|예| D[워크스페이스 선택]
-  D --> E[워크스페이스별 preset 선택]
-  C --> F[잠긴 core rules 표시]
-  E --> F
-  F --> G[recommended skills 세부 조정]
-  G --> H{선택된 skill이 있는가?}
-  H -->|예| I[선택된 skill 전체의 설치 scope 선택: user 또는 project]
-  H -->|아니오| J[optional settings 설치]
-  I --> J
-  J --> K[core rules 설치]
-  K --> L[selected skills 설치]
-  L --> M[project manifest 또는 global skill registry 기록]
+  Start["ai-ops init"] --> Tool["대상 도구 adapter 선택"]
+  Tool --> Layer["project operating layer 파일 생성"]
+  Layer --> Manifest[".ai-ops/manifest.json 기록"]
+  Manifest --> Index[".ai-ops/context-layer.json 기록"]
+  Index --> Done["완료"]
 ```
 
-Scope 규칙:
-
-- 기본 skill scope는 `user`
-- `init` 1회 실행에서 선택된 skills는 하나의 공통 scope를 공유한다
-- `user` scope는 global skill registry만 갱신한다
-- `project` scope는 `.ai-ops-manifest.json`에 installed skill metadata를 기록한다
-
-## Skill 명령
-
-`ai-ops skill ...`은 skill 자체를 직접 관리한다.
-
-- `ai-ops skill install <skill-id>`
-- `ai-ops skill list`
-- `ai-ops skill diff`
-- `ai-ops skill update`
-- `ai-ops skill uninstall <skill-id>`
-
-동작 규칙:
-
-- 기본 scope는 `user`
-- `--project`를 주면 현재 repo에 설치한다
-- source skill 디렉토리를 재귀적으로 복사한다
-- 지원하지 않는 tool/scope 조합은 명시적으로 실패한다
-
-## Update / Diff / Uninstall
+Phase 1 MVP는 root project만 다룬다. monorepo workspace override는 후속 개선으로 둔다.
 
 ### `ai-ops diff`
 
-- 현재 compiler 상태를 `.ai-ops-manifest.json`과 비교한다
-- 저장된 preset/workspace 선택으로부터 현재 core rules를 다시 계산한다
-- project-installed skills의 드리프트를 함께 보고한다
+현재 파일과 `.ai-ops/manifest.json`, `.ai-ops/context-layer.json`의 drift를 비교한다.
 
 ### `ai-ops update`
 
-- preset/workspace 선택을 기준으로 현재 core rules를 다시 계산한다
-- project-installed skills를 다시 설치한다
-- 현재 rule id와 project skill metadata로 manifest를 다시 쓴다
+project operating layer를 현재 CLI 템플릿 기준으로 재적용한다. 사용자 작성 영역이 있는 문서는 보존 규칙을 명확히 둔다.
+
+### `ai-ops audit`
+
+frontmatter, `docs/docs-status.md`, manifest, context-layer index의 불일치를 읽기 전용으로 검사한다.
 
 ### `ai-ops uninstall`
 
-- project-managed rule 파일을 제거한다
-- project-installed skill 디렉토리를 제거한다
-- user-scope skill은 건드리지 않는다
+project operating layer와 `.ai-ops/*` 상태 파일만 제거한다. global skills/subagents는 제거하지 않는다.
 
-## Legacy 마이그레이션 규칙
+### `ai-ops skill ...`
 
-오래된 manifest에는 `typescript`, `nextjs`, `graphql-client-web` 같은 과거 stack/framework rule id가 남아 있을 수 있다.
+global skill lifecycle만 관리한다.
 
-현재 동작:
+### `ai-ops subagent ...`
 
-- `diff`와 `update`는 이런 legacy externalized rule id를 현재 skill catalog로 매핑한다
-- 마이그레이션된 항목은 project-installed skill로 취급한다
-- 다시 쓰인 manifest에는 현재 core rule id와 명시적인 `installed_skills`만 남긴다
+global subagent lifecycle만 관리한다. Phase 3에서 도입한다.
 
-이 방식으로 externalized guidance를 YAML과 skill 양쪽에 중복 저장하지 않으면서도 업그레이드 경로를 유지한다.
+## Deprecated old model
+
+다음 모델은 문서와 코드에서 단계적으로 제거한다.
+
+- `rules + skills scaffolder`를 제품 정의로 설명하는 문구
+- preset-first init UX
+- project scope skill 설치
+- `ai-ops skill install --project`
+- project-installed skill directory 추적
+- `.ai-ops-manifest.json`
+- legacy externalized rule migration
+- root `specs/`
+
+위 항목은 새 operating layer 계약 밖에 있는 historical/deprecated 모델로만 남긴다.

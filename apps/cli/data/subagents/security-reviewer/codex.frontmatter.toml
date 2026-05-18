@@ -1,0 +1,6 @@
+name = "security-reviewer"
+description = "Review a code or contract change for material security risks and missing controls."
+model = "gpt-5.4"
+model_reasoning_effort = "high"
+sandbox_mode = "read-only"
+skill_names = ["spec-security-01-triage", "spec-security-02-review"]

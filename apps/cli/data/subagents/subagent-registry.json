@@ -1,0 +1,14 @@
+{
+  "subagents": [
+    {
+      "id": "security-gate",
+      "supported_tools": ["claude-code", "codex", "gemini"],
+      "source_path": "security-gate"
+    },
+    {
+      "id": "security-reviewer",
+      "supported_tools": ["claude-code", "codex", "gemini"],
+      "source_path": "security-reviewer"
+    }
+  ]
+}

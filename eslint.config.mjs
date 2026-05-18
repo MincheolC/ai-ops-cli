@@ -16,6 +16,6 @@ export default defineConfig(
     },
   },
   {
-    ignores: ['**/dist/**', '**/node_modules/**', '**/*.config.*'],
+    ignores: ['**/dist/**', '**/node_modules/**', '**/*.config.*', 'apps/cli/data/skills/**/scripts/**'],
   },
 );

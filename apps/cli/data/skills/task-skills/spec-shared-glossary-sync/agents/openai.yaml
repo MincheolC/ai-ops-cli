@@ -1,0 +1,6 @@
+interface:
+  display_name: "spec-shared-glossary-sync"
+  short_description: "Standardize Korean spec terms into a shared baseline glossary."
+  default_prompt: "Use $spec-shared-glossary-sync to create or update a Korean 01_glossary.md that standardizes terms across baseline docs and active .codex/plans."
+policy:
+  allow_implicit_invocation: false

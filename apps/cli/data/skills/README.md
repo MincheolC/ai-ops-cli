@@ -20,11 +20,28 @@ A `task skill` is a procedural workflow.
 - `references/` is optional supporting material only
 - Use it for repeatable checks, actions, and guided workflows
 
+### Task Skill Usage
+
+Keep repeatable operating procedures as task skills. For example, `doc-impact-reviewer` checks the diff when work is finished or just before commit, classifies document update candidates as `required / recommended / not needed`, and edits only the documents the user approves.
+
+Disable automatic invocation for task skills that require explicit approval.
+
+- Codex: add `policy.allow_implicit_invocation: false` to `agents/openai.yaml`.
+- Claude Code: add `disable-model-invocation: true` to the `SKILL.md` frontmatter.
+- Gemini CLI: there is no skill-level explicit-only flag, so write the explicit-invocation rule in the skill body.
+
+Install example:
+
+```bash
+ai-ops skill install doc-impact-reviewer --tool codex
+```
+
 ## Directory Shape
 
 ```text
 apps/cli/data/skills/
   README.md
+  README.ko.md
   skill-registry.json
   reference-skills/
     <skill-name>/
@@ -45,7 +62,7 @@ apps/cli/data/skills/
 
 1. Directory name must exactly match frontmatter `name`.
 2. `SKILL.md` must start with YAML frontmatter.
-3. `kind`, `supported_tools`, `install_scopes`, preset grouping, and `source_path` live in `skill-registry.json`.
+3. `kind`, `supported_tools`, preset grouping, and `source_path` live in `skill-registry.json`.
 4. A `reference` skill must live under `reference-skills/` and include `references/reference.md`.
 5. A `task` skill must live under `task-skills/` and keep its executable procedure in `SKILL.md`.
 6. Do not duplicate the same detailed content across `SKILL.md` and `references/`.
@@ -71,7 +88,6 @@ apps/cli/data/skills/
 | `id`                  | Yes      | `graphql-contract`                   | Canonical skill id                                |
 | `kind`                | Yes      | `reference` / `task`                 | Skill category                                    |
 | `supported_tools`     | Yes      | `["claude-code", "codex", "gemini"]` | Where the skill may be installed                  |
-| `install_scopes`      | Yes      | `["project", "user"]`                | Allowed install scopes                            |
 | `groups`              | Yes      | `["frontend-web"]`                   | Display/discovery grouping                        |
 | `included_in_presets` | Yes      | `["frontend-web", "backend-ts"]`     | Presets that surface this skill in `ai-ops init`  |
 | `source_path`         | Yes      | `reference-skills/graphql-contract`  | Relative directory that contains the skill source |
@@ -155,3 +171,12 @@ task-skills/skill-load-check/
 - Keep the description narrow and test-focused
 - Keep the body short and procedural
 - It is acceptable to delete this skill later once the install/load workflow is proven
+
+## Operating Task Skills
+
+`doc-impact-reviewer` is a task skill for manually reviewing operating-document impact.
+
+- It reads git status, diffs, changed files, and related operating-layer documents.
+- It reports document candidates and risk before editing.
+- It does not edit before user confirmation.
+- It does not stage, commit, or install hooks by itself.

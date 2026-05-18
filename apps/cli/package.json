@@ -1,7 +1,7 @@
 {
   "name": "ai-ops-cli",
   "version": "0.2.6",
-  "description": "CLI for ai-ops scaffolding — manage AI tool rules and presets",
+  "description": "CLI for AI agent operating layers and global agent assets",
   "license": "MIT",
   "repository": {
     "type": "git",

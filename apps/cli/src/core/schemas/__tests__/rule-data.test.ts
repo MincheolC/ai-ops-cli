@@ -3,6 +3,7 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse } from 'yaml';
+import { z } from 'zod';
 import { parseMarkdownFrontmatter } from '../../frontmatter.js';
 import { RuleSchema } from '../rule.schema.js';
 import { SkillCatalogSchema } from '../skill-catalog.schema.js';
@@ -32,6 +33,11 @@ const skillEntries = [...skillCatalog.skills].sort((a, b) => a.id.localeCompare(
 const presetIds = Object.keys(
   parse(readFileSync(resolve(__dirname, '../../../../data/presets.yaml'), 'utf-8')) as Record<string, unknown>,
 ).sort();
+const OpenAiSkillMetadataSchema = z.object({
+  policy: z.object({
+    allow_implicit_invocation: z.boolean(),
+  }),
+});
 
 describe('rule data files', () => {
   describe('각 YAML이 RuleSchema를 통과한다', () => {
@@ -95,6 +101,24 @@ describe('skill data files', () => {
         expect(presetIdSet.has(presetId)).toBe(true);
       }
     }
+  });
+
+  it('doc-impact-reviewer는 수동 호출과 문서 영향 판정 계약을 포함한다', () => {
+    const skillRaw = readFileSync(resolve(skillsDir, 'task-skills/doc-impact-reviewer/SKILL.md'), 'utf-8');
+    const openaiMetadata = OpenAiSkillMetadataSchema.parse(
+      parse(readFileSync(resolve(skillsDir, 'task-skills/doc-impact-reviewer/agents/openai.yaml'), 'utf-8')),
+    );
+
+    expect(skillRaw).toContain('diff 확인');
+    expect(skillRaw).toContain('git diff --cached --stat');
+    expect(skillRaw).toContain('git diff --cached');
+    expect(skillRaw).toContain('git diff --cached --name-only');
+    expect(skillRaw).toContain('문서 후보 제안');
+    expect(skillRaw).toContain('사용자 컨펌 전 편집 금지');
+    expect(skillRaw).toContain('직접 commit하지 않는다');
+    expect(skillRaw).toContain('직접 커밋 금지');
+    expect(skillRaw).toContain('Reserved 승격 금지');
+    expect(openaiMetadata.policy.allow_implicit_invocation).toBe(false);
   });
 });
 

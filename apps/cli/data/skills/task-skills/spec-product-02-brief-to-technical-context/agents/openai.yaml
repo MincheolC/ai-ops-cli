@@ -1,0 +1,6 @@
+interface:
+  display_name: "spec-product-02-brief-to-technical-context"
+  short_description: "Convert an approved brief into a constrained technical context."
+  default_prompt: "Use $spec-product-02-brief-to-technical-context to expand the approved brief into a Korean 05_technical-context.md with justified stack choices."
+policy:
+  allow_implicit_invocation: false

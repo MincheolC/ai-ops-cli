@@ -3,7 +3,13 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { computeHash, computeSourceHash, computeInstalledSkillHash, buildManifest } from '../source-hash.js';
+import {
+  computeHash,
+  computeSourceHash,
+  computeInstalledSkillHash,
+  computeInstalledSubagentHash,
+  buildManifest,
+} from '../source-hash.js';
 import { ManifestSchema } from '../schemas/index.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -63,7 +69,6 @@ describe('computeSourceHash', () => {
                 id: 'demo-skill',
                 kind: 'reference',
                 supported_tools: ['codex'],
-                install_scopes: ['project'],
                 groups: ['frontend-web'],
                 included_in_presets: ['frontend-web'],
                 source_path: 'reference-skills/demo-skill',
@@ -89,7 +94,6 @@ describe('computeSourceHash', () => {
                 id: 'demo-skill',
                 kind: 'reference',
                 supported_tools: ['codex', 'gemini'],
-                install_scopes: ['project'],
                 groups: ['frontend-web'],
                 included_in_presets: ['frontend-web'],
                 source_path: 'reference-skills/demo-skill',
@@ -126,6 +130,32 @@ describe('computeInstalledSkillHash', () => {
         files: ['SKILL.md:body', "scripts/loaded.js:console.log('A Skill loaded');"],
       }),
     );
+  });
+});
+
+describe('computeInstalledSubagentHash', () => {
+  it('PROMPT와 metadata 변경을 해시에 반영한다', () => {
+    const firstHash = computeInstalledSubagentHash({
+      id: 'security-gate',
+      tools: ['codex'],
+      prompt: 'Prompt',
+      metadataFiles: ['codex:name = "security-gate"'],
+    });
+    const secondHash = computeInstalledSubagentHash({
+      id: 'security-gate',
+      tools: ['codex'],
+      prompt: 'Prompt changed',
+      metadataFiles: ['codex:name = "security-gate"'],
+    });
+    const thirdHash = computeInstalledSubagentHash({
+      id: 'security-gate',
+      tools: ['codex'],
+      prompt: 'Prompt',
+      metadataFiles: ['codex:name = "security-gate"\nmodel = "gpt-5.4-mini"'],
+    });
+
+    expect(secondHash).not.toBe(firstHash);
+    expect(thirdHash).not.toBe(firstHash);
   });
 });
 
@@ -194,7 +224,6 @@ describe('buildManifest', () => {
           id: 'graphql-contract',
           kind: 'reference',
           tools: ['codex'],
-          scope: 'project',
           installed_paths: ['.agents/skills/graphql-contract'],
           sourceHash: 'abc123',
         },

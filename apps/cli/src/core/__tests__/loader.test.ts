@@ -30,7 +30,6 @@ const makeSkill = (id: string): Skill => ({
   kind: 'reference',
   description: `${id} description`,
   supported_tools: ['claude-code', 'codex', 'gemini'],
-  install_scopes: ['project', 'user'],
   groups: ['frontend-web'],
   included_in_presets: ['frontend-web'],
   directory: `/tmp/${id}`,
@@ -150,9 +149,29 @@ describe('I/O', () => {
     expect(catalog.skills.length).toBeGreaterThan(0);
   });
 
-  it('loadAllSkills: 실제 data/skills/ 16개 로드', () => {
+  it('loadAllSkills: 실제 data/skills/ 24개 로드', () => {
     const skills = loadAllSkills(resolve(dataDir, 'skills'));
-    expect(skills).toHaveLength(16);
+    expect(skills).toHaveLength(24);
+  });
+
+  it('spec lifecycle task skills는 preset에 자동 포함되지 않고 docs/specs 경로를 사용한다', () => {
+    const skills = loadAllSkills(resolve(dataDir, 'skills'));
+    const specSkills = skills.filter((skill) => skill.groups.includes('spec-lifecycle'));
+    const contents = specSkills.flatMap((skill) => skill.files.map((file) => file.content));
+
+    expect(specSkills.map((skill) => skill.id)).toEqual([
+      'spec-baseline-sync',
+      'spec-product-01-idea-to-brief',
+      'spec-product-02-brief-to-technical-context',
+      'spec-product-03-brief-to-product-spec',
+      'spec-product-04-product-spec-to-ui-spec',
+      'spec-product-05-spec-to-work-packets',
+      'spec-shared-glossary-sync',
+    ]);
+    expect(specSkills.every((skill) => skill.kind === 'task')).toBe(true);
+    expect(specSkills.every((skill) => skill.included_in_presets.length === 0)).toBe(true);
+    expect(contents.some((content) => content.includes('./docs/specs/'))).toBe(true);
+    expect(contents.some((content) => content.includes('./specs/'))).toBe(false);
   });
 
   it('loadPresets: 실제 data/presets.yaml 4개 로드', () => {

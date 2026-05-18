@@ -1,0 +1,8 @@
+name: security-gate
+description: Decide whether a spec artifact or code change needs deeper security review.
+tools: Read, Glob, Grep
+model: haiku
+permissionMode: plan
+maxTurns: 6
+skills:
+  - spec-security-01-triage

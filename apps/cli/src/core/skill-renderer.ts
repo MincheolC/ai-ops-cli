@@ -36,7 +36,6 @@ const normalizeSelectedTools = (skill: Skill, requestedTools: readonly ToolId[])
 export const buildSkillInstallPlan = (params: {
   skill: Skill;
   requestedTools: readonly ToolId[];
-  scope: InstalledSkill['scope'];
 }): { packages: SkillPackage[]; installedSkill: InstalledSkill } => {
   const selectedTools = normalizeSelectedTools(params.skill, params.requestedTools);
   if (selectedTools.length === 0) {
@@ -70,7 +69,6 @@ export const buildSkillInstallPlan = (params: {
       id: params.skill.id,
       kind: params.skill.kind,
       tools: selectedTools,
-      scope: params.scope,
       installed_paths: rootDirs,
       sourceHash: skillHash,
     },

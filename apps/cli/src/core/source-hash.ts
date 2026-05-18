@@ -87,6 +87,13 @@ export const computeInstalledSkillHash = (params: {
   files: readonly string[];
 }): string => computeHash([params.kind, params.description, ...[...params.tools].sort(), ...[...params.files].sort()]);
 
+export const computeInstalledSubagentHash = (params: {
+  id: string;
+  tools: readonly string[];
+  prompt: string;
+  metadataFiles: readonly string[];
+}): string => computeHash([params.id, params.prompt, ...[...params.tools].sort(), ...[...params.metadataFiles].sort()]);
+
 // Manifest Builder (Pure, 단 generatedAt에 현재 시각 사용)
 export const buildManifest = (params: {
   tools: readonly string[];

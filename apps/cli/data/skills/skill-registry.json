@@ -4,7 +4,6 @@
       "id": "ai-llm-python-runtime",
       "kind": "reference",
       "supported_tools": ["claude-code", "codex", "gemini"],
-      "install_scopes": ["project", "user"],
       "groups": ["backend-python"],
       "included_in_presets": [],
       "source_path": "reference-skills/ai-llm-python-runtime"
@@ -13,7 +12,6 @@
       "id": "backend-python-fastapi-runtime",
       "kind": "reference",
       "supported_tools": ["claude-code", "codex", "gemini"],
-      "install_scopes": ["project", "user"],
       "groups": ["backend-python"],
       "included_in_presets": ["backend-python"],
       "source_path": "reference-skills/backend-python-fastapi-runtime"
@@ -22,7 +20,6 @@
       "id": "backend-service-standards",
       "kind": "reference",
       "supported_tools": ["claude-code", "codex", "gemini"],
-      "install_scopes": ["project", "user"],
       "groups": ["backend-ts", "backend-python"],
       "included_in_presets": ["backend-ts", "backend-python"],
       "source_path": "reference-skills/backend-service-standards"
@@ -31,7 +28,6 @@
       "id": "backend-ts-nestjs-runtime",
       "kind": "reference",
       "supported_tools": ["claude-code", "codex", "gemini"],
-      "install_scopes": ["project", "user"],
       "groups": ["backend-ts"],
       "included_in_presets": ["backend-ts"],
       "source_path": "reference-skills/backend-ts-nestjs-runtime"
@@ -40,7 +36,6 @@
       "id": "data-pipeline-python-performance",
       "kind": "reference",
       "supported_tools": ["claude-code", "codex", "gemini"],
-      "install_scopes": ["project", "user"],
       "groups": ["backend-python"],
       "included_in_presets": [],
       "source_path": "reference-skills/data-pipeline-python-performance"
@@ -49,7 +44,6 @@
       "id": "db-prisma-postgresql",
       "kind": "reference",
       "supported_tools": ["claude-code", "codex", "gemini"],
-      "install_scopes": ["project", "user"],
       "groups": ["backend-ts"],
       "included_in_presets": ["backend-ts"],
       "source_path": "reference-skills/db-prisma-postgresql"
@@ -58,7 +52,6 @@
       "id": "db-sqlalchemy-postgresql",
       "kind": "reference",
       "supported_tools": ["claude-code", "codex", "gemini"],
-      "install_scopes": ["project", "user"],
       "groups": ["backend-python"],
       "included_in_presets": ["backend-python"],
       "source_path": "reference-skills/db-sqlalchemy-postgresql"
@@ -67,7 +60,6 @@
       "id": "frontend-app-flutter-runtime",
       "kind": "reference",
       "supported_tools": ["claude-code", "codex", "gemini"],
-      "install_scopes": ["project", "user"],
       "groups": ["frontend-app"],
       "included_in_presets": ["frontend-app"],
       "source_path": "reference-skills/frontend-app-flutter-runtime"
@@ -76,7 +68,6 @@
       "id": "frontend-web-react-next-runtime",
       "kind": "reference",
       "supported_tools": ["claude-code", "codex", "gemini"],
-      "install_scopes": ["project", "user"],
       "groups": ["frontend-web"],
       "included_in_presets": ["frontend-web"],
       "source_path": "reference-skills/frontend-web-react-next-runtime"
@@ -85,7 +76,6 @@
       "id": "frontend-web-shadcn-ui",
       "kind": "reference",
       "supported_tools": ["claude-code", "codex", "gemini"],
-      "install_scopes": ["project", "user"],
       "groups": ["frontend-web"],
       "included_in_presets": ["frontend-web"],
       "source_path": "reference-skills/frontend-web-shadcn-ui"
@@ -94,7 +84,6 @@
       "id": "graphql-client-integration",
       "kind": "reference",
       "supported_tools": ["claude-code", "codex", "gemini"],
-      "install_scopes": ["project", "user"],
       "groups": ["frontend-web", "frontend-app"],
       "included_in_presets": ["frontend-web", "frontend-app"],
       "source_path": "reference-skills/graphql-client-integration"
@@ -103,7 +92,6 @@
       "id": "graphql-contract",
       "kind": "reference",
       "supported_tools": ["claude-code", "codex", "gemini"],
-      "install_scopes": ["project", "user"],
       "groups": ["frontend-web", "frontend-app", "backend-ts"],
       "included_in_presets": ["frontend-web", "frontend-app", "backend-ts"],
       "source_path": "reference-skills/graphql-contract"
@@ -112,7 +100,6 @@
       "id": "graphql-server-runtime",
       "kind": "reference",
       "supported_tools": ["claude-code", "codex", "gemini"],
-      "install_scopes": ["project", "user"],
       "groups": ["backend-ts"],
       "included_in_presets": ["backend-ts"],
       "source_path": "reference-skills/graphql-server-runtime"
@@ -121,25 +108,86 @@
       "id": "python-language",
       "kind": "reference",
       "supported_tools": ["claude-code", "codex", "gemini"],
-      "install_scopes": ["project", "user"],
       "groups": ["backend-python"],
       "included_in_presets": ["backend-python"],
       "source_path": "reference-skills/python-language"
     },
     {
+      "id": "doc-impact-reviewer",
+      "kind": "task",
+      "supported_tools": ["claude-code", "codex", "gemini"],
+      "groups": ["agent-operating-layer"],
+      "included_in_presets": [],
+      "source_path": "task-skills/doc-impact-reviewer"
+    },
+    {
       "id": "skill-load-check",
       "kind": "task",
       "supported_tools": ["claude-code", "codex", "gemini"],
-      "install_scopes": ["project", "user"],
       "groups": [],
       "included_in_presets": [],
       "source_path": "task-skills/skill-load-check"
     },
     {
+      "id": "spec-baseline-sync",
+      "kind": "task",
+      "supported_tools": ["claude-code", "codex", "gemini"],
+      "groups": ["spec-lifecycle"],
+      "included_in_presets": [],
+      "source_path": "task-skills/spec-baseline-sync"
+    },
+    {
+      "id": "spec-product-01-idea-to-brief",
+      "kind": "task",
+      "supported_tools": ["claude-code", "codex", "gemini"],
+      "groups": ["spec-lifecycle"],
+      "included_in_presets": [],
+      "source_path": "task-skills/spec-product-01-idea-to-brief"
+    },
+    {
+      "id": "spec-product-02-brief-to-technical-context",
+      "kind": "task",
+      "supported_tools": ["claude-code", "codex", "gemini"],
+      "groups": ["spec-lifecycle"],
+      "included_in_presets": [],
+      "source_path": "task-skills/spec-product-02-brief-to-technical-context"
+    },
+    {
+      "id": "spec-product-03-brief-to-product-spec",
+      "kind": "task",
+      "supported_tools": ["claude-code", "codex", "gemini"],
+      "groups": ["spec-lifecycle"],
+      "included_in_presets": [],
+      "source_path": "task-skills/spec-product-03-brief-to-product-spec"
+    },
+    {
+      "id": "spec-product-04-product-spec-to-ui-spec",
+      "kind": "task",
+      "supported_tools": ["claude-code", "codex", "gemini"],
+      "groups": ["spec-lifecycle"],
+      "included_in_presets": [],
+      "source_path": "task-skills/spec-product-04-product-spec-to-ui-spec"
+    },
+    {
+      "id": "spec-product-05-spec-to-work-packets",
+      "kind": "task",
+      "supported_tools": ["claude-code", "codex", "gemini"],
+      "groups": ["spec-lifecycle"],
+      "included_in_presets": [],
+      "source_path": "task-skills/spec-product-05-spec-to-work-packets"
+    },
+    {
+      "id": "spec-shared-glossary-sync",
+      "kind": "task",
+      "supported_tools": ["claude-code", "codex", "gemini"],
+      "groups": ["spec-lifecycle"],
+      "included_in_presets": [],
+      "source_path": "task-skills/spec-shared-glossary-sync"
+    },
+    {
       "id": "typescript-language",
       "kind": "reference",
       "supported_tools": ["claude-code", "codex", "gemini"],
-      "install_scopes": ["project", "user"],
       "groups": ["frontend-web", "backend-ts"],
       "included_in_presets": ["frontend-web", "backend-ts"],
       "source_path": "reference-skills/typescript-language"
