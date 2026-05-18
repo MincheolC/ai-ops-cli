@@ -83,6 +83,10 @@ describe('skill data files', () => {
     expect(skillRaw).toContain('git show --stat HEAD');
     expect(skillRaw).toContain('git show --name-only HEAD');
     expect(skillRaw).toContain('git show HEAD');
+    expect(skillRaw).toContain('Project root');
+    expect(skillRaw).toContain('웹 검색 금지');
+    expect(skillRaw).toContain('다른 repo 탐색 금지');
+    expect(skillRaw).toContain('없으면 absent로 기록');
     expect(skillRaw).toContain('사용자 승인 전 편집 금지');
     expect(skillRaw).toContain('ai-ops context-promotion resolve');
     expect(skillRaw).toContain('receipt 확인 필수');

@@ -277,6 +277,11 @@ describe('context promotion PostToolUse hook', () => {
       const before = evaluateContextPromotionPostToolUseHook({ userBasePath: userHome, hookInput });
       expect(before?.decision).toBe('block');
       expect(before?.reason).toContain('context-promotion-review');
+      expect(before?.reason).toContain('Project root:');
+      expect(before?.reason).toContain('This project root is authoritative');
+      expect(before?.reason).toContain('Do not inspect other repositories');
+      expect(before?.reason).toContain('Do not search the web');
+      expect(before?.reason).toContain('report them as absent');
       expect(before?.reason).toContain('git show --stat HEAD');
       expect(before?.hookSpecificOutput.hookEventName).toBe('PostToolUse');
 

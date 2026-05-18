@@ -583,11 +583,24 @@ export const isGitCommitCommand = (command: string): boolean => {
   return segments.some((segment) => segmentInvokesGitCommit(segment) || segmentInvokesShellScriptWithGitCommit(segment));
 };
 
-export const buildContextPromotionReviewPrompt = (status: ContextPromotionProjectStatus): string =>
-  [
+export const buildContextPromotionReviewPrompt = (status: ContextPromotionProjectStatus): string => {
+  const projectRoot = status.gitRoot ?? status.cwd;
+  const cdCommand = `cd ${JSON.stringify(projectRoot)}`;
+
+  return [
     'Context Promotion Review should run for the completed work commit.',
     '',
+    `Project root: ${projectRoot}`,
+    'This project root is authoritative for this review.',
+    '',
     'Use the `context-promotion-review` skill to review the just-created HEAD commit for reusable operating knowledge.',
+    '',
+    'Scope boundary:',
+    `- Before inspecting files, anchor shell work in the project root above. If needed, run \`${cdCommand}\` first.`,
+    '- Do not inspect other repositories, parent directories, or earlier conversation workspaces.',
+    '- Do not search the web or external documentation for this review.',
+    '- If `AGENTS.md`, `docs/agent/*`, `docs/docs-status.md`, or other context-layer files are absent, report them as absent; do not substitute files from another repo.',
+    '- Use only the just-created `HEAD` commit, this conversation, and files under the project root.',
     '',
     'Review requirements:',
     '- Do not amend, rewrite, or mix changes into the work commit.',
@@ -599,10 +612,11 @@ export const buildContextPromotionReviewPrompt = (status: ContextPromotionProjec
     '- After approved updates or a no-promotion/already-covered decision, run `ai-ops context-promotion resolve --decision <promoted|no-promotion> --summary "<summary>"` with any approved `--scope` and `--target` values.',
     '- Re-run `ai-ops context-promotion status` and confirm a receipt exists for the current HEAD.',
     '',
-    `Project: ${status.gitRoot ?? status.cwd}`,
+    `Project: ${projectRoot}`,
     `HEAD: ${status.commitHash ?? 'unknown'}`,
     `Fingerprint: ${status.fingerprint ?? 'unknown'}`,
   ].join('\n');
+};
 
 const buildContextPromotionStatusFailurePrompt = (cwd: string, error: unknown): string => {
   const message = error instanceof Error ? error.message : 'unknown error';
@@ -610,6 +624,7 @@ const buildContextPromotionStatusFailurePrompt = (cwd: string, error: unknown): 
     'Context Promotion Review could not inspect the completed work commit.',
     '',
     'The work command has already finished; do not amend or rewrite it for this hook.',
+    'Do not search the web or inspect another repository to repair this hook review.',
     '',
     'Run `ai-ops context-promotion status` to inspect the failure, then decide whether a manual promotion review is needed.',
     '',
