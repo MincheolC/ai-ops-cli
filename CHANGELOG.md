@@ -5,6 +5,24 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-05-18
+
+### Added
+
+- `feat(context-promotion)`: 작업 커밋 직후 Codex `PostToolUse` hook으로 `context-promotion-review` 후속 검토를 요청하는 흐름 추가
+- `feat(codex-hook)`: `ai-ops codex-hook install|status|uninstall context-promotion` 명령 추가 및 설치 시 `context-promotion-review` Codex skill 보장 설치
+- `feat(context-promotion)`: user-local receipt store, `status`, `resolve`, `prune`, `hook post-tool-use` 명령 추가
+
+### Changed
+
+- `refactor(context-promotion)`: commit 차단형 `PreToolUse` gate 대신 작업 커밋과 승격 수정을 분리하는 post-commit review 방식으로 전환
+- `chore(codex-hook)`: 기본 hook command를 repo-local 절대경로 대신 portable `ai-ops context-promotion hook post-tool-use` 형태로 변경
+
+### Fixed
+
+- `fix(context-promotion)`: 실패한 commit output과 성공한 commit subject를 구분해 잘못된 review suppression을 방지
+- `fix(context-promotion)`: hook continuation prompt와 skill 계약을 Project root 안으로 제한하고 웹 검색/다른 repo 탐색을 금지
+
 ## [1.0.3] - 2026-05-18
 
 ### Fixed
