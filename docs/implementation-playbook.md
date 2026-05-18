@@ -159,7 +159,7 @@ AI_OPS_HOME="$(mktemp -d)" node apps/cli/dist/bin/index.js subagent install secu
 
 ```bash
 npm run check
-repo="/Users/charles/ai-projects/ai-ops-scaffolder"
+repo="$(pwd)"
 tmpdir="$(mktemp -d)"
 cd "$tmpdir"
 node "$repo/apps/cli/dist/bin/index.js" init --tool codex
