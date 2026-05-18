@@ -5,6 +5,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-05-18
+
 ### Fixed
 
 - `fix(cli)`: `ai-ops --version`이 하드코딩된 `0.1.0` 대신 package version을 출력하도록 수정
