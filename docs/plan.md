@@ -84,15 +84,16 @@ Integration은 사용자가 설치하고 싶은 agent runtime 기능 단위다. 
 
 Component는 프로젝트 운영 문서가 아니다. CLI는 각 도구의 global 또는 user-level discovery 규칙에 맞춰 설치하고, project manifest에는 기록하지 않는다.
 
-현재 구현은 아직 `ai-ops integration ...` 상위 명령을 제공하지 않는다. 대신 `skill`, `subagent`, `codex-hook`, `context-promotion` 같은 low-level component 명령을 제공한다. 목표 UX는 `integration install/status/uninstall <id>`가 관련 component를 함께 관리하는 것이다.
+Integration catalog source는 `apps/cli/data/integrations/integration-registry.json`이다. Catalog는 integration id, 설명, 그리고 component list를 선언한다. v1 component model은 `skill`, `codex-hook`, `receipt-config`를 명시하고, 실제 설치 소유권은 별도 user/global manifest에 기록한다.
 
-현재 integration-like 사례:
+현재 구현은 `ai-ops integration ...` 상위 명령을 제공한다. `skill`, `subagent`, `codex-hook`, `context-promotion` 같은 low-level component 명령은 디버그와 개별 component 관리 용도로 유지한다.
+
+현재 integration:
 
 - `context-promotion`: `context-promotion-review` Codex skill, Codex `PostToolUse` hook, user-local receipt를 묶어 git commit 이후 운영 지식 승격 검토를 돕는다.
+- `pc`: `pc` Codex skill과 Codex `PostToolUse` hook runner를 묶어 성공적인 `git commit` 직후 `$pc:done` handoff 누락을 방지한다. hook은 `~/.personal-project-contexts/`에 matching workspace, active workstream, current repo scope가 준비된 경우에만 prompt를 낸다.
 
-Planned integration candidate:
-
-- `pc`: `pc` skill, post-commit handoff hook, hook runner를 묶어 성공적인 `git commit` 직후 `$pc:done` handoff 누락을 방지한다.
+Integration 설치 소유권은 user/global runtime home의 `.ai-ops/integrations-manifest.json`에 기록한다. Uninstall은 integration이 소유한 component만 제거하고 기존 수동 설치는 보존한다.
 
 ## 문서 신뢰도 모델
 
@@ -112,21 +113,21 @@ update_when:
 
 기본 상태:
 
-| 상태       | 의미                                           | 기본 적용 문서                       |
-| ---------- | ---------------------------------------------- | ------------------------------------ |
-| `Active`   | 에이전트가 판단 근거로 사용할 수 있음          | workflow, rules, checks              |
-| `Reserved` | 자리만 만들었고 근거로 쓰면 안 됨             | codebase-map, business-rules, specs  |
-| `Draft`    | 작성 중이며 사용 전 검토가 필요함              | 프로젝트가 직접 작성 중인 확장 문서 |
-| `Archived` | 과거 기록이며 현재 운영 판단에 사용하지 않음   | deprecated 문서                      |
+| 상태       | 의미                                         | 기본 적용 문서                      |
+| ---------- | -------------------------------------------- | ----------------------------------- |
+| `Active`   | 에이전트가 판단 근거로 사용할 수 있음        | workflow, rules, checks             |
+| `Reserved` | 자리만 만들었고 근거로 쓰면 안 됨            | codebase-map, business-rules, specs |
+| `Draft`    | 작성 중이며 사용 전 검토가 필요함            | 프로젝트가 직접 작성 중인 확장 문서 |
+| `Archived` | 과거 기록이며 현재 운영 판단에 사용하지 않음 | deprecated 문서                     |
 
 `Reserved` 문서는 비어 있거나 프로젝트별 보강 전 상태일 수 있다. 에이전트는 `Reserved` 문서를 현재 사실로 인용하지 않는다.
 
 ## 도구별 entrypoint 계약
 
-| 도구       | entrypoint | 역할 |
-| ---------- | ---------- | ---- |
-| Codex      | `AGENTS.md` | canonical operating layer entrypoint |
-| Gemini CLI | `GEMINI.md` | `AGENTS.md`를 기준으로 읽도록 안내하는 adapter |
+| 도구        | entrypoint  | 역할                                           |
+| ----------- | ----------- | ---------------------------------------------- |
+| Codex       | `AGENTS.md` | canonical operating layer entrypoint           |
+| Gemini CLI  | `GEMINI.md` | `AGENTS.md`를 기준으로 읽도록 안내하는 adapter |
 | Claude Code | `CLAUDE.md` | `AGENTS.md`를 기준으로 읽도록 안내하는 adapter |
 
 도구별 adapter에는 중복 운영 규칙을 넣지 않는다. adapter가 길어지는 경우 canonical 문서를 분리한 것이 아니라 중복을 만든 신호로 본다.
@@ -235,24 +236,25 @@ integration component인 subagent lifecycle만 관리한다. Phase 3에서 도�
 
 ### `ai-ops context-promotion ...`
 
-`context-promotion` integration-like workflow가 사용하는 user-local promotion review receipt를 관리한다. receipt는 source of truth가 아니며 프로젝트 repo의 `.ai-ops/*`에는 기록하지 않는다.
+`context-promotion` integration이 사용하는 user-local promotion review receipt를 관리한다. receipt는 source of truth가 아니며 프로젝트 repo의 `.ai-ops/*`에는 기록하지 않는다.
 
 ### `ai-ops codex-hook ...`
 
 Codex 전용 opt-in hook component를 설치, 조회, 제거한다. v1 hook은 npm global `ai-ops` command를 user-level `PostToolUse`에 저장하고, `git commit` 이후 `context-promotion-review` skill 사용을 안내한다. 설치 시 Codex skill도 user/global runtime 위치에 보장 설치한다. 작업 커밋은 막지 않고, 승격 수정은 사용자 검사 후 별도 커밋으로 다룬다.
 
-### Future `ai-ops integration ...`
+### `ai-ops integration ...`
 
-후속 상위 UX는 integration 단위로 관련 component를 함께 설치, 조회, 갱신, 제거한다.
+Integration 단위로 관련 component를 함께 설치, 조회, 제거한다.
 
 ```bash
 ai-ops integration list
+ai-ops integration install context-promotion
 ai-ops integration install pc
 ai-ops integration status pc
 ai-ops integration uninstall pc
 ```
 
-이 명령은 목표 계약이며 현재 구현된 CLI surface가 아니다. 구현 전까지는 기존 low-level component 명령을 현재 사실로 문서화한다.
+현재 v1은 `context-promotion`과 `pc`를 지원한다. Integration manifest는 user/global runtime home의 `.ai-ops/integrations-manifest.json`이며 project operating layer uninstall 대상이 아니다.
 
 ## Deprecated old model
 

@@ -1,0 +1,6 @@
+interface:
+  display_name: 'Project Context'
+  short_description: 'Personal workspace and repo context loading and handoff.'
+  default_prompt: 'Use $pc:todo to load the current workspace context.'
+policy:
+  allow_implicit_invocation: false

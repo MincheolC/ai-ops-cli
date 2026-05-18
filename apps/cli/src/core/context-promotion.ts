@@ -4,6 +4,9 @@ import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'no
 import { dirname, join, resolve } from 'node:path';
 import { z } from 'zod';
 import { PROJECT_LAYER_CONTEXT_INDEX_RELATIVE_PATH } from './project-layer.js';
+import { parseSuccessfulGitCommitPostToolUseHook } from './tool-use-hook.js';
+
+export { isGitCommitCommand } from './tool-use-hook.js';
 
 // ----- types -----
 
@@ -32,7 +35,10 @@ const ContextPromotionScopeSchema = z.union([
 const ContextPromotionReceiptSchema = z
   .object({
     fingerprint: z.string().regex(/^[a-f0-9]{16}$/),
-    commitHash: z.string().regex(/^(NO_HEAD|[a-f0-9]{40})$/).optional(),
+    commitHash: z
+      .string()
+      .regex(/^(NO_HEAD|[a-f0-9]{40})$/)
+      .optional(),
     decision: ContextPromotionDecisionSchema,
     scopes: z.array(ContextPromotionScopeSchema),
     targets: z.array(z.string().min(1)),
@@ -188,18 +194,8 @@ export const computeContextPromotionFingerprint = (gitRoot: string): string =>
 
 // ----- receipt storage -----
 
-export const resolveContextPromotionReceiptIndexPath = (params: {
-  userBasePath: string;
-  projectKey: string;
-}): string =>
-  join(
-    params.userBasePath,
-    '.ai-ops',
-    'context-promotion',
-    'projects',
-    params.projectKey,
-    RECEIPT_INDEX_FILENAME,
-  );
+export const resolveContextPromotionReceiptIndexPath = (params: { userBasePath: string; projectKey: string }): string =>
+  join(params.userBasePath, '.ai-ops', 'context-promotion', 'projects', params.projectKey, RECEIPT_INDEX_FILENAME);
 
 export const parseContextPromotionReceiptIndex = (json: string): ContextPromotionReceiptIndex =>
   ContextPromotionReceiptIndexSchema.parse(JSON.parse(json));
@@ -220,10 +216,7 @@ const writeContextPromotionReceiptIndex = (indexPath: string, index: ContextProm
   writeFileSync(indexPath, serializeContextPromotionReceiptIndex(index), 'utf-8');
 };
 
-const buildEmptyReceiptIndex = (params: {
-  projectKey: string;
-  projectRoot: string;
-}): ContextPromotionReceiptIndex => ({
+const buildEmptyReceiptIndex = (params: { projectKey: string; projectRoot: string }): ContextPromotionReceiptIndex => ({
   schemaVersion: 1,
   kind: 'context-promotion-receipts',
   projectKey: params.projectKey,
@@ -411,178 +404,6 @@ export const resolveContextPromotion = (params: {
 
 // ----- hook guard -----
 
-const HookToolInputSchema = z
-  .object({
-    command: z.string().optional(),
-  })
-  .passthrough();
-
-const ToolUseHookInputSchema = z
-  .object({
-    hook_event_name: z.string(),
-    cwd: z.string(),
-    tool_name: z.string().optional(),
-    tool_input: z.unknown().optional(),
-    tool_response: z.unknown().optional(),
-  })
-  .passthrough();
-
-const SHELL_CONTROL_TOKENS = new Set(['&&', '||', ';', '|', '(', ')']);
-const SHELL_SCRIPT_FLAGS = new Set(['-c', '-lc']);
-const GIT_GLOBAL_OPTIONS_WITH_VALUE = new Set([
-  '-C',
-  '-c',
-  '--git-dir',
-  '--work-tree',
-  '--namespace',
-  '--config-env',
-  '--exec-path',
-]);
-
-const basename = (token: string): string => token.replace(/\\/g, '/').split('/').at(-1) ?? token;
-
-const isAssignmentToken = (token: string): boolean => /^[A-Za-z_][A-Za-z0-9_]*=/.test(token);
-
-const tokenizeShellLike = (command: string): string[] => {
-  const tokens: string[] = [];
-  let current = '';
-  let quote: '"' | "'" | null = null;
-
-  const pushCurrent = (): void => {
-    if (current.length > 0) {
-      tokens.push(current);
-      current = '';
-    }
-  };
-
-  for (let index = 0; index < command.length; index += 1) {
-    const char = command[index];
-    const nextChar = command[index + 1];
-
-    if (quote) {
-      if (char === quote) {
-        quote = null;
-        continue;
-      }
-      current += char;
-      continue;
-    }
-
-    if (char === '"' || char === "'") {
-      quote = char;
-      continue;
-    }
-
-    if (/\s/.test(char)) {
-      pushCurrent();
-      continue;
-    }
-
-    if ((char === '&' && nextChar === '&') || (char === '|' && nextChar === '|')) {
-      pushCurrent();
-      tokens.push(`${char}${nextChar}`);
-      index += 1;
-      continue;
-    }
-
-    if (char === ';' || char === '|' || char === '(' || char === ')') {
-      pushCurrent();
-      tokens.push(char);
-      continue;
-    }
-
-    current += char;
-  }
-
-  pushCurrent();
-  return tokens;
-};
-
-const splitCommandSegments = (tokens: readonly string[]): string[][] => {
-  const segments: string[][] = [];
-  let current: string[] = [];
-
-  for (const token of tokens) {
-    if (SHELL_CONTROL_TOKENS.has(token)) {
-      if (current.length > 0) {
-        segments.push(current);
-        current = [];
-      }
-      continue;
-    }
-    current.push(token);
-  }
-
-  if (current.length > 0) {
-    segments.push(current);
-  }
-
-  return segments;
-};
-
-const firstExecutableIndex = (segment: readonly string[]): number => {
-  let index = 0;
-
-  while (index < segment.length && isAssignmentToken(segment[index])) {
-    index += 1;
-  }
-
-  if (segment[index] === 'env') {
-    index += 1;
-    while (index < segment.length && isAssignmentToken(segment[index])) {
-      index += 1;
-    }
-  }
-
-  if (segment[index] === 'command' || segment[index] === 'sudo') {
-    index += 1;
-  }
-
-  return index;
-};
-
-const segmentInvokesGitCommit = (segment: readonly string[]): boolean => {
-  const executableIndex = firstExecutableIndex(segment);
-  if (executableIndex >= segment.length || basename(segment[executableIndex]) !== 'git') {
-    return false;
-  }
-
-  for (let index = executableIndex + 1; index < segment.length; index += 1) {
-    const token = segment[index];
-    if (GIT_GLOBAL_OPTIONS_WITH_VALUE.has(token)) {
-      index += 1;
-      continue;
-    }
-    if (token.startsWith('-')) {
-      continue;
-    }
-    return token === 'commit';
-  }
-
-  return false;
-};
-
-const segmentInvokesShellScriptWithGitCommit = (segment: readonly string[]): boolean => {
-  const executableIndex = firstExecutableIndex(segment);
-  const executable = segment[executableIndex];
-  if (!executable || !['bash', 'sh', 'zsh'].includes(basename(executable))) {
-    return false;
-  }
-
-  for (let index = executableIndex + 1; index < segment.length - 1; index += 1) {
-    if (SHELL_SCRIPT_FLAGS.has(segment[index]) && isGitCommitCommand(segment[index + 1])) {
-      return true;
-    }
-  }
-
-  return false;
-};
-
-export const isGitCommitCommand = (command: string): boolean => {
-  const segments = splitCommandSegments(tokenizeShellLike(command));
-  return segments.some((segment) => segmentInvokesGitCommit(segment) || segmentInvokesShellScriptWithGitCommit(segment));
-};
-
 export const buildContextPromotionReviewPrompt = (status: ContextPromotionProjectStatus): string => {
   const projectRoot = status.gitRoot ?? status.cwd;
   const cdCommand = `cd ${JSON.stringify(projectRoot)}`;
@@ -642,109 +463,23 @@ const buildPostToolUseOutput = (prompt: string): ContextPromotionPostToolUseHook
   },
 });
 
-const isJsonRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
-
-const numberField = (record: Record<string, unknown>, keys: readonly string[]): number | null => {
-  for (const key of keys) {
-    const value = record[key];
-    if (typeof value === 'number') {
-      return value;
-    }
-  }
-  return null;
-};
-
-const booleanField = (record: Record<string, unknown>, keys: readonly string[]): boolean | null => {
-  for (const key of keys) {
-    const value = record[key];
-    if (typeof value === 'boolean') {
-      return value;
-    }
-  }
-  return null;
-};
-
-const GIT_COMMIT_FAILURE_OUTPUT_PATTERNS = [
-  /(^|\n)\s*fatal:/i,
-  /(^|\n)\s*error:/i,
-  /(^|\n)\s*nothing to commit\b/i,
-  /(^|\n)\s*no changes added to commit\b/i,
-  /(^|\n).*aborting commit\b/i,
-  /(^|\n).*commit failed\b/i,
-  /(^|\n).*failed to .*commit\b/i,
-  /(^|\n).*command failed\b/i,
-  /(^|\n).*non-zero exit\b/i,
-  /(^|\n).*exit (code|status)\s+[1-9]\d*\b/i,
-  /(^|\n).*exited with code\s+[1-9]\d*\b/i,
-  /(^|\n).*hook.*(failed|declined|error|exit(?:ed)? with code|non-zero)/i,
-] as const;
-
-const GIT_COMMIT_SUCCESS_OUTPUT_PATTERN = /(^|\n)\[[^\]\n]+ [a-f0-9]{7,40}\]/i;
-
-const stringIndicatesGitCommitSuccess = (output: string): boolean => GIT_COMMIT_SUCCESS_OUTPUT_PATTERN.test(output);
-
-const stringIndicatesGitCommitFailureOrSuccess = (output: string): boolean | null =>
-  stringIndicatesGitCommitSuccess(output)
-    ? false
-    : GIT_COMMIT_FAILURE_OUTPUT_PATTERNS.some((pattern) => pattern.test(output))
-      ? true
-      : null;
-
-const recordStringFieldsIndicateGitCommitFailure = (record: Record<string, unknown>): boolean =>
-  ['message', 'output', 'stdout', 'stderr', 'error', 'combinedOutput'].some((key) => {
-    const value = record[key];
-    return typeof value === 'string' && stringIndicatesGitCommitFailureOrSuccess(value) === true;
-  });
-
-const toolResponseIndicatesFailure = (toolResponse: unknown): boolean => {
-  if (typeof toolResponse === 'string') {
-    return stringIndicatesGitCommitFailureOrSuccess(toolResponse) === true;
-  }
-
-  if (!isJsonRecord(toolResponse)) {
-    return false;
-  }
-
-  const success = booleanField(toolResponse, ['success', 'ok']);
-  if (success === false) {
-    return true;
-  }
-
-  const exitCode = numberField(toolResponse, ['exit_code', 'exitCode', 'status', 'code']);
-  if (exitCode !== null && exitCode !== 0) {
-    return true;
-  }
-
-  return recordStringFieldsIndicateGitCommitFailure(toolResponse);
-};
-
 export const evaluateContextPromotionPostToolUseHook = (params: {
   hookInput: unknown;
   userBasePath: string;
 }): ContextPromotionPostToolUseHookOutput | null => {
-  const hookInput = ToolUseHookInputSchema.safeParse(params.hookInput);
-  if (!hookInput.success) {
-    return null;
-  }
-  if (hookInput.data.hook_event_name !== 'PostToolUse' || hookInput.data.tool_name !== 'Bash') {
-    return null;
-  }
-
-  const toolInput = HookToolInputSchema.safeParse(hookInput.data.tool_input);
-  const command = toolInput.success ? (toolInput.data.command ?? '') : '';
-  if (!isGitCommitCommand(command) || toolResponseIndicatesFailure(hookInput.data.tool_response)) {
+  const hookInput = parseSuccessfulGitCommitPostToolUseHook(params.hookInput);
+  if (!hookInput) {
     return null;
   }
 
   let status: ContextPromotionProjectStatus;
   try {
     status = getContextPromotionStatus({
-      cwd: hookInput.data.cwd,
+      cwd: hookInput.cwd,
       userBasePath: params.userBasePath,
     });
   } catch (error) {
-    return buildPostToolUseOutput(buildContextPromotionStatusFailurePrompt(hookInput.data.cwd, error));
+    return buildPostToolUseOutput(buildContextPromotionStatusFailurePrompt(hookInput.cwd, error));
   }
 
   if (!status.hasContextLayer || status.receipt) {

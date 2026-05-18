@@ -6,6 +6,8 @@ import {
   resolveReferenceSkillsDir,
   resolveTaskSkillsDir,
   resolveSkillCatalogPath,
+  resolveIntegrationsDir,
+  resolveIntegrationCatalogPath,
   resolveBasePath,
   resolveUserBasePath,
 } from '../lib/paths.js';
@@ -47,6 +49,14 @@ describe('resolveCompilerDataDir', () => {
   it('skill-registry.json 포함', () => {
     expect(existsSync(resolveSkillCatalogPath())).toBe(true);
   });
+
+  it('data/integrations/ 포함', () => {
+    expect(existsSync(resolveIntegrationsDir())).toBe(true);
+  });
+
+  it('integration-registry.json 포함', () => {
+    expect(existsSync(resolveIntegrationCatalogPath())).toBe(true);
+  });
 });
 
 describe('resolveBasePath', () => {
@@ -74,6 +84,6 @@ describe('resolveUserBasePath', () => {
     delete process.env.AI_OPS_HOME;
     delete process.env.HOME;
 
-    expect(() => resolveUserBasePath()).toThrow('AI_OPS_HOME or HOME is required for global asset commands');
+    expect(() => resolveUserBasePath()).toThrow('AI_OPS_HOME or HOME is required for user/global component commands');
   });
 });

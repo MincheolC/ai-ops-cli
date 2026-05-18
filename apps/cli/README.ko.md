@@ -4,7 +4,7 @@
 
 `ai-ops-cli`는 프로젝트/에이전트 작업에 필요한 operating layer와 global runtime integration을 설치하고 관리하는 CLI입니다.
 
-이 문서는 현재 구현된 breaking model을 설명합니다. 현재 CLI는 skill, subagent, Codex hook, user-local receipt를 다루는 low-level component 명령을 제공합니다. 상위 `integration` UX는 목표 모델이며 현재 명령은 아닙니다. old rules + skills scaffolder 모델은 deprecated 문맥으로만 남깁니다.
+이 문서는 현재 구현된 breaking model을 설명합니다. 현재 CLI는 bundled user/global runtime workflow를 위한 `integration` 명령을 제공하고, skill, subagent, Codex hook, user-local receipt를 다루는 low-level component 명령도 계속 제공합니다. old rules + skills scaffolder 모델은 deprecated 문맥으로만 남깁니다.
 
 ## Current Breaking Model
 
@@ -18,6 +18,7 @@ flowchart TD
 
   skill["ai-ops skill ..."] --> skillComponent["Skill components"]
   subagent["ai-ops subagent ..."] --> subagentComponent["Subagent components"]
+  integration["ai-ops integration ..."] --> integrationComponent["Runtime integration bundles"]
   hook["ai-ops codex-hook ..."] --> hookComponent["Codex hook components"]
   receipt["ai-ops context-promotion ..."] --> receiptComponent["User-local receipts"]
   pack["ai-ops pack ..."] --> docsSpecs["optional docs/specs/ pack"]
@@ -100,22 +101,28 @@ Commands:
   skill      Manage skill components
   subagent   Manage subagent components
   pack       Manage optional project operating layer packs
+  integration Manage user/global runtime integrations
   context-promotion Manage context promotion review receipts
   codex-hook Manage Codex hook components
 ```
 
 `--tool`은 유지합니다. Codex, Claude Code, Gemini CLI가 서로 다른 discovery 위치와 adapter 파일을 사용하기 때문입니다.
 
-목표 integration UX:
+Integration lifecycle 명령:
 
 ```bash
 ai-ops integration list
+ai-ops integration install context-promotion
 ai-ops integration install pc
 ai-ops integration status pc
 ai-ops integration uninstall pc
 ```
 
-이 명령은 runtime workflow 묶음을 설치/조회/제거하기 위한 목표 제품 표면입니다. 현재 CLI에는 아직 구현되어 있지 않습니다. 그전까지는 아래 low-level component 명령을 사용합니다.
+`context-promotion`은 `context-promotion-review` Codex skill, Codex `PostToolUse` hook, user-local receipt workflow를 묶습니다.
+
+`pc`는 `pc` Codex skill과 Codex `PostToolUse` hook runner를 묶습니다. 성공적인 `git commit` 이후 `~/.personal-project-contexts/`에 matching workspace, active workstream, current repo scope가 이미 준비된 경우에만 Codex가 `$pc:done`으로 이어가게 합니다.
+
+Integration 소유권은 user/global runtime home의 `.ai-ops/integrations-manifest.json`에 기록합니다. Uninstall은 owned component만 제거하고 기존 수동 설치는 보존합니다.
 
 Skill lifecycle 명령:
 
@@ -133,7 +140,7 @@ ai-ops skill uninstall skill-load-check
 
 `context-promotion-review`는 방금 만든 작업 커밋에서 core, project-local, global로 승격할 반복 운영 지식이 생겼는지 확인하는 Codex 전용 task skill입니다. Codex hook은 `git commit` 이후에 동작하며 작업 커밋을 막지 않습니다. hook 설치 시 Codex skill도 user/global runtime 위치에 함께 설치합니다. 승인된 승격 수정은 사용자 검사를 위해 커밋하지 않은 상태로 남기고, 최종 결정은 `ai-ops context-promotion resolve`로 receipt에 기록합니다.
 
-`context-promotion`은 현재 존재하는 integration-like workflow입니다. Codex skill, Codex `PostToolUse` hook, user-local receipt를 묶습니다. `pc`는 planned integration candidate이며, `pc` skill, post-commit handoff hook, hook runner를 묶어 성공적인 `git commit` 이후 Codex가 `$pc:done`으로 이어가게 하되 준비되지 않은 repository에는 context를 만들지 않는 방향입니다.
+Low-level component 명령도 직접 skill, hook, receipt를 관리할 때 계속 사용할 수 있습니다.
 
 Context promotion과 Codex hook 명령:
 

@@ -20,6 +20,14 @@ export type CodexHookUninstallResult = {
   changed: boolean;
 };
 
+export type CodexHookDefinition = {
+  id: string;
+  commandMarker: string;
+  legacyCommandMarkers: readonly string[];
+  defaultCommand: string;
+  statusMessage: string;
+};
+
 type JsonRecord = Record<string, unknown>;
 
 // ----- constants -----
@@ -29,9 +37,29 @@ export const CONTEXT_PROMOTION_HOOK_COMMAND_MARKER = 'context-promotion hook pos
 export const CONTEXT_PROMOTION_LEGACY_HOOK_COMMAND_MARKER = 'context-promotion hook pre-tool-use';
 export const CONTEXT_PROMOTION_DEFAULT_HOOK_COMMAND = `ai-ops ${CONTEXT_PROMOTION_HOOK_COMMAND_MARKER}`;
 
+export const PC_HOOK_ID = 'pc';
+export const PC_HOOK_COMMAND_MARKER = 'integration hook post-tool-use pc';
+export const PC_DEFAULT_HOOK_COMMAND = `ai-ops ${PC_HOOK_COMMAND_MARKER}`;
+
 const PRE_TOOL_USE_EVENT = 'PreToolUse';
 const POST_TOOL_USE_EVENT = 'PostToolUse';
 const BASH_MATCHER = '^Bash$';
+
+export const CONTEXT_PROMOTION_CODEX_HOOK: CodexHookDefinition = {
+  id: CONTEXT_PROMOTION_HOOK_ID,
+  commandMarker: CONTEXT_PROMOTION_HOOK_COMMAND_MARKER,
+  legacyCommandMarkers: [CONTEXT_PROMOTION_LEGACY_HOOK_COMMAND_MARKER],
+  defaultCommand: CONTEXT_PROMOTION_DEFAULT_HOOK_COMMAND,
+  statusMessage: 'Checking context promotion review',
+} as const;
+
+export const PC_CODEX_HOOK: CodexHookDefinition = {
+  id: PC_HOOK_ID,
+  commandMarker: PC_HOOK_COMMAND_MARKER,
+  legacyCommandMarkers: [],
+  defaultCommand: PC_DEFAULT_HOOK_COMMAND,
+  statusMessage: 'Checking pc handoff',
+} as const;
 
 // ----- JSON helpers -----
 
@@ -70,49 +98,60 @@ const getArray = (record: JsonRecord, key: string): unknown[] => {
   return Array.isArray(existing) ? existing : [];
 };
 
-const handlerMatchesContextPromotion = (handler: unknown): boolean =>
-  isJsonRecord(handler) &&
-  typeof handler.command === 'string' &&
-  (handler.command.includes(CONTEXT_PROMOTION_HOOK_COMMAND_MARKER) ||
-    handler.command.includes(CONTEXT_PROMOTION_LEGACY_HOOK_COMMAND_MARKER));
+const handlerMatchesDefinition =
+  (definition: CodexHookDefinition) =>
+  (handler: unknown): boolean =>
+    isJsonRecord(handler) &&
+    typeof handler.command === 'string' &&
+    [definition.commandMarker, ...definition.legacyCommandMarkers].some((marker) => handler.command.includes(marker));
 
 const handlerMatchesCommand = (handler: unknown, command: string): boolean =>
   isJsonRecord(handler) && handler.command === command;
 
-const groupHasContextPromotionHook = (group: unknown): boolean =>
-  isJsonRecord(group) && getArray(group, 'hooks').some(handlerMatchesContextPromotion);
+const groupHasDefinitionHook =
+  (definition: CodexHookDefinition) =>
+  (group: unknown): boolean =>
+    isJsonRecord(group) && getArray(group, 'hooks').some(handlerMatchesDefinition(definition));
 
-const groupHasCurrentContextPromotionHook = (group: unknown, command: string): boolean =>
+const groupHasCurrentDefinitionHook = (group: unknown, command: string): boolean =>
   isJsonRecord(group) && getArray(group, 'hooks').some((handler) => handlerMatchesCommand(handler, command));
 
-const countContextPromotionHandlers = (groups: readonly unknown[]): number =>
+const countDefinitionHandlers = (groups: readonly unknown[], definition: CodexHookDefinition): number =>
   groups.reduce((count, group) => {
     if (!isJsonRecord(group)) {
       return count;
     }
-    return count + getArray(group, 'hooks').filter(handlerMatchesContextPromotion).length;
+    return count + getArray(group, 'hooks').filter(handlerMatchesDefinition(definition)).length;
   }, 0);
 
-const configHasContextPromotionHook = (config: JsonRecord): boolean => {
+const configHasDefinitionHook = (config: JsonRecord, definition: CodexHookDefinition): boolean => {
   const hooks = config.hooks;
   if (!isJsonRecord(hooks)) {
     return false;
   }
-  return getArray(hooks, POST_TOOL_USE_EVENT).some(groupHasContextPromotionHook);
+  return getArray(hooks, POST_TOOL_USE_EVENT).some(groupHasDefinitionHook(definition));
 };
 
-const configHasOnlyCurrentContextPromotionHook = (config: JsonRecord, command: string): boolean => {
+const configHasOnlyCurrentDefinitionHook = (
+  config: JsonRecord,
+  definition: CodexHookDefinition,
+  command: string,
+): boolean => {
   const hooks = config.hooks;
   if (!isJsonRecord(hooks)) {
     return false;
   }
-  const hasLegacy = getArray(hooks, PRE_TOOL_USE_EVENT).some(groupHasContextPromotionHook);
+  const hasLegacy = getArray(hooks, PRE_TOOL_USE_EVENT).some(groupHasDefinitionHook(definition));
   const postGroups = getArray(hooks, POST_TOOL_USE_EVENT);
-  const hasCurrent = postGroups.some((group) => groupHasCurrentContextPromotionHook(group, command));
-  return hasCurrent && !hasLegacy && countContextPromotionHandlers(postGroups) === 1;
+  const hasCurrent = postGroups.some((group) => groupHasCurrentDefinitionHook(group, command));
+  return hasCurrent && !hasLegacy && countDefinitionHandlers(postGroups, definition) === 1;
 };
 
-const removeContextPromotionHooksFromEvent = (hooks: JsonRecord, eventName: string): boolean => {
+const removeDefinitionHooksFromEvent = (
+  hooks: JsonRecord,
+  eventName: string,
+  definition: CodexHookDefinition,
+): boolean => {
   const previousGroups = getArray(hooks, eventName);
   let removed = false;
   const nextGroups = previousGroups
@@ -122,7 +161,7 @@ const removeContextPromotionHooksFromEvent = (hooks: JsonRecord, eventName: stri
       }
       const previousHandlers = getArray(group, 'hooks');
       const nextHandlers = previousHandlers.filter((handler) => {
-        const matches = handlerMatchesContextPromotion(handler);
+        const matches = handlerMatchesDefinition(definition)(handler);
         if (matches) {
           removed = true;
         }
@@ -154,27 +193,45 @@ const removeContextPromotionHooksFromEvent = (hooks: JsonRecord, eventName: stri
 
 export const resolveCodexHooksPath = (codexHomePath: string): string => join(codexHomePath, 'hooks.json');
 
-export const buildContextPromotionHookCommand = (overrideCommand?: string): string => {
-  const command = overrideCommand?.trim() ?? CONTEXT_PROMOTION_DEFAULT_HOOK_COMMAND;
-  if (!command.includes(CONTEXT_PROMOTION_HOOK_COMMAND_MARKER)) {
-    throw new Error(`context promotion hook command must include: ${CONTEXT_PROMOTION_HOOK_COMMAND_MARKER}`);
+export const buildCodexHookCommand = (params: {
+  definition: CodexHookDefinition;
+  overrideCommand?: string;
+}): string => {
+  const command = params.overrideCommand?.trim() ?? params.definition.defaultCommand;
+  if (!command.includes(params.definition.commandMarker)) {
+    throw new Error(`${params.definition.id} hook command must include: ${params.definition.commandMarker}`);
   }
   return command;
 };
 
+export const buildContextPromotionHookCommand = (overrideCommand?: string): string =>
+  buildCodexHookCommand({
+    definition: CONTEXT_PROMOTION_CODEX_HOOK,
+    overrideCommand,
+  });
+
 export const quoteShellArg = (value: string): string => `'${value.replace(/'/g, "'\\''")}'`;
+
+export const inspectCodexHook = (params: {
+  hooksPath: string;
+  definition: CodexHookDefinition;
+}): CodexHookStatusResult => ({
+  hooksPath: params.hooksPath,
+  installed: configHasDefinitionHook(readJsonRecord(params.hooksPath), params.definition),
+});
 
 export const inspectContextPromotionHook = (hooksPath: string): CodexHookStatusResult => ({
   hooksPath,
-  installed: configHasContextPromotionHook(readJsonRecord(hooksPath)),
+  installed: inspectCodexHook({ hooksPath, definition: CONTEXT_PROMOTION_CODEX_HOOK }).installed,
 });
 
-export const installContextPromotionHook = (params: {
+export const installCodexHook = (params: {
   hooksPath: string;
+  definition: CodexHookDefinition;
   command: string;
 }): CodexHookInstallResult => {
   const config = readJsonRecord(params.hooksPath);
-  if (configHasOnlyCurrentContextPromotionHook(config, params.command)) {
+  if (configHasOnlyCurrentDefinitionHook(config, params.definition, params.command)) {
     return {
       hooksPath: params.hooksPath,
       installed: true,
@@ -183,8 +240,8 @@ export const installContextPromotionHook = (params: {
   }
 
   const hooks = getOrCreateRecord(config, 'hooks');
-  removeContextPromotionHooksFromEvent(hooks, PRE_TOOL_USE_EVENT);
-  removeContextPromotionHooksFromEvent(hooks, POST_TOOL_USE_EVENT);
+  removeDefinitionHooksFromEvent(hooks, PRE_TOOL_USE_EVENT, params.definition);
+  removeDefinitionHooksFromEvent(hooks, POST_TOOL_USE_EVENT, params.definition);
   const existingGroups = getArray(hooks, POST_TOOL_USE_EVENT);
 
   const nextGroup: JsonRecord = {
@@ -194,7 +251,7 @@ export const installContextPromotionHook = (params: {
         type: 'command',
         command: params.command,
         timeout: 30,
-        statusMessage: 'Checking context promotion review',
+        statusMessage: params.definition.statusMessage,
       },
     ],
   };
@@ -208,21 +265,37 @@ export const installContextPromotionHook = (params: {
   };
 };
 
-export const uninstallContextPromotionHook = (hooksPath: string): CodexHookUninstallResult => {
-  const config = readJsonRecord(hooksPath);
+export const installContextPromotionHook = (params: { hooksPath: string; command: string }): CodexHookInstallResult =>
+  installCodexHook({
+    hooksPath: params.hooksPath,
+    definition: CONTEXT_PROMOTION_CODEX_HOOK,
+    command: params.command,
+  });
+
+export const uninstallCodexHook = (params: {
+  hooksPath: string;
+  definition: CodexHookDefinition;
+}): CodexHookUninstallResult => {
+  const config = readJsonRecord(params.hooksPath);
   const hooks = config.hooks;
   if (!isJsonRecord(hooks)) {
-    return { hooksPath, removed: false, changed: false };
+    return { hooksPath: params.hooksPath, removed: false, changed: false };
   }
 
-  const removedLegacy = removeContextPromotionHooksFromEvent(hooks, PRE_TOOL_USE_EVENT);
-  const removedCurrent = removeContextPromotionHooksFromEvent(hooks, POST_TOOL_USE_EVENT);
+  const removedLegacy = removeDefinitionHooksFromEvent(hooks, PRE_TOOL_USE_EVENT, params.definition);
+  const removedCurrent = removeDefinitionHooksFromEvent(hooks, POST_TOOL_USE_EVENT, params.definition);
   const removed = removedLegacy || removedCurrent;
 
   if (!removed) {
-    return { hooksPath, removed: false, changed: false };
+    return { hooksPath: params.hooksPath, removed: false, changed: false };
   }
-  writeJsonRecord(hooksPath, config);
+  writeJsonRecord(params.hooksPath, config);
 
-  return { hooksPath, removed: true, changed: true };
+  return { hooksPath: params.hooksPath, removed: true, changed: true };
 };
+
+export const uninstallContextPromotionHook = (hooksPath: string): CodexHookUninstallResult =>
+  uninstallCodexHook({
+    hooksPath,
+    definition: CONTEXT_PROMOTION_CODEX_HOOK,
+  });

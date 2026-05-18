@@ -4,7 +4,7 @@
 
 `ai-ops-cli` installs and manages the operating layer and global runtime integrations needed for project/agent work.
 
-This document describes the currently implemented breaking model. The current CLI exposes low-level component commands for skills, subagents, Codex hooks, and user-local receipts; the top-level `integration` UX is a target model, not a current command. The old rules + skills scaffolder model remains only as deprecated context.
+This document describes the currently implemented breaking model. The current CLI exposes `integration` commands for bundled user/global runtime workflows and keeps low-level component commands for skills, subagents, Codex hooks, and user-local receipts. The old rules + skills scaffolder model remains only as deprecated context.
 
 ## Current Breaking Model
 
@@ -18,6 +18,7 @@ flowchart TD
 
   skill["ai-ops skill ..."] --> skillComponent["Skill components"]
   subagent["ai-ops subagent ..."] --> subagentComponent["Subagent components"]
+  integration["ai-ops integration ..."] --> integrationComponent["Runtime integration bundles"]
   hook["ai-ops codex-hook ..."] --> hookComponent["Codex hook components"]
   receipt["ai-ops context-promotion ..."] --> receiptComponent["User-local receipts"]
   pack["ai-ops pack ..."] --> docsSpecs["optional docs/specs/ pack"]
@@ -100,22 +101,28 @@ Commands:
   skill      Manage skill components
   subagent   Manage subagent components
   pack       Manage optional project operating layer packs
+  integration Manage user/global runtime integrations
   context-promotion Manage context promotion review receipts
   codex-hook Manage Codex hook components
 ```
 
 `--tool` remains because Codex, Claude Code, and Gemini CLI use different discovery locations and adapter files.
 
-Target integration UX:
+Integration lifecycle commands:
 
 ```bash
 ai-ops integration list
+ai-ops integration install context-promotion
 ai-ops integration install pc
 ai-ops integration status pc
 ai-ops integration uninstall pc
 ```
 
-These commands are the intended high-level product surface for bundled runtime workflows. They are not implemented in the current CLI. Until then, use the low-level component commands below.
+`context-promotion` bundles the `context-promotion-review` Codex skill, a Codex `PostToolUse` hook, and user-local receipt workflow.
+
+`pc` bundles the `pc` Codex skill and a Codex `PostToolUse` hook runner. It prompts Codex to run `$pc:done` after a successful `git commit` only when `~/.personal-project-contexts/` already has a matching workspace, active workstream, and current repo scope.
+
+Integration ownership is tracked in `.ai-ops/integrations-manifest.json` under the user/global runtime home. Uninstall removes only owned components and preserves pre-existing manual installs.
 
 Skill lifecycle commands:
 
@@ -133,7 +140,7 @@ ai-ops skill uninstall skill-load-check
 
 `context-promotion-review` is a Codex-only task skill for checking whether the just-created work commit produced reusable operating knowledge that should be promoted to core, project-local, or global context. The Codex hook runs after `git commit`, never blocks the work commit, and any approved promotion edits stay uncommitted until the user reviews them. Installing the hook also installs the Codex skill into the user/global runtime location. It records the final decision with `ai-ops context-promotion resolve`.
 
-`context-promotion` is the current integration-like workflow: it combines the Codex skill, Codex `PostToolUse` hook, and user-local receipts. `pc` is a planned integration candidate that should bundle the `pc` skill, a post-commit handoff hook, and a hook runner so Codex can continue into `$pc:done` after a successful `git commit` without creating context in unprepared repositories.
+Low-level component commands remain available for direct skill, hook, and receipt management.
 
 Context promotion and Codex hook commands:
 

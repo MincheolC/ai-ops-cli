@@ -32,11 +32,14 @@ import {
   contextPromotionResolveCommand,
   contextPromotionStatusCommand,
 } from '../commands/context-promotion.js';
+import { codexHookInstallCommand, codexHookStatusCommand, codexHookUninstallCommand } from '../commands/codex-hook.js';
 import {
-  codexHookInstallCommand,
-  codexHookStatusCommand,
-  codexHookUninstallCommand,
-} from '../commands/codex-hook.js';
+  integrationInstallCommand,
+  integrationListCommand,
+  integrationPostToolUseHookCommand,
+  integrationStatusCommand,
+  integrationUninstallCommand,
+} from '../commands/integration.js';
 import { getCliVersion } from '../core/index.js';
 
 const program = new Command();
@@ -75,7 +78,10 @@ const skillCommand = program.command('skill').description('에이전트 skill �
 
 const applySkillInstallOptions = (command: Command): Command => command.option('--tool <tool...>', '대상 도구 지정');
 
-skillCommand.command('list').description('사용 가능한 skill 목록').action(() => skillListCommand());
+skillCommand
+  .command('list')
+  .description('사용 가능한 skill 목록')
+  .action(() => skillListCommand());
 
 applySkillInstallOptions(skillCommand.command('install <skillId>').description('skill 설치')).action((skillId, opts) =>
   skillInstallCommand(skillId, opts),
@@ -100,7 +106,10 @@ const subagentCommand = program.command('subagent').description('에이전트 su
 
 const applySubagentInstallOptions = (command: Command): Command => command.option('--tool <tool...>', '대상 도구 지정');
 
-subagentCommand.command('list').description('사용 가능한 subagent 목록').action(() => subagentListCommand());
+subagentCommand
+  .command('list')
+  .description('사용 가능한 subagent 목록')
+  .action(() => subagentListCommand());
 
 applySubagentInstallOptions(subagentCommand.command('install <subagentId>').description('subagent 설치')).action(
   (subagentId, opts) => subagentInstallCommand(subagentId, opts),
@@ -123,7 +132,10 @@ subagentCommand
 
 const packCommand = program.command('pack').description('optional project operating layer pack 설치/조회/갱신');
 
-packCommand.command('list').description('사용 가능한 pack 목록').action(() => packListCommand());
+packCommand
+  .command('list')
+  .description('사용 가능한 pack 목록')
+  .action(() => packListCommand());
 
 packCommand
   .command('install <packId>')
@@ -145,7 +157,9 @@ packCommand
   .description('pack 제거')
   .action((packId) => packUninstallCommand(packId));
 
-const contextPromotionCommand = program.command('context-promotion').description('context promotion review receipt 관리');
+const contextPromotionCommand = program
+  .command('context-promotion')
+  .description('context promotion review receipt 관리');
 
 contextPromotionCommand
   .command('status')
@@ -199,5 +213,35 @@ codexHookCommand
   .command('uninstall <hookId>')
   .description('Codex hook 제거')
   .action((hookId) => codexHookUninstallCommand(hookId));
+
+const integrationCommand = program.command('integration').description('user/global runtime integration 설치/조회/제거');
+
+integrationCommand
+  .command('list')
+  .description('사용 가능한 integration 목록')
+  .action(() => integrationListCommand());
+
+integrationCommand
+  .command('install <integrationId>')
+  .description('integration 설치')
+  .option('--command <command>', 'Codex hook에 저장할 실행 명령')
+  .action((integrationId, opts: { command?: string }) => integrationInstallCommand(integrationId, opts));
+
+integrationCommand
+  .command('status <integrationId>')
+  .description('integration 설치 상태 확인')
+  .action((integrationId) => integrationStatusCommand(integrationId));
+
+integrationCommand
+  .command('uninstall <integrationId>')
+  .description('integration 제거')
+  .action((integrationId) => integrationUninstallCommand(integrationId));
+
+const integrationHookCommand = integrationCommand.command('hook').description('integration hook 내부 명령');
+
+integrationHookCommand
+  .command('post-tool-use <integrationId>')
+  .description('Codex PostToolUse integration hook entrypoint')
+  .action((integrationId) => integrationPostToolUseHookCommand(integrationId));
 
 program.parse();

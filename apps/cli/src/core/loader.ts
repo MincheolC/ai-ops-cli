@@ -5,6 +5,7 @@ import { parseMarkdownFrontmatter } from './frontmatter.js';
 import { parseFlatToml } from './subagent-toml.js';
 import {
   CodexSubagentFrontmatterSchema,
+  IntegrationCatalogSchema,
   RuleSchema,
   PresetSchema,
   SkillCatalogSchema,
@@ -13,6 +14,7 @@ import {
   SubagentMarkdownFrontmatterSchema,
 } from './schemas/index.js';
 import type { Rule, Preset, Skill, SkillCatalog, Subagent, SubagentCatalog } from './schemas/index.js';
+import type { IntegrationCatalog, IntegrationCatalogEntry } from './schemas/index.js';
 
 // priority 내림차순 정렬 (높을수록 상단 → U-shaped attention)
 export const sortRulesByPriority = (rules: readonly Rule[]): Rule[] =>
@@ -143,6 +145,14 @@ const assertSubagentFrontmatterName = (params: { id: string; tool: string; name:
 
 export const loadSubagentCatalog = (subagentsDir: string): SubagentCatalog =>
   SubagentCatalogSchema.parse(JSON.parse(readFileSync(resolve(subagentsDir, 'subagent-registry.json'), 'utf-8')));
+
+export const loadIntegrationCatalog = (integrationsDir: string): IntegrationCatalog =>
+  IntegrationCatalogSchema.parse(
+    JSON.parse(readFileSync(resolve(integrationsDir, 'integration-registry.json'), 'utf-8')),
+  );
+
+export const loadAllIntegrations = (integrationsDir: string): IntegrationCatalogEntry[] =>
+  [...loadIntegrationCatalog(integrationsDir).integrations].sort((a, b) => a.id.localeCompare(b.id));
 
 export const loadAllSubagents = (subagentsDir: string): Subagent[] => {
   const catalog = loadSubagentCatalog(subagentsDir);

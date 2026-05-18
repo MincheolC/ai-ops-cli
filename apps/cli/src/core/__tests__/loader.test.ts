@@ -7,8 +7,11 @@ import {
   resolvePresetRules,
   resolvePresetSkills,
   loadAllSkills,
+  loadAllIntegrations,
+  loadIntegrationCatalog,
   loadSkillCatalog,
 } from '../loader.js';
+import { INTEGRATION_COMPONENT_TYPE } from '../schemas/index.js';
 import type { Rule, Skill } from '../schemas/index.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -142,9 +145,29 @@ describe('I/O', () => {
     expect(catalog.skills.length).toBeGreaterThan(0);
   });
 
-  it('loadAllSkills: 실제 data/skills/ 25개 로드', () => {
+  it('loadAllSkills: 실제 data/skills/ 26개 로드', () => {
     const skills = loadAllSkills(resolve(dataDir, 'skills'));
-    expect(skills).toHaveLength(25);
+    expect(skills).toHaveLength(26);
+  });
+
+  it('loadIntegrationCatalog: 실제 integration-registry.json 로드', () => {
+    const catalog = loadIntegrationCatalog(resolve(dataDir, 'integrations'));
+    expect(catalog.integrations.map((integration) => integration.id)).toEqual(['context-promotion', 'pc']);
+  });
+
+  it('loadAllIntegrations: catalog를 id 순서로 로드한다', () => {
+    const integrations = loadAllIntegrations(resolve(dataDir, 'integrations'));
+    const skillIds = integrations.map(
+      (integration) =>
+        integration.components.find((component) => component.type === INTEGRATION_COMPONENT_TYPE.SKILL)?.id,
+    );
+    const receiptConfigIds = integrations.map(
+      (integration) =>
+        integration.components.find((component) => component.type === INTEGRATION_COMPONENT_TYPE.RECEIPT_CONFIG)?.id,
+    );
+    expect(integrations.map((integration) => integration.id)).toEqual(['context-promotion', 'pc']);
+    expect(skillIds).toEqual(['context-promotion-review', 'pc']);
+    expect(receiptConfigIds).toEqual(['context-promotion-receipts', 'personal-project-contexts']);
   });
 
   it('spec lifecycle task skills는 preset에 자동 포함되지 않고 docs/specs 경로를 사용한다', () => {

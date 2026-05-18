@@ -4,7 +4,7 @@
 
 `ai-ops-cli`의 다음 major breaking model을 설계하고 구현한 모노레포입니다. 제품 정의는 “프로젝트/에이전트 작업에 필요한 operating layer와 global runtime integration을 설치하고 관리한다”입니다.
 
-현재 repo 구현은 project operating layer 모델과 skills, subagents, Codex hooks, user-local receipts를 다루는 low-level integration component 명령을 기준으로 동작합니다. old rules + skills scaffolder 모델은 deprecated 문맥으로만 남깁니다.
+현재 repo 구현은 project operating layer 모델과 bundled user/global runtime workflow를 다루는 `ai-ops integration ...` 명령을 제공합니다. skill, subagent, Codex hook, user-local receipt를 다루는 low-level component 명령은 디버그와 개별 관리 용도로 계속 사용할 수 있습니다. old rules + skills scaffolder 모델은 deprecated 문맥으로만 남깁니다.
 
 ## 목표 모델
 
@@ -33,11 +33,12 @@ flowchart LR
 │   └── cli/
 │       ├── src/
 │       │   ├── bin/        # CLI entrypoint
-│       │   ├── commands/   # init/diff/audit/update/uninstall/skill/subagent/pack/hooks
-│       │   ├── core/       # schemas, loader, renderer, registry, project layer
+│       │   ├── commands/   # init/diff/audit/update/uninstall/skill/subagent/pack/integration/hooks
+│       │   ├── core/       # schemas, loader, renderer, registry, project layer, integrations
 │       │   └── lib/        # integration component and legacy helper utilities
 │       ├── data/
 │       │   ├── context-layer/ # project operating layer templates
+│       │   ├── integrations/  # integration catalog data
 │       │   ├── skills/        # skill component source/catalog data
 │       │   ├── packs/         # optional project pack source data
 │       │   └── subagents/     # subagent component source/catalog data
@@ -95,15 +96,30 @@ Integration은 여러 프로젝트에서 agent 작업을 돕는 user/global runt
 
 Integration component 명령은 `AI_OPS_HOME` 또는 `HOME`이 있어야 실행됩니다. 둘 다 없으면 cwd fallback 없이 실패합니다.
 
-유지하는 component 종류:
+유지하는 runtime 표면:
 
+- integrations
 - reference skills
 - task skills
 - subagents
-- context promotion용 Codex hook integration
+- Codex hooks
 - user-local context-promotion receipts
 
-현재 CLI는 아직 `ai-ops integration ...` 상위 명령을 제공하지 않습니다. 지금은 low-level component 명령으로 lifecycle을 관리합니다.
+Integration lifecycle 명령:
+
+```bash
+ai-ops integration list
+ai-ops integration install context-promotion
+ai-ops integration install pc
+ai-ops integration status pc
+ai-ops integration uninstall pc
+```
+
+`context-promotion`은 `context-promotion-review` Codex skill, Codex `PostToolUse` hook, user-local receipt workflow를 설치해 `git commit` 이후 재사용 가능한 운영 지식 승격 검토를 돕습니다.
+
+`pc`는 `pc` Codex skill과 Codex `PostToolUse` hook runner를 설치합니다. 성공적인 `git commit` 이후 `~/.personal-project-contexts/`에 matching workspace, active workstream, current repo scope가 준비된 경우에만 Codex가 `$pc:done`으로 이어가게 합니다. 준비되지 않은 repository에는 pc context를 새로 만들지 않습니다.
+
+Integration 소유권은 user/global runtime home 아래 `.ai-ops/integrations-manifest.json`에 기록됩니다. Uninstall은 integration install이 소유한 component만 제거하고, 기존에 수동 설치되어 있던 skill이나 hook은 보존합니다.
 
 Skill lifecycle 명령:
 
@@ -136,11 +152,7 @@ ai-ops subagent uninstall security-gate
 - Gemini CLI: `.gemini/agents/<id>.md`
 - 상태 파일: `.ai-ops/subagents-manifest.json`
 
-`context-promotion`은 현재 존재하는 integration-like 사례입니다. `context-promotion-review` Codex skill, Codex `PostToolUse` hook, user-local receipt를 묶어 `git commit` 이후 재사용 가능한 운영 지식 승격 검토를 돕습니다. low-level 명령은 `ai-ops context-promotion ...`와 `ai-ops codex-hook ...`입니다.
-
-`pc`는 planned integration candidate입니다. `pc` skill, post-commit handoff hook, hook runner를 묶어 성공적인 commit 직후 Codex가 `$pc:done`을 잊지 않게 하되, 준비되지 않은 repository에는 새 context를 만들지 않는 방향입니다.
-
-후속 상위 UX는 이런 묶음을 `ai-ops integration install pc`처럼 한 단위로 설치/조회/제거하는 것입니다. 이 명령은 목표 UX이며 현재 CLI surface는 아닙니다.
+Low-level component 명령도 계속 사용할 수 있습니다. 단일 skill 설치, Codex hook 점검, context-promotion receipt 직접 관리가 필요할 때 사용합니다.
 
 ## Optional Specs Pack
 

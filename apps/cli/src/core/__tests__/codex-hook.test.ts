@@ -4,11 +4,16 @@ import { tmpdir } from 'node:os';
 import { describe, expect, it } from 'vitest';
 import {
   buildContextPromotionHookCommand,
+  buildCodexHookCommand,
   inspectContextPromotionHook,
+  inspectCodexHook,
   installContextPromotionHook,
+  installCodexHook,
+  PC_CODEX_HOOK,
   quoteShellArg,
   resolveCodexHooksPath,
   uninstallContextPromotionHook,
+  uninstallCodexHook,
 } from '../codex-hook.js';
 
 const setup = (): { dir: string; hooksPath: string; cleanup: () => void } => {
@@ -28,7 +33,7 @@ describe('Codex context promotion hook config', () => {
       '/custom/bin/ai-ops context-promotion hook post-tool-use',
     );
     expect(() => buildContextPromotionHookCommand('/custom/bin/ai-ops hook')).toThrow(
-      'context promotion hook command must include',
+      'context-promotion hook command must include',
     );
   });
 
@@ -177,6 +182,39 @@ describe('Codex context promotion hook config', () => {
     try {
       expect(existsSync(hooksPath)).toBe(false);
       expect(inspectContextPromotionHook(hooksPath).installed).toBe(false);
+    } finally {
+      cleanup();
+    }
+  });
+
+  it('installs and uninstalls the pc hook independently from context promotion', () => {
+    const { hooksPath, cleanup } = setup();
+    try {
+      const pcCommand = buildCodexHookCommand({ definition: PC_CODEX_HOOK });
+      installContextPromotionHook({
+        hooksPath,
+        command: 'ai-ops context-promotion hook post-tool-use',
+      });
+      const result = installCodexHook({
+        hooksPath,
+        definition: PC_CODEX_HOOK,
+        command: pcCommand,
+      });
+
+      expect(result.changed).toBe(true);
+      expect(inspectContextPromotionHook(hooksPath).installed).toBe(true);
+      expect(inspectCodexHook({ hooksPath, definition: PC_CODEX_HOOK }).installed).toBe(true);
+
+      const removed = uninstallCodexHook({
+        hooksPath,
+        definition: PC_CODEX_HOOK,
+      });
+
+      expect(removed.removed).toBe(true);
+      expect(inspectCodexHook({ hooksPath, definition: PC_CODEX_HOOK }).installed).toBe(false);
+      expect(inspectContextPromotionHook(hooksPath).installed).toBe(true);
+      expect(readFileSync(hooksPath, 'utf-8')).toContain('context-promotion hook post-tool-use');
+      expect(readFileSync(hooksPath, 'utf-8')).not.toContain('integration hook post-tool-use pc');
     } finally {
       cleanup();
     }

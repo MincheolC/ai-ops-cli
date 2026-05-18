@@ -215,7 +215,7 @@ npm run compile
 - `ai-ops codex-hook install context-promotion`은 Codex `PostToolUse` Bash hook을 opt-in으로 설치하고 `context-promotion-review` Codex skill도 user/global runtime 위치에 보장 설치한다.
 - hook은 `git commit` 이후 Codex에게 `context-promotion-review` 검토를 이어서 요청한다. 작업 커밋은 막지 않고, 승격 수정은 사용자 검사 후 별도 커밋으로 다룬다.
 - 기본 hook command는 npm global 설치를 전제로 `ai-ops context-promotion hook post-tool-use`를 저장한다. 비표준 PATH 환경은 `--command` override로 처리한다.
-- 이 후속 기능은 현재 구현된 integration-like 사례다. 아직 `ai-ops integration ...` 상위 명령은 제공하지 않는다.
+- 이 후속 기능은 `context-promotion` integration의 component 기반이며, low-level 명령으로도 계속 사용할 수 있다.
 
 검증:
 
@@ -314,9 +314,9 @@ AI_OPS_HOME="$home" node apps/cli/dist/bin/index.js subagent install security-re
 
 - 제품 정의를 “프로젝트/에이전트 작업에 필요한 operating layer와 global runtime integration을 설치하고 관리하는 도구”로 갱신한다.
 - README 계열, master blueprint, playbook의 old global-asset wording을 `ai-ops integrations` 중심 설명으로 재정렬한다.
-- `skill`, `subagent`, `codex-hook`, `context-promotion`은 현재 구현된 low-level component 명령으로 설명한다.
-- `context-promotion`은 현재 존재하는 integration-like 사례로, `pc`는 planned integration candidate로 문서화한다.
-- `ai-ops integration ...`은 목표 UX로만 적고 현재 구현된 CLI surface로 적지 않는다.
+- `skill`, `subagent`, `codex-hook`, `context-promotion`은 당시 구현된 low-level component 명령으로 설명한다.
+- `context-promotion`은 당시 존재한 integration-like 사례로, `pc`는 planned integration candidate로 문서화한다.
+- `ai-ops integration ...`은 당시 목표 UX로만 적고 구현된 CLI surface로 적지 않는다.
 - root operating layer 문서와 `apps/cli/data/context-layer` 템플릿을 함께 갱신한다.
 
 완료 기준:
@@ -324,7 +324,7 @@ AI_OPS_HOME="$home" node apps/cli/dist/bin/index.js subagent install security-re
 - 문서가 project operating layer와 user/global integration scope를 구분한다.
 - `project scope`는 operating-layer 문서와 `.ai-ops/*` project state만 의미한다.
 - integration component는 project layer uninstall 대상이 아님을 명시한다.
-- 현재 CLI 표면은 `skill`, `subagent`, `codex-hook`, `context-promotion`, `pack` 그대로 설명한다.
+- 당시 CLI 표면은 `skill`, `subagent`, `codex-hook`, `context-promotion`, `pack` 그대로 설명한다.
 - 런타임 코드, schema, registry, hook runner 동작은 바꾸지 않는다.
 
 검증:
@@ -342,6 +342,39 @@ node apps/cli/dist/bin/index.js audit
 ```
 
 검색 결과가 남으면 deprecated 설명이거나 low-level component 설명인지 확인한다.
+
+## Phase 8: Integration Framework and pc Integration
+
+범위:
+
+- `ai-ops integration list/install/status/uninstall` 상위 명령을 추가한다.
+- `apps/cli/data/integrations/integration-registry.json`를 integration catalog source로 추가하고 schema/loader test를 둔다.
+- Catalog는 각 integration의 `skill`, `codex-hook`, `receipt-config` component를 선언한다.
+- Integration manifest는 user/global runtime home의 `.ai-ops/integrations-manifest.json`에 둔다.
+- `context-promotion` integration은 기존 `context-promotion-review` skill, Codex `PostToolUse` hook, user-local receipt workflow를 묶는다.
+- `pc` integration은 `pc` Codex skill과 Codex `PostToolUse` hook runner를 묶는다.
+- `pc` hook은 성공적인 `git commit` 이후, `~/.personal-project-contexts/`에 matching workspace, active workstream, current repo scope가 모두 준비된 경우에만 Codex에게 `$pc:done` continuation prompt를 준다.
+- 준비되지 않은 repository에서는 hook이 새 context/workstream을 만들지 않고 조용히 skip한다.
+- Uninstall은 integration install이 소유한 component만 제거하고, 기존 수동 설치로 판단되는 skill/hook은 보존한다.
+- 기존 low-level `skill`, `subagent`, `codex-hook`, `context-promotion` 명령은 유지한다.
+
+완료 기준:
+
+- `ai-ops integration install pc`가 `pc` skill, Codex hook, integration manifest를 user/global runtime home에 설치한다.
+- `ai-ops integration install context-promotion`이 기존 context-promotion component를 integration 단위로 설치한다.
+- Catalog/manifest schema가 skill, codex-hook, receipt/config component 표현을 검증한다.
+- `ai-ops integration status pc`가 skill/hook 설치 상태와 현재 cwd 기준 pc context readiness를 보여준다.
+- `ai-ops integration uninstall pc`가 owned component만 제거한다.
+- Project operating layer manifest와 uninstall 흐름은 user/global integration component를 건드리지 않는다.
+
+검증:
+
+```bash
+npm run build
+npm run check
+AI_OPS_HOME="$(mktemp -d)" HOME="$(mktemp -d)" CODEX_HOME="$(mktemp -d)" node apps/cli/dist/bin/index.js integration install pc
+AI_OPS_HOME="$(mktemp -d)" HOME="$(mktemp -d)" CODEX_HOME="$(mktemp -d)" node apps/cli/dist/bin/index.js integration install context-promotion
+```
 
 ## 운영 규칙
 

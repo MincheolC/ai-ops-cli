@@ -4,7 +4,7 @@
 
 `ai-ops-cli` is the monorepo for designing and implementing the next major breaking model of `ai-ops-cli`. The product definition is: install and manage the operating layer and global runtime integrations needed for project/agent work.
 
-The current implementation follows the project operating layer model and exposes low-level integration component commands for skills, subagents, Codex hooks, and user-local receipts. The old rules + skills scaffolder model remains only as deprecated context.
+The current implementation follows the project operating layer model and exposes `ai-ops integration ...` for bundled user/global runtime workflows. Low-level component commands for skills, subagents, Codex hooks, and user-local receipts remain available for debugging and direct management. The old rules + skills scaffolder model remains only as deprecated context.
 
 ## Target Model
 
@@ -33,11 +33,12 @@ flowchart LR
 │   └── cli/
 │       ├── src/
 │       │   ├── bin/        # CLI entrypoint
-│       │   ├── commands/   # init/diff/audit/update/uninstall/skill/subagent/pack/hooks
-│       │   ├── core/       # schemas, loader, renderer, registry, project layer
+│       │   ├── commands/   # init/diff/audit/update/uninstall/skill/subagent/pack/integration/hooks
+│       │   ├── core/       # schemas, loader, renderer, registry, project layer, integrations
 │       │   └── lib/        # integration component and legacy helper utilities
 │       ├── data/
 │       │   ├── context-layer/ # project operating layer templates
+│       │   ├── integrations/  # integration catalog data
 │       │   ├── skills/        # skill component source/catalog data
 │       │   ├── packs/         # optional project pack source data
 │       │   └── subagents/     # subagent component source/catalog data
@@ -95,15 +96,30 @@ Integrations are user/global runtime features that help agent work happen across
 
 Integration component commands require `AI_OPS_HOME` or `HOME`. If neither exists, they fail closed instead of falling back to the current working directory.
 
-Maintained component types:
+Maintained runtime surfaces:
 
+- integrations
 - reference skills
 - task skills
 - subagents
-- Codex hook integration for context promotion
+- Codex hooks
 - user-local context-promotion receipts
 
-The current CLI does not yet expose `ai-ops integration ...` as a top-level command. Today, component lifecycle is managed through low-level commands.
+Integration lifecycle commands:
+
+```bash
+ai-ops integration list
+ai-ops integration install context-promotion
+ai-ops integration install pc
+ai-ops integration status pc
+ai-ops integration uninstall pc
+```
+
+`context-promotion` installs the `context-promotion-review` Codex skill, a Codex `PostToolUse` hook, and user-local receipt workflow for reusable operating knowledge review after `git commit`.
+
+`pc` installs the `pc` Codex skill and a Codex `PostToolUse` hook runner. After a successful `git commit`, the hook asks Codex to continue into `$pc:done` only when `~/.personal-project-contexts/` already has a matching workspace, active workstream, and current repo scope. It does not create pc context for unprepared repositories.
+
+Integration ownership is recorded in `.ai-ops/integrations-manifest.json` under the user/global runtime home. Uninstall removes only components that the integration install owned; pre-existing manual skill or hook installs are preserved.
 
 Skill lifecycle commands:
 
@@ -136,11 +152,7 @@ Tool-specific install paths:
 - Gemini CLI: `.gemini/agents/<id>.md`
 - State file: `.ai-ops/subagents-manifest.json`
 
-`context-promotion` is the current integration-like example: it combines the `context-promotion-review` Codex skill, a Codex `PostToolUse` hook, and user-local receipts to review reusable operating knowledge after `git commit`. Its low-level commands are `ai-ops context-promotion ...` and `ai-ops codex-hook ...`.
-
-`pc` is a planned integration candidate: it should combine the `pc` skill, a post-commit handoff hook, and a hook runner so Codex can remind itself to run `$pc:done` after a successful commit without creating new context in unprepared repositories.
-
-Future top-level integration UX should install/status/uninstall these bundles as one unit, for example `ai-ops integration install pc`. That command is target UX, not part of the current CLI surface.
+Low-level component commands remain available. Use them when you need to install a single skill, inspect a Codex hook, or manage context-promotion receipts directly.
 
 ## Optional Specs Pack
 
