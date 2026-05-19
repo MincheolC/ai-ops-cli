@@ -10,6 +10,7 @@ export * from './skill-registry-io.js';
 export * from './subagent-manifest-io.js';
 export * from './integration-manifest-io.js';
 export * from './project-layer.js';
+export * from './studio-snapshot.js';
 export * from './pack.js';
 export * from './paths.js';
 export * from './context-promotion.js';

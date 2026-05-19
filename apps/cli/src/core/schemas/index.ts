@@ -8,3 +8,4 @@ export * from './integration.schema.js';
 export * from './integration-catalog.schema.js';
 export * from './pack.schema.js';
 export * from './project-layer.schema.js';
+export * from './studio-snapshot.schema.js';

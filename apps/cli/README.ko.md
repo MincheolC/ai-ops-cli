@@ -102,12 +102,21 @@ Commands:
   skill      Manage skill components
   subagent   Manage subagent components
   pack       Manage optional project operating layer packs
+  studio    Generate read-only Studio snapshot contracts
   integration Manage user/global runtime integrations
   context-promotion Manage context promotion review receipts
   codex-hook Manage Codex hook components
 ```
 
 `--tool`은 유지합니다. Codex, Claude Code, Gemini CLI가 서로 다른 discovery 위치와 adapter 파일을 사용하기 때문입니다.
+
+Studio read-only snapshot 명령:
+
+```bash
+ai-ops studio snapshot --json
+```
+
+이 명령은 ai-ops Studio가 소비할 JSON contract를 출력합니다. Desktop app을 실행하거나 project/runtime 파일을 수정하지 않고 project context layer, audit 상태, user/global runtime 상태만 읽습니다.
 
 Integration lifecycle 명령:
 

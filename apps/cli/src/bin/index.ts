@@ -4,6 +4,7 @@ import { updateCommand } from '../commands/update.js';
 import { diffCommand } from '../commands/diff.js';
 import { auditCommand } from '../commands/audit.js';
 import { uninstallCommand } from '../commands/uninstall.js';
+import { studioSnapshotCommand } from '../commands/studio.js';
 import {
   skillDiffCommand,
   skillInstallCommand,
@@ -73,6 +74,14 @@ program
   .description('project operating layer 제거')
   .option('--yes', '확인 프롬프트 없이 제거', false)
   .action((opts: { yes?: boolean }) => uninstallCommand(opts));
+
+const studioCommand = program.command('studio').description('ai-ops Studio read-only helpers');
+
+studioCommand
+  .command('snapshot')
+  .description('Studio read-only snapshot JSON 생성')
+  .requiredOption('--json', 'JSON으로 출력')
+  .action((opts: { json?: boolean }) => studioSnapshotCommand(opts));
 
 const skillCommand = program.command('skill').description('에이전트 skill 설치/조회/갱신');
 
