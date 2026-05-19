@@ -1,5 +1,5 @@
 <!-- ai-ops:start -->
-<!-- sourceHash: 388c18 | generatedAt: 2026-05-19T04:21:20.239Z -->
+<!-- sourceHash: 9b0773 | generatedAt: 2026-05-19T14:56:02.318Z -->
 
 ---
 status: Active
@@ -10,6 +10,7 @@ read_when:
 update_when:
   - baseline_rule_changes
 ---
+
 # Agent Baseline Rules
 
 이 문서는 모든 작업 전에 먼저 적용할 기본 협업 규칙이다. 세부 routing, workflow, stop rule보다 앞서 읽고, 프로젝트별 Active 문서가 더 구체적인 판단 근거를 제공하면 그 문서를 우선한다.
@@ -47,6 +48,6 @@ update_when:
 - flow, sequence, state, structure를 설명할 때 긴 bullet list보다 Mermaid diagram을 우선 검토한다.
 - UX/control flow와 decision tree는 `flowchart`, request/response와 service interaction은 `sequenceDiagram`, entity/schema relationship은 `erDiagram`, lifecycle/state transition은 `stateDiagram-v2`를 사용한다.
 - Mermaid diagram은 fenced `mermaid` code block으로 작성한다.
-- plan 문서를 저장할 때는 `YYYYMMDD_<topic>.md` 형식을 사용하고, topic은 kebab-case로 작성한다.
+- plan 문서를 저장할 때는 `YYYYMMDDHH_<topic>.md` 형식을 사용하고, topic은 kebab-case로 작성한다.
 
 <!-- ai-ops:end -->

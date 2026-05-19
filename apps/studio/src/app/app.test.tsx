@@ -112,10 +112,175 @@ const snapshot = {
   },
   runtime: {
     available: true,
-    integrations: [{ id: 'context-promotion' }],
-    hooks: [{ id: 'context-promotion-review' }],
-    skills: [{ id: 'skill-load-check' }, { id: 'doc-impact-reviewer' }],
-    subagents: [{ id: 'security-gate' }],
+    unavailableReason: null,
+    userBasePath: '/Users/charles/.ai-ops',
+    codexHomePath: '/Users/charles/.codex',
+    manifests: {
+      integrations: {
+        path: '/Users/charles/.ai-ops/integrations-manifest.json',
+        exists: true,
+        parsed: true,
+        generatedAt: '2026-05-19T00:00:00.000Z',
+        error: null,
+      },
+      skills: {
+        path: '/Users/charles/.ai-ops/skills-manifest.json',
+        exists: true,
+        parsed: true,
+        generatedAt: '2026-05-19T00:00:00.000Z',
+        error: null,
+      },
+      subagents: {
+        path: '/Users/charles/.ai-ops/subagents-manifest.json',
+        exists: true,
+        parsed: true,
+        generatedAt: '2026-05-19T00:00:00.000Z',
+        error: null,
+      },
+      hooks: {
+        path: '/Users/charles/.codex/hooks.json',
+        exists: true,
+        parsed: true,
+        generatedAt: null,
+        error: null,
+      },
+    },
+    integrations: [
+      {
+        id: 'context-promotion',
+        description: 'Codex git-commit 후 context promotion review receipt를 요구하는 integration',
+        installed: true,
+        installedAt: '2026-05-18T00:00:00.000Z',
+        updatedAt: '2026-05-19T00:00:00.000Z',
+        components: [
+          {
+            type: 'skill',
+            id: 'context-promotion-review',
+            installed: true,
+            owned: true,
+            catalog: {
+              type: 'skill',
+              id: 'context-promotion-review',
+              tools: ['codex'],
+            },
+            installedComponent: {
+              type: 'skill',
+              id: 'context-promotion-review',
+              tools: ['codex'],
+              owned: true,
+            },
+          },
+          {
+            type: 'codex-hook',
+            id: 'context-promotion',
+            installed: true,
+            owned: false,
+            catalog: {
+              type: 'codex-hook',
+              id: 'context-promotion',
+            },
+            installedComponent: {
+              type: 'codex-hook',
+              id: 'context-promotion',
+              command: 'ai-ops context-promotion review',
+              owned: false,
+            },
+          },
+          {
+            type: 'receipt-config',
+            id: 'context-promotion-receipts',
+            installed: true,
+            owned: true,
+            catalog: {
+              type: 'receipt-config',
+              id: 'context-promotion-receipts',
+              storage_path: '.ai-ops/context-promotion/projects/*/receipts-index.json',
+            },
+            installedComponent: {
+              type: 'receipt-config',
+              id: 'context-promotion-receipts',
+              storagePath: '.ai-ops/context-promotion/projects/demo/receipts-index.json',
+              owned: true,
+            },
+          },
+        ],
+      },
+      {
+        id: 'pc',
+        description: 'Codex git-commit 후 $pc:done handoff를 요구하는 personal context integration',
+        installed: false,
+        installedAt: null,
+        updatedAt: null,
+        components: [
+          {
+            type: 'skill',
+            id: 'pc',
+            installed: false,
+            owned: null,
+            catalog: {
+              type: 'skill',
+              id: 'pc',
+              tools: ['codex'],
+            },
+            installedComponent: null,
+          },
+        ],
+      },
+    ],
+    hooks: [
+      {
+        id: 'context-promotion',
+        statusMessage: 'context-promotion hook active',
+        hooksPath: '/Users/charles/.codex/hooks.json',
+        installed: true,
+        error: null,
+      },
+      {
+        id: 'pc',
+        statusMessage: 'pc hook inactive',
+        hooksPath: '/Users/charles/.codex/hooks.json',
+        installed: false,
+        error: 'hook parse failure',
+      },
+    ],
+    skills: [
+      {
+        id: 'typescript-language',
+        kind: 'reference',
+        description: 'TypeScript language rules',
+        supported_tools: ['codex', 'claude-code'],
+        groups: ['language'],
+        installed: true,
+        installedTools: ['codex'],
+        installedPaths: [{ path: 'skills/typescript-language/SKILL.md', exists: true }],
+        sourceHash: 'abc123',
+      },
+      {
+        id: 'doc-impact-reviewer',
+        kind: 'task',
+        description: 'Review document impact',
+        supported_tools: ['codex'],
+        groups: ['agent'],
+        installed: false,
+        installedTools: [],
+        installedPaths: [],
+        sourceHash: null,
+      },
+    ],
+    subagents: [
+      {
+        id: 'security-gate',
+        description: 'Decide whether deeper security review is needed',
+        supported_tools: ['codex'],
+        installed: true,
+        installedTools: ['codex'],
+        installedPaths: [
+          { path: 'subagents/security-gate.md', exists: true },
+          { path: 'subagents/security-gate.toml', exists: false },
+        ],
+        sourceHash: 'def456',
+      },
+    ],
   },
 } as const satisfies StudioSnapshotEnvelope;
 
@@ -202,6 +367,7 @@ describe('App shell', () => {
       selectedView: 'overview',
       selectedDocumentPath: null,
       selectedAuditIssueId: null,
+      selectedRuntimeItemId: null,
       sidebarCollapsed: false,
     });
   });
@@ -323,6 +489,62 @@ describe('App shell', () => {
     expect(screen.getAllByText('missing-manifest').length).toBeGreaterThan(0);
     expect(screen.getByText('Review manifest record')).toBeInTheDocument();
     expect(screen.queryByTestId('open-audit-document')).not.toBeInTheDocument();
+  });
+
+  it('renders Integrations as a Runtime area with read-only component health', async () => {
+    const user = userEvent.setup();
+    render(<App queryClient={createTestQueryClient()} snapshotLoader={async () => snapshot} />);
+
+    await user.click(await screen.findByRole('button', { name: /Integrations/ }));
+
+    expect(screen.getByText('Runtime read surface / integrations')).toBeInTheDocument();
+    expect(screen.getByText('Integrations manifest')).toBeInTheDocument();
+    expect(screen.getAllByText('context-promotion-review').length).toBeGreaterThan(0);
+    expect(screen.getByText('pre-existing')).toBeInTheDocument();
+    expect(screen.getByText('.ai-ops/context-promotion/projects/*/receipts-index.json')).toBeInTheDocument();
+    expect(screen.getByText('.ai-ops/context-promotion/projects/demo/receipts-index.json')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Install$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Update$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Uninstall$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Edit$/i })).not.toBeInTheDocument();
+  });
+
+  it('renders Skills and Subagents as Runtime assets instead of project documents', async () => {
+    const user = userEvent.setup();
+    render(<App queryClient={createTestQueryClient()} snapshotLoader={async () => snapshot} />);
+
+    await user.click(await screen.findByRole('button', { name: /Skills/ }));
+
+    expect(screen.getByText('Runtime read surface / skills')).toBeInTheDocument();
+    expect(screen.getByText('reference skills')).toBeInTheDocument();
+    expect(screen.getByText('task skills')).toBeInTheDocument();
+    expect(screen.getAllByText('typescript-language').length).toBeGreaterThan(0);
+    expect(screen.getByText('skills/typescript-language/SKILL.md')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /Subagents/ }));
+
+    expect(screen.getByText('Runtime read surface / subagents')).toBeInTheDocument();
+    expect(screen.getAllByText('security-gate').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('subagents/security-gate.toml').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('missing').length).toBeGreaterThan(0);
+    expect(screen.queryByRole('button', { name: /AGENTS\.md/ })).not.toBeInTheDocument();
+    expect(screen.queryByTestId('open-audit-document')).not.toBeInTheDocument();
+  });
+
+  it('renders known Hook installed and error state with related integrations', async () => {
+    const user = userEvent.setup();
+    render(<App queryClient={createTestQueryClient()} snapshotLoader={async () => snapshot} />);
+
+    await user.click(await screen.findByRole('button', { name: /Hooks/ }));
+
+    expect(screen.getByText('Runtime read surface / hooks')).toBeInTheDocument();
+    expect(screen.getByText('context-promotion hook active')).toBeInTheDocument();
+    expect(screen.getAllByText('context-promotion').length).toBeGreaterThan(0);
+
+    await user.click(screen.getByRole('button', { name: /Select hooks pc/ }));
+
+    expect(screen.getByText('pc hook inactive')).toBeInTheDocument();
+    expect(screen.getByText('hook parse failure')).toBeInTheDocument();
   });
 
   it('renders string Tauri command failures without replacing the message', async () => {

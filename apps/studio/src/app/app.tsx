@@ -32,6 +32,7 @@ import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { StudioProviders } from './providers';
+import { RuntimeView } from './runtime-view';
 import {
   buildProjectViewModel,
   selectAuditIssue,
@@ -50,7 +51,13 @@ import {
   StudioSnapshotParseError,
   type StudioSnapshotEnvelope,
 } from '@/studio-bridge/studio-snapshot';
-import { useStudioShellStore, type StudioProjectView } from '@/stores/studio-shell-store';
+import { buildRuntimeViewModel } from '@/studio-bridge/runtime-view-model';
+import {
+  STUDIO_RUNTIME_VIEWS,
+  useStudioShellStore,
+  type StudioProjectView,
+  type StudioRuntimeView,
+} from '@/stores/studio-shell-store';
 
 type SnapshotLoader = () => Promise<StudioSnapshotEnvelope>;
 
@@ -96,32 +103,25 @@ const NAV_GROUPS: readonly NavGroup[] = [
     ],
   },
   {
-    label: 'Placeholders',
+    label: 'Runtime',
     items: [
-      { id: 'integrations', label: 'Integrations', icon: Blocks, placeholder: true },
-      { id: 'skills', label: 'Skills', icon: Wrench, placeholder: true },
-      { id: 'subagents', label: 'Subagents', icon: SearchCode, placeholder: true },
-      { id: 'hooks', label: 'Hooks', icon: Cable, placeholder: true },
-      { id: 'appearance', label: 'Appearance', icon: Palette, placeholder: true },
+      { id: 'integrations', label: 'Integrations', icon: Blocks },
+      { id: 'skills', label: 'Skills', icon: Wrench },
+      { id: 'subagents', label: 'Subagents', icon: SearchCode },
+      { id: 'hooks', label: 'Hooks', icon: Cable },
     ],
+  },
+  {
+    label: 'Settings',
+    items: [{ id: 'appearance', label: 'Appearance', icon: Palette, placeholder: true }],
   },
 ];
 
-type PlaceholderProjectView = Exclude<StudioProjectView, 'overview' | 'context-graph' | 'documents' | 'audit'>;
+type PlaceholderProjectView = Extract<StudioProjectView, 'appearance'>;
 
-const PLACEHOLDER_VIEWS = [
-  'integrations',
-  'skills',
-  'subagents',
-  'hooks',
-  'appearance',
-] as const satisfies readonly PlaceholderProjectView[];
+const PLACEHOLDER_VIEWS = ['appearance'] as const satisfies readonly PlaceholderProjectView[];
 
 const PLACEHOLDER_COPY: Record<PlaceholderProjectView, string> = {
-  integrations: 'Integration detail stays in a later phase.',
-  skills: 'Skill detail stays in a later phase.',
-  subagents: 'Subagent detail stays in a later phase.',
-  hooks: 'Hook detail stays in a later phase.',
   appearance: 'Appearance controls stay in a later phase.',
 };
 
@@ -201,9 +201,8 @@ const getStatusBadgeVariant = (status: ProjectDocumentStatus): ComponentProps<ty
   return 'outline';
 };
 
-const getAuditLevelBadgeVariant = (
-  level: ProjectAuditIssueView['level'],
-): ComponentProps<typeof Badge>['variant'] => (level === 'error' ? 'destructive' : 'secondary');
+const getAuditLevelBadgeVariant = (level: ProjectAuditIssueView['level']): ComponentProps<typeof Badge>['variant'] =>
+  level === 'error' ? 'destructive' : 'secondary';
 
 const getSourceStateLabel = (source: ProjectSourceState): string => {
   if (source.exists === false) {
@@ -228,9 +227,11 @@ const getHashMatchLabel = (document: ProjectDocumentView): string => {
   return 'Not checked';
 };
 
-const isPlaceholderView = (
-  view: StudioProjectView,
-): view is PlaceholderProjectView => PLACEHOLDER_VIEWS.includes(view as PlaceholderProjectView);
+const isPlaceholderView = (view: StudioProjectView): view is PlaceholderProjectView =>
+  PLACEHOLDER_VIEWS.includes(view as PlaceholderProjectView);
+
+const isRuntimeView = (view: StudioProjectView): view is StudioRuntimeView =>
+  STUDIO_RUNTIME_VIEWS.includes(view as StudioRuntimeView);
 
 const removeHtmlNodes = (node: MarkdownAstNode): void => {
   if (node.children === undefined) {
@@ -261,9 +262,11 @@ function StudioShell({ snapshotLoader }: StudioShellProps): React.JSX.Element {
   const selectedView = useStudioShellStore((state) => state.selectedView);
   const selectedDocumentPath = useStudioShellStore((state) => state.selectedDocumentPath);
   const selectedAuditIssueId = useStudioShellStore((state) => state.selectedAuditIssueId);
+  const selectedRuntimeItemId = useStudioShellStore((state) => state.selectedRuntimeItemId);
   const setSelectedView = useStudioShellStore((state) => state.setSelectedView);
   const setSelectedDocumentPath = useStudioShellStore((state) => state.setSelectedDocumentPath);
   const setSelectedAuditIssueId = useStudioShellStore((state) => state.setSelectedAuditIssueId);
+  const setSelectedRuntimeItemId = useStudioShellStore((state) => state.setSelectedRuntimeItemId);
   const sidebarCollapsed = useStudioShellStore((state) => state.sidebarCollapsed);
   const toggleSidebar = useStudioShellStore((state) => state.toggleSidebar);
   const snapshotQuery = useQuery({
@@ -383,8 +386,10 @@ function StudioShell({ snapshotLoader }: StudioShellProps): React.JSX.Element {
               selectedView={selectedView}
               selectedDocumentPath={selectedDocumentPath}
               selectedAuditIssueId={selectedAuditIssueId}
+              selectedRuntimeItemId={selectedRuntimeItemId}
               onSelectDocument={setSelectedDocumentPath}
               onSelectAuditIssue={setSelectedAuditIssueId}
+              onSelectRuntimeItem={setSelectedRuntimeItemId}
               onOpenDocument={openDocument}
             />
           )}
@@ -444,8 +449,10 @@ type ProjectSurfaceProps = {
   readonly selectedView: StudioProjectView;
   readonly selectedDocumentPath: string | null;
   readonly selectedAuditIssueId: string | null;
+  readonly selectedRuntimeItemId: string | null;
   readonly onSelectDocument: (path: string | null) => void;
   readonly onSelectAuditIssue: (issueId: string | null) => void;
+  readonly onSelectRuntimeItem: (itemId: string | null) => void;
   readonly onOpenDocument: (path: string) => void;
 };
 
@@ -454,11 +461,14 @@ function ProjectSurface({
   selectedView,
   selectedDocumentPath,
   selectedAuditIssueId,
+  selectedRuntimeItemId,
   onSelectDocument,
   onSelectAuditIssue,
+  onSelectRuntimeItem,
   onOpenDocument,
 }: ProjectSurfaceProps): React.JSX.Element {
   const viewModel = buildProjectViewModel(snapshot);
+  const runtimeViewModel = buildRuntimeViewModel(snapshot);
 
   return (
     <div className="space-y-5">
@@ -489,6 +499,14 @@ function ProjectSurface({
           onOpenDocument={onOpenDocument}
         />
       )}
+      {isRuntimeView(selectedView) && (
+        <RuntimeView
+          view={selectedView}
+          viewModel={runtimeViewModel}
+          selectedRuntimeItemId={selectedRuntimeItemId}
+          onSelectRuntimeItem={onSelectRuntimeItem}
+        />
+      )}
       {isPlaceholderView(selectedView) && <PlaceholderView view={selectedView} />}
     </div>
   );
@@ -500,7 +518,11 @@ type ProjectSurfaceHeaderProps = {
 };
 
 function ProjectSurfaceHeader({ viewModel, selectedView }: ProjectSurfaceHeaderProps): React.JSX.Element {
-  const runtimeLabel = selectedView === 'overview' ? 'Project read surface' : selectedView;
+  const surfaceLabel = isRuntimeView(selectedView)
+    ? 'Runtime read surface'
+    : isPlaceholderView(selectedView)
+      ? 'Settings'
+      : 'Project read surface';
 
   return (
     <section className="rounded-lg border bg-card p-5 shadow-sm">
@@ -529,7 +551,7 @@ function ProjectSurfaceHeader({ viewModel, selectedView }: ProjectSurfaceHeaderP
           </p>
         </div>
         <div className="rounded-md border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-          <span className="font-medium text-foreground">View</span> {runtimeLabel}
+          <span className="font-medium text-foreground">View</span> {surfaceLabel} / {selectedView}
         </div>
       </div>
     </section>
@@ -649,12 +671,7 @@ type AuditViewProps = {
   readonly onOpenDocument: (path: string) => void;
 };
 
-function AuditView({
-  viewModel,
-  selectedIssueId,
-  onSelectIssue,
-  onOpenDocument,
-}: AuditViewProps): React.JSX.Element {
+function AuditView({ viewModel, selectedIssueId, onSelectIssue, onOpenDocument }: AuditViewProps): React.JSX.Element {
   const selectedIssue = selectAuditIssue(viewModel.audit.issues, selectedIssueId);
 
   if (viewModel.audit.issues.length === 0) {
@@ -721,9 +738,7 @@ function AuditClearState(): React.JSX.Element {
     <section className="rounded-lg border bg-card p-8 text-center shadow-sm">
       <ShieldCheck className="mx-auto size-8 text-primary" />
       <h2 className="mt-3 text-base font-semibold">Audit clear</h2>
-      <p className="mx-auto mt-2 max-w-lg text-sm text-muted-foreground">
-        Snapshot audit has no errors or warnings.
-      </p>
+      <p className="mx-auto mt-2 max-w-lg text-sm text-muted-foreground">Snapshot audit has no errors or warnings.</p>
     </section>
   );
 }
@@ -734,11 +749,7 @@ type AuditIssueGroupsProps = {
   readonly onSelectIssue: (issueId: string | null) => void;
 };
 
-function AuditIssueGroups({
-  groups,
-  selectedIssueId,
-  onSelectIssue,
-}: AuditIssueGroupsProps): React.JSX.Element {
+function AuditIssueGroups({ groups, selectedIssueId, onSelectIssue }: AuditIssueGroupsProps): React.JSX.Element {
   return (
     <section className="rounded-lg border bg-card p-4 shadow-sm">
       <div className="mb-4 flex items-center gap-2">
@@ -795,7 +806,7 @@ type AuditIssueDetailsProps = {
 function AuditIssueDetails({ issue, documents, onOpenDocument }: AuditIssueDetailsProps): React.JSX.Element {
   const affectedPath = issue?.affectedPath ?? null;
   const linkedDocument =
-    affectedPath === null ? null : documents.find((document) => document.path === affectedPath) ?? null;
+    affectedPath === null ? null : (documents.find((document) => document.path === affectedPath) ?? null);
 
   if (issue === null) {
     return (
