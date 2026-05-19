@@ -5,6 +5,21 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-05-19
+
+### Added
+
+- `feat(terminology)`: project operating layer에 `docs/agent/terminology.md`와 project-owned `docs/business/terminology.md`를 추가해 agent 운영 용어와 프로젝트/domain 용어 SSOT를 분리
+- `feat(skill)`: `project-terminology-sync` task skill을 추가해 `docs/business/terminology.md` 생성/갱신, `Reserved` → `Active` 승격, docs-status/context-layer 동기화 규칙을 명시
+
+### Changed
+
+- `refactor(spec-lifecycle)`: spec lifecycle 용어 기준을 `docs/specs/baseline/01_glossary.md`에서 `docs/business/terminology.md`로 통합
+
+### Removed
+
+- `refactor(skill)`: `spec-shared-glossary-sync` task skill id와 별도 spec glossary SSOT 계약 제거
+
 ## [1.3.0] - 2026-05-19
 
 ### Removed
