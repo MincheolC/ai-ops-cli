@@ -12,7 +12,6 @@ export const SkillCatalogEntrySchema = z
     kind: SkillKindSchema,
     supported_tools: z.array(SkillToolSchema).min(1),
     groups: z.array(z.string().min(1)),
-    included_in_presets: z.array(z.string().min(1)),
     source_path: SkillCatalogPathSchema,
   })
   .strict()

@@ -65,7 +65,7 @@ apps/cli/data/skills/
 
 1. 디렉터리 이름은 frontmatter `name`과 정확히 일치해야 합니다.
 2. `SKILL.md`는 YAML frontmatter로 시작해야 합니다.
-3. `kind`, `supported_tools`, preset grouping, `source_path`는 `skill-registry.json`에 둡니다.
+3. `kind`, `supported_tools`, 표시/discovery grouping, `source_path`는 `skill-registry.json`에 둡니다.
 4. `reference` skill은 `reference-skills/` 아래에 두고 `references/reference.md`를 포함해야 합니다.
 5. `task` skill은 `task-skills/` 아래에 두고 실행 절차를 `SKILL.md`에 둡니다.
 6. 같은 상세 내용을 `SKILL.md`와 `references/`에 중복하지 않습니다.
@@ -77,23 +77,22 @@ apps/cli/data/skills/
 
 `SKILL.md` frontmatter는 이제 agent-facing 용도입니다. CLI는 아래 필수 필드를 검증하고, 추가 도구별 frontmatter 필드는 무시합니다.
 
-| 필드 | 필수 | 예시 | 의미 |
-| --- | --- | --- | --- |
-| `name` | 예 | `graphql-contract` | 고유 skill 이름과 설치 디렉터리 key |
-| `description` | 예 | `Use when changing GraphQL schema contracts.` | discovery/autotrigger 요약 |
+| 필드          | 필수 | 예시                                          | 의미                                |
+| ------------- | ---- | --------------------------------------------- | ----------------------------------- |
+| `name`        | 예   | `graphql-contract`                            | 고유 skill 이름과 설치 디렉터리 key |
+| `description` | 예   | `Use when changing GraphQL schema contracts.` | discovery/autotrigger 요약          |
 
 ## Registry 필드
 
 `skill-registry.json`은 install/catalog SSOT입니다.
 
-| 필드 | 필수 | 예시 | 의미 |
-| --- | --- | --- | --- |
-| `id` | 예 | `graphql-contract` | canonical skill id |
-| `kind` | 예 | `reference` / `task` | skill category |
-| `supported_tools` | 예 | `["claude-code", "codex", "gemini"]` | 설치 가능한 도구 |
-| `groups` | 예 | `["frontend-web"]` | 표시/discovery grouping |
-| `included_in_presets` | 예 | `["frontend-web", "backend-ts"]` | `ai-ops init`에서 이 skill을 노출하는 preset |
-| `source_path` | 예 | `reference-skills/graphql-contract` | skill source가 있는 상대 디렉터리 |
+| 필드              | 필수 | 예시                                 | 의미                              |
+| ----------------- | ---- | ------------------------------------ | --------------------------------- |
+| `id`              | 예   | `graphql-contract`                   | canonical skill id                |
+| `kind`            | 예   | `reference` / `task`                 | skill category                    |
+| `supported_tools` | 예   | `["claude-code", "codex", "gemini"]` | 설치 가능한 도구                  |
+| `groups`          | 예   | `["frontend-web"]`                   | 표시/discovery grouping           |
+| `source_path`     | 예   | `reference-skills/graphql-contract`  | skill source가 있는 상대 디렉터리 |
 
 ## Content 배치
 

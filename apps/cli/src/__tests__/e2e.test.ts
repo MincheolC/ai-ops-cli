@@ -3,7 +3,6 @@ import { mkdtempSync, mkdirSync, rmSync, existsSync, readFileSync, writeFileSync
 import { basename, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { resolveManifestPath } from '@/core/index.js';
 
 const BIN_PATH = new URL('../../dist/bin/index.js', import.meta.url).pathname;
 const PACKAGE_JSON_PATH = new URL('../../package.json', import.meta.url).pathname;
@@ -70,7 +69,7 @@ describe.skipIf(!distExists)('skill subprocess', () => {
       expect(result.status).toBe(1);
       expect(result.stderr).toContain("error: unknown option '--project'");
       expect(existsSync(join(dir, '.agents/skills/skill-load-check/SKILL.md'))).toBe(false);
-      expect(existsSync(resolveManifestPath(dir))).toBe(false);
+      expect(existsSync(join(dir, '.ai-ops/manifest.json'))).toBe(false);
     } finally {
       cleanup();
     }
@@ -98,7 +97,7 @@ describe.skipIf(!distExists)('skill subprocess', () => {
       expect(registryRaw).not.toContain('"scope"');
       expect(existsSync(join(dir, '.agents/skills'))).toBe(false);
       expect(existsSync(join(dir, '.claude/skills'))).toBe(false);
-      expect(existsSync(resolveManifestPath(dir))).toBe(false);
+      expect(existsSync(join(dir, '.ai-ops/manifest.json'))).toBe(false);
     } finally {
       rmSync(userHome, { recursive: true, force: true });
       cleanup();

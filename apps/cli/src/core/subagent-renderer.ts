@@ -2,8 +2,7 @@ import { resolve } from 'node:path';
 import { computeInstalledSubagentHash } from './source-hash.js';
 import { buildSubagentRelativePath } from './subagent-paths.js';
 import { renderFlatToml } from './subagent-toml.js';
-import type { CodexSubagentFrontmatter, InstalledSubagent, Subagent } from './schemas/index.js';
-import type { ToolId } from './tool-output.js';
+import type { CodexSubagentFrontmatter, InstalledSubagent, Subagent, ToolId } from './schemas/index.js';
 
 type SubagentPackageFile = {
   relativePath: string;
@@ -49,11 +48,9 @@ const renderCodexSubagent = (params: {
     const skillPath = resolve(params.userBasePath, '.agents', 'skills', skillName, 'SKILL.md');
     return `[[skills.config]]\npath = ${JSON.stringify(skillPath)}\nenabled = true`;
   });
-  const sections = [
-    metadata,
-    `developer_instructions = ${JSON.stringify(params.prompt.trimEnd())}`,
-    ...skills,
-  ].filter((section) => section.length > 0);
+  const sections = [metadata, `developer_instructions = ${JSON.stringify(params.prompt.trimEnd())}`, ...skills].filter(
+    (section) => section.length > 0,
+  );
 
   return sections.join('\n\n') + '\n';
 };

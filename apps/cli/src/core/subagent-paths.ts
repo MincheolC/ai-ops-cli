@@ -1,5 +1,5 @@
 import { join } from 'node:path';
-import type { ToolId } from './tool-output.js';
+import type { ToolId } from './schemas/index.js';
 
 const SUBAGENT_TOOL_OUTPUTS: Readonly<Record<ToolId, { dir: string; extension: string }>> = {
   'claude-code': {

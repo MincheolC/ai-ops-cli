@@ -1,7 +1,6 @@
 import { join } from 'node:path';
 import { computeInstalledSkillHash } from './source-hash.js';
-import type { Skill, InstalledSkill } from './schemas/index.js';
-import type { ToolId } from './tool-output.js';
+import type { Skill, InstalledSkill, ToolId } from './schemas/index.js';
 
 const AGENT_SKILLS_DIR = '.agents/skills';
 const CLAUDE_SKILLS_DIR = '.claude/skills';

@@ -8,7 +8,6 @@ const makeSkill = (partial?: Partial<Skill>): Skill => ({
   description: 'Use when editing GraphQL contracts.',
   supported_tools: ['claude-code', 'codex', 'gemini'],
   groups: ['frontend-web'],
-  included_in_presets: ['frontend-web'],
   directory: '/tmp/graphql-contract',
   files: [
     {

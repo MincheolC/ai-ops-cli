@@ -5,6 +5,13 @@ import type { SkillRegistry } from './schemas/index.js';
 
 export const SKILL_REGISTRY_FILENAME = 'skills-manifest.json';
 
+const LEGACY_SKILL_ID_MAP = {
+  'engineering-standards-pack': 'backend-service-standards',
+} as const;
+
+export const resolveCanonicalSkillId = (skillId: string): string =>
+  LEGACY_SKILL_ID_MAP[skillId as keyof typeof LEGACY_SKILL_ID_MAP] ?? skillId;
+
 export const parseSkillRegistry = (json: string): SkillRegistry => SkillRegistrySchema.parse(JSON.parse(json));
 
 export const serializeSkillRegistry = (registry: SkillRegistry): string => JSON.stringify(registry, null, 2) + '\n';

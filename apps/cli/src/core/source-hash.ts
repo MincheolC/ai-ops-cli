@@ -2,8 +2,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync, readdirSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { ManifestSchema } from './schemas/index.js';
-import type { Manifest, InstalledSkill } from './schemas/index.js';
+import type { InstalledSkill } from './schemas/index.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -61,38 +60,3 @@ export const computeInstalledSubagentHash = (params: {
   prompt: string;
   metadataFiles: readonly string[];
 }): string => computeHash([params.id, params.prompt, ...[...params.tools].sort(), ...[...params.metadataFiles].sort()]);
-
-// Manifest Builder (Pure, 단 generatedAt에 현재 시각 사용)
-export const buildManifest = (params: {
-  tools: readonly string[];
-  scope: 'project';
-  preset?: string;
-  workspaces?: Record<string, { preset: string; rules: string[] }>;
-  installedRules: readonly string[];
-  installedFiles?: readonly string[];
-  installedSkills?: readonly InstalledSkill[];
-  appendedFiles?: readonly string[];
-  settings?: { claude?: readonly string[]; gemini?: readonly string[]; prettierignore?: boolean };
-  cliVersion?: string;
-  sourceHash: string;
-}): Manifest =>
-  ManifestSchema.parse({
-    tools: [...params.tools],
-    scope: params.scope,
-    preset: params.preset,
-    workspaces: params.workspaces,
-    installed_rules: [...params.installedRules],
-    installed_files: params.installedFiles ? [...params.installedFiles] : undefined,
-    installed_skills: params.installedSkills ? [...params.installedSkills] : undefined,
-    appended_files: params.appendedFiles && params.appendedFiles.length > 0 ? [...params.appendedFiles] : undefined,
-    settings: params.settings
-      ? {
-          claude: params.settings.claude ? [...params.settings.claude] : undefined,
-          gemini: params.settings.gemini ? [...params.settings.gemini] : undefined,
-          prettierignore: params.settings.prettierignore,
-        }
-      : undefined,
-    cliVersion: params.cliVersion,
-    sourceHash: params.sourceHash,
-    generatedAt: new Date().toISOString(),
-  });
