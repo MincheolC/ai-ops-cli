@@ -1,7 +1,9 @@
 import { useQuery, type QueryClient } from '@tanstack/react-query';
 import {
   AlertCircle,
+  Archive,
   Blocks,
+  BookOpenText,
   Cable,
   CheckCircle2,
   ChevronLeft,
@@ -9,13 +11,21 @@ import {
   FileText,
   FolderKanban,
   GitBranch,
+  Hash,
   Loader2,
+  Palette,
   RefreshCw,
-  Settings,
+  SearchCode,
+  ShieldAlert,
   ShieldCheck,
   TriangleAlert,
+  Wrench,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import type { ComponentProps, ReactNode } from 'react';
+import ReactMarkdown from 'react-markdown';
+import rehypeSanitize from 'rehype-sanitize';
+import remarkGfm from 'remark-gfm';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -23,12 +33,21 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { StudioProviders } from './providers';
 import {
+  buildProjectViewModel,
+  selectProjectDocument,
+  type ProjectDocumentCount,
+  type ProjectDocumentStatus,
+  type ProjectDocumentView,
+  type ProjectSourceState,
+  type ProjectViewModel,
+} from '@/studio-bridge/project-view-model';
+import {
   isRecord,
   loadStudioSnapshot,
   StudioSnapshotParseError,
   type StudioSnapshotEnvelope,
 } from '@/studio-bridge/studio-snapshot';
-import { useStudioShellStore, type StudioNavItem } from '@/stores/studio-shell-store';
+import { useStudioShellStore, type StudioProjectView } from '@/stores/studio-shell-store';
 
 type SnapshotLoader = () => Promise<StudioSnapshotEnvelope>;
 
@@ -42,10 +61,10 @@ type StudioShellProps = {
 };
 
 type NavDefinition = {
-  readonly id: StudioNavItem;
+  readonly id: StudioProjectView;
   readonly label: string;
   readonly icon: LucideIcon;
-  readonly phase?: string;
+  readonly placeholder?: boolean;
 };
 
 type NavGroup = {
@@ -53,41 +72,46 @@ type NavGroup = {
   readonly items: readonly NavDefinition[];
 };
 
-type SnapshotMetric = {
-  readonly label: string;
-  readonly value: string;
-  readonly helper: string;
-  readonly testId: string;
-};
-
 type SnapshotErrorDisplay = {
   readonly title: string;
   readonly message: string;
 };
 
+type MarkdownAstNode = {
+  readonly type?: unknown;
+  children?: MarkdownAstNode[];
+};
+
 const NAV_GROUPS: readonly NavGroup[] = [
   {
     label: 'Project',
-    items: [{ id: 'project', label: 'Project', icon: FolderKanban }],
-  },
-  {
-    label: 'Runtime',
-    items: [{ id: 'runtime', label: 'Runtime', icon: Cable }],
-  },
-  {
-    label: 'Local',
-    items: [{ id: 'settings', label: 'Settings', icon: Settings }],
-  },
-  {
-    label: 'Later',
     items: [
-      { id: 'documents', label: 'Documents', icon: FileText, phase: 'Phase 4' },
-      { id: 'audit', label: 'Audit', icon: ShieldCheck, phase: 'Phase 5' },
-      { id: 'integrations', label: 'Integrations', icon: Blocks, phase: 'Phase 6' },
-      { id: 'workflows', label: 'Workflows', icon: GitBranch, phase: 'Phase 7' },
+      { id: 'overview', label: 'Overview', icon: FolderKanban },
+      { id: 'context-graph', label: 'Context Graph', icon: GitBranch },
+      { id: 'documents', label: 'Documents', icon: FileText },
+    ],
+  },
+  {
+    label: 'Placeholders',
+    items: [
+      { id: 'audit', label: 'Audit', icon: ShieldCheck, placeholder: true },
+      { id: 'integrations', label: 'Integrations', icon: Blocks, placeholder: true },
+      { id: 'skills', label: 'Skills', icon: Wrench, placeholder: true },
+      { id: 'subagents', label: 'Subagents', icon: SearchCode, placeholder: true },
+      { id: 'hooks', label: 'Hooks', icon: Cable, placeholder: true },
+      { id: 'appearance', label: 'Appearance', icon: Palette, placeholder: true },
     ],
   },
 ];
+
+const PLACEHOLDER_COPY: Record<Exclude<StudioProjectView, 'overview' | 'context-graph' | 'documents'>, string> = {
+  audit: 'Audit detail stays in a later phase.',
+  integrations: 'Integration detail stays in a later phase.',
+  skills: 'Skill detail stays in a later phase.',
+  subagents: 'Subagent detail stays in a later phase.',
+  hooks: 'Hook detail stays in a later phase.',
+  appearance: 'Appearance controls stay in a later phase.',
+};
 
 const getStringField = (record: Record<string, unknown>, key: string, fallback: string): string => {
   const value = record[key];
@@ -99,52 +123,12 @@ const getBooleanField = (record: Record<string, unknown>, key: string): boolean 
   return typeof value === 'boolean' ? value : null;
 };
 
-const getArrayCount = (record: Record<string, unknown>, key: string): number => {
-  const value = record[key];
-  return Array.isArray(value) ? value.length : 0;
-};
-
 const getAuditRecord = (project: Record<string, unknown>): Record<string, unknown> | null => {
   const audit = project.audit;
   return isRecord(audit) ? audit : null;
 };
 
 const getProjectState = (project: Record<string, unknown>): string => getStringField(project, 'state', 'unknown');
-
-const getSnapshotMetrics = (snapshot: StudioSnapshotEnvelope): readonly SnapshotMetric[] => {
-  const projectState = getProjectState(snapshot.project);
-  const audit = getAuditRecord(snapshot.project);
-  const hasErrors = audit === null ? null : getBooleanField(audit, 'hasErrors');
-  const hasWarnings = audit === null ? null : getBooleanField(audit, 'hasWarnings');
-  const runtimeAvailable = getBooleanField(snapshot.runtime, 'available');
-
-  return [
-    {
-      label: 'Project state',
-      value: projectState,
-      helper: projectState === 'ready' ? 'Context layer is indexed' : 'Needs operating-layer attention',
-      testId: 'project-state',
-    },
-    {
-      label: 'Documents',
-      value: String(getArrayCount(snapshot.project, 'documents')),
-      helper: 'Tracked context documents',
-      testId: 'document-count',
-    },
-    {
-      label: 'Audit',
-      value: hasErrors === true ? 'errors' : hasWarnings === true ? 'warnings' : 'clear',
-      helper: `${audit === null ? 0 : getArrayCount(audit, 'issues')} snapshot issues`,
-      testId: 'audit-state',
-    },
-    {
-      label: 'Runtime',
-      value: runtimeAvailable === false ? 'offline' : 'available',
-      helper: `${getArrayCount(snapshot.runtime, 'skills')} skills, ${getArrayCount(snapshot.runtime, 'subagents')} subagents`,
-      testId: 'runtime-state',
-    },
-  ];
-};
 
 const getUnknownErrorMessage = (error: unknown): string => {
   if (error instanceof Error) {
@@ -182,7 +166,7 @@ const getSnapshotErrorDisplay = (error: unknown): SnapshotErrorDisplay => {
   };
 };
 
-const getProjectStateBadge = (projectState: string): React.ComponentProps<typeof Badge>['variant'] => {
+const getProjectStateBadge = (projectState: string): ComponentProps<typeof Badge>['variant'] => {
   if (projectState === 'ready') {
     return 'default';
   }
@@ -191,6 +175,64 @@ const getProjectStateBadge = (projectState: string): React.ComponentProps<typeof
   }
   return 'secondary';
 };
+
+const getStatusBadgeVariant = (status: ProjectDocumentStatus): ComponentProps<typeof Badge>['variant'] => {
+  if (status === 'Active') {
+    return 'default';
+  }
+  if (status === 'Draft') {
+    return 'secondary';
+  }
+  if (status === 'Reserved') {
+    return 'destructive';
+  }
+  return 'outline';
+};
+
+const getSourceStateLabel = (source: ProjectSourceState): string => {
+  if (source.exists === false) {
+    return 'missing';
+  }
+  if (source.parsed === false) {
+    return 'invalid';
+  }
+  if (source.exists === true && source.parsed === true) {
+    return 'ready';
+  }
+  return 'unknown';
+};
+
+const getHashMatchLabel = (document: ProjectDocumentView): string => {
+  if (document.contentHashMatches === true) {
+    return 'Matches index';
+  }
+  if (document.contentHashMatches === false) {
+    return 'Hash mismatch';
+  }
+  return 'Not checked';
+};
+
+const isPlaceholderView = (
+  view: StudioProjectView,
+): view is Exclude<StudioProjectView, 'overview' | 'context-graph' | 'documents'> =>
+  view !== 'overview' && view !== 'context-graph' && view !== 'documents';
+
+const removeHtmlNodes = (node: MarkdownAstNode): void => {
+  if (node.children === undefined) {
+    return;
+  }
+
+  node.children = node.children.filter((child) => child.type !== 'html');
+  for (const child of node.children) {
+    removeHtmlNodes(child);
+  }
+};
+
+const stripMarkdownHtml =
+  () =>
+  (tree: MarkdownAstNode): void => {
+    removeHtmlNodes(tree);
+  };
 
 function App({ snapshotLoader = loadStudioSnapshot, queryClient }: AppProps): React.JSX.Element {
   return (
@@ -201,8 +243,10 @@ function App({ snapshotLoader = loadStudioSnapshot, queryClient }: AppProps): Re
 }
 
 function StudioShell({ snapshotLoader }: StudioShellProps): React.JSX.Element {
-  const selectedNav = useStudioShellStore((state) => state.selectedNav);
-  const setSelectedNav = useStudioShellStore((state) => state.setSelectedNav);
+  const selectedView = useStudioShellStore((state) => state.selectedView);
+  const selectedDocumentPath = useStudioShellStore((state) => state.selectedDocumentPath);
+  const setSelectedView = useStudioShellStore((state) => state.setSelectedView);
+  const setSelectedDocumentPath = useStudioShellStore((state) => state.setSelectedDocumentPath);
   const sidebarCollapsed = useStudioShellStore((state) => state.sidebarCollapsed);
   const toggleSidebar = useStudioShellStore((state) => state.toggleSidebar);
   const snapshotQuery = useQuery({
@@ -218,6 +262,11 @@ function StudioShell({ snapshotLoader }: StudioShellProps): React.JSX.Element {
   const audit = snapshotQuery.data === undefined ? null : getAuditRecord(snapshotQuery.data.project);
   const auditHasErrors = audit === null ? false : getBooleanField(audit, 'hasErrors') === true;
   const auditHasWarnings = audit === null ? false : getBooleanField(audit, 'hasWarnings') === true;
+
+  const openDocument = (path: string): void => {
+    setSelectedDocumentPath(path);
+    setSelectedView('documents');
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -242,7 +291,7 @@ function StudioShell({ snapshotLoader }: StudioShellProps): React.JSX.Element {
             {projectState}
           </Badge>
           <Badge variant={auditHasErrors ? 'destructive' : auditHasWarnings ? 'secondary' : 'outline'}>
-            {auditHasErrors ? 'Audit errors' : auditHasWarnings ? 'Audit warnings' : 'Audit placeholder'}
+            {auditHasErrors ? 'Audit errors' : auditHasWarnings ? 'Audit warnings' : 'Audit clear'}
           </Badge>
           <Button
             type="button"
@@ -269,7 +318,7 @@ function StudioShell({ snapshotLoader }: StudioShellProps): React.JSX.Element {
                 )}
                 {group.items.map((item) => {
                   const Icon = item.icon;
-                  const active = selectedNav === item.id;
+                  const active = selectedView === item.id;
 
                   return (
                     <button
@@ -284,15 +333,13 @@ function StudioShell({ snapshotLoader }: StudioShellProps): React.JSX.Element {
                         sidebarCollapsed && 'justify-center px-0',
                       )}
                       onClick={() => {
-                        setSelectedNav(item.id);
+                        setSelectedView(item.id);
                       }}
                     >
                       <Icon className="size-4 shrink-0" />
                       {!sidebarCollapsed && <span className="truncate">{item.label}</span>}
-                      {!sidebarCollapsed && item.phase !== undefined && (
-                        <span className="ml-auto rounded-sm border px-1.5 py-0.5 text-[10px] leading-none">
-                          {item.phase}
-                        </span>
+                      {!sidebarCollapsed && item.placeholder === true && (
+                        <span className="ml-auto rounded-sm border px-1.5 py-0.5 text-[10px] leading-none">Later</span>
                       )}
                     </button>
                   );
@@ -314,7 +361,13 @@ function StudioShell({ snapshotLoader }: StudioShellProps): React.JSX.Element {
             />
           )}
           {snapshotQuery.data !== undefined && (
-            <SnapshotSummary snapshot={snapshotQuery.data} selectedNav={selectedNav} />
+            <ProjectSurface
+              snapshot={snapshotQuery.data}
+              selectedView={selectedView}
+              selectedDocumentPath={selectedDocumentPath}
+              onSelectDocument={setSelectedDocumentPath}
+              onOpenDocument={openDocument}
+            />
           )}
         </main>
       </div>
@@ -330,7 +383,7 @@ function SnapshotLoadingState(): React.JSX.Element {
         Loading snapshot
       </div>
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {['project', 'documents', 'audit', 'runtime'].map((item) => (
+        {['overview', 'graph', 'documents', 'inspector'].map((item) => (
           <div key={item} className="rounded-lg border bg-card p-4">
             <Skeleton className="mb-4 h-3 w-24" />
             <Skeleton className="mb-2 h-8 w-20" />
@@ -367,88 +420,99 @@ function SnapshotErrorState({ errorDisplay, onRetry }: SnapshotErrorStateProps):
   );
 }
 
-type SnapshotSummaryProps = {
+type ProjectSurfaceProps = {
   readonly snapshot: StudioSnapshotEnvelope;
-  readonly selectedNav: StudioNavItem;
+  readonly selectedView: StudioProjectView;
+  readonly selectedDocumentPath: string | null;
+  readonly onSelectDocument: (path: string | null) => void;
+  readonly onOpenDocument: (path: string) => void;
 };
 
-function SnapshotSummary({ snapshot, selectedNav }: SnapshotSummaryProps): React.JSX.Element {
-  const metrics = getSnapshotMetrics(snapshot);
-  const projectState = getProjectState(snapshot.project);
-  const projectRoot = getStringField(snapshot.project, 'root', 'Unknown project');
-  const runtimeAvailable = getBooleanField(snapshot.runtime, 'available') !== false;
+function ProjectSurface({
+  snapshot,
+  selectedView,
+  selectedDocumentPath,
+  onSelectDocument,
+  onOpenDocument,
+}: ProjectSurfaceProps): React.JSX.Element {
+  const viewModel = buildProjectViewModel(snapshot);
 
   return (
     <div className="space-y-5">
-      <section className="rounded-lg border bg-card p-5 shadow-sm">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div className="min-w-0">
-            <div className="mb-3 flex flex-wrap items-center gap-2">
-              <Badge variant={getProjectStateBadge(projectState)}>
-                {projectState === 'ready' ? <CheckCircle2 /> : <TriangleAlert />}
-                {projectState}
-              </Badge>
-              <Badge variant={runtimeAvailable ? 'outline' : 'secondary'}>
-                {runtimeAvailable ? 'Runtime available' : 'Runtime unavailable'}
-              </Badge>
-            </div>
-            <h1 className="text-xl font-semibold md:text-2xl">Studio control plane</h1>
-            <p className="mt-2 max-w-3xl break-words font-mono text-xs leading-6 text-muted-foreground">
-              {projectRoot}
-            </p>
-          </div>
-          <div className="rounded-md border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-            <span className="font-medium text-foreground">Selected</span> {selectedNav}
-          </div>
-        </div>
-      </section>
-
-      {projectState !== 'ready' && <ProjectStateNotice projectState={projectState} />}
-
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {metrics.map((metric) => (
-          <MetricCard key={metric.label} metric={metric} />
+      <ProjectSurfaceHeader viewModel={viewModel} selectedView={selectedView} />
+      {viewModel.state !== 'ready' && <ProjectStateNotice state={viewModel.state} />}
+      {selectedView === 'overview' && <OverviewView viewModel={viewModel} />}
+      {selectedView === 'context-graph' &&
+        (viewModel.state === 'uninitialized' ? (
+          <ContextLayerEmptyState />
+        ) : (
+          <ContextGraphView viewModel={viewModel} onOpenDocument={onOpenDocument} />
         ))}
-      </section>
-
-      <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(280px,380px)]">
-        <div className="rounded-lg border bg-card p-5 shadow-sm">
-          <div className="mb-4 flex items-center gap-2">
-            <FolderKanban className="size-4 text-primary" />
-            <h2 className="text-base font-semibold">Project snapshot</h2>
-          </div>
-          <dl className="grid gap-3 sm:grid-cols-3">
-            <SnapshotDatum label="Manifest" value={getSourceState(snapshot.project, 'manifest')} />
-            <SnapshotDatum label="Context index" value={getSourceState(snapshot.project, 'contextIndex')} />
-            <SnapshotDatum label="Docs status" value={getSourceState(snapshot.project, 'docsStatus')} />
-          </dl>
-        </div>
-
-        <div className="rounded-lg border bg-card p-5 shadow-sm">
-          <div className="mb-4 flex items-center gap-2">
-            <CircleDashed className="size-4 text-accent" />
-            <h2 className="text-base font-semibold">Runtime counts</h2>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <CompactCount label="Integrations" value={getArrayCount(snapshot.runtime, 'integrations')} />
-            <CompactCount label="Hooks" value={getArrayCount(snapshot.runtime, 'hooks')} />
-            <CompactCount label="Skills" value={getArrayCount(snapshot.runtime, 'skills')} />
-            <CompactCount label="Subagents" value={getArrayCount(snapshot.runtime, 'subagents')} />
-          </div>
-        </div>
-      </section>
+      {selectedView === 'documents' &&
+        (viewModel.state === 'uninitialized' ? (
+          <ContextLayerEmptyState />
+        ) : (
+          <DocumentsView
+            documents={viewModel.documents}
+            selectedDocumentPath={selectedDocumentPath}
+            onSelectDocument={onSelectDocument}
+          />
+        ))}
+      {isPlaceholderView(selectedView) && <PlaceholderView view={selectedView} />}
     </div>
   );
 }
 
-type ProjectStateNoticeProps = {
-  readonly projectState: string;
+type ProjectSurfaceHeaderProps = {
+  readonly viewModel: ProjectViewModel;
+  readonly selectedView: StudioProjectView;
 };
 
-function ProjectStateNotice({ projectState }: ProjectStateNoticeProps): React.JSX.Element {
-  const title = projectState === 'uninitialized' ? 'Uninitialized project' : 'Degraded project';
+function ProjectSurfaceHeader({ viewModel, selectedView }: ProjectSurfaceHeaderProps): React.JSX.Element {
+  const runtimeLabel = selectedView === 'overview' ? 'Project read surface' : selectedView;
+
+  return (
+    <section className="rounded-lg border bg-card p-5 shadow-sm">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0">
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <Badge variant={getProjectStateBadge(viewModel.state)}>
+              {viewModel.state === 'ready' ? <CheckCircle2 /> : <TriangleAlert />}
+              {viewModel.state}
+            </Badge>
+            <Badge
+              variant={
+                viewModel.audit.hasErrors ? 'destructive' : viewModel.audit.hasWarnings ? 'secondary' : 'outline'
+              }
+            >
+              {viewModel.audit.hasErrors
+                ? 'Audit errors'
+                : viewModel.audit.hasWarnings
+                  ? 'Audit warnings'
+                  : 'Audit clear'}
+            </Badge>
+          </div>
+          <h1 className="text-xl font-semibold md:text-2xl">Studio control plane</h1>
+          <p className="mt-2 max-w-3xl break-words font-mono text-xs leading-6 text-muted-foreground">
+            {viewModel.root}
+          </p>
+        </div>
+        <div className="rounded-md border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+          <span className="font-medium text-foreground">View</span> {runtimeLabel}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+type ProjectStateNoticeProps = {
+  readonly state: string;
+};
+
+function ProjectStateNotice({ state }: ProjectStateNoticeProps): React.JSX.Element {
+  const title = state === 'uninitialized' ? 'Uninitialized project' : 'Degraded project';
   const message =
-    projectState === 'uninitialized'
+    state === 'uninitialized'
       ? 'No project operating layer was found for this root.'
       : 'Snapshot loaded with recoverable project issues.';
 
@@ -467,32 +531,122 @@ function ProjectStateNotice({ projectState }: ProjectStateNoticeProps): React.JS
   );
 }
 
-type MetricCardProps = {
-  readonly metric: SnapshotMetric;
+type OverviewViewProps = {
+  readonly viewModel: ProjectViewModel;
 };
 
-function MetricCard({ metric }: MetricCardProps): React.JSX.Element {
+function OverviewView({ viewModel }: OverviewViewProps): React.JSX.Element {
+  const sourceStates = [
+    { label: 'Manifest', value: viewModel.files.manifest },
+    { label: 'Context index', value: viewModel.files.contextIndex },
+    { label: 'Docs status', value: viewModel.files.docsStatus },
+  ] as const;
+
   return (
-    <div className="rounded-lg border bg-card p-4 shadow-sm">
-      <p className="text-xs font-medium text-muted-foreground">{metric.label}</p>
-      <p data-testid={metric.testId} className="mt-2 truncate text-2xl font-semibold">
-        {metric.value}
-      </p>
-      <p className="mt-1 truncate text-xs text-muted-foreground">{metric.helper}</p>
+    <div className="space-y-5">
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <MetricCard
+          label="Project state"
+          value={viewModel.state}
+          helper="Context layer readiness"
+          testId="project-state"
+        />
+        <MetricCard
+          label="Documents"
+          value={String(viewModel.documents.length)}
+          helper="Tracked context documents"
+          testId="document-count"
+        />
+        <MetricCard
+          label="Audit"
+          value={viewModel.audit.hasErrors ? 'errors' : viewModel.audit.hasWarnings ? 'warnings' : 'clear'}
+          helper={`${viewModel.audit.issues.length} snapshot issues`}
+          testId="audit-state"
+        />
+        <MetricCard
+          label="Source hash"
+          value={viewModel.audit.currentSourceHash ?? 'unknown'}
+          helper="Current template source hash"
+          testId="source-hash"
+        />
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(280px,380px)]">
+        <div className="rounded-lg border bg-card p-5 shadow-sm">
+          <div className="mb-4 flex items-center gap-2">
+            <FolderKanban className="size-4 text-primary" />
+            <h2 className="text-base font-semibold">Source file health</h2>
+          </div>
+          <dl className="grid gap-3 sm:grid-cols-3">
+            {sourceStates.map((source) => (
+              <SourceStateDatum key={source.label} label={source.label} source={source.value} />
+            ))}
+          </dl>
+        </div>
+
+        <div className="rounded-lg border bg-card p-5 shadow-sm">
+          <div className="mb-4 flex items-center gap-2">
+            <ShieldAlert className="size-4 text-accent" />
+            <h2 className="text-base font-semibold">Audit summary</h2>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <CompactCount
+              label="Errors"
+              value={viewModel.audit.issues.filter((issue) => issue.level === 'error').length}
+            />
+            <CompactCount
+              label="Warnings"
+              value={viewModel.audit.issues.filter((issue) => issue.level === 'warning').length}
+            />
+          </div>
+        </div>
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-3">
+        <CountPanel title="By status" counts={viewModel.counts.byStatus} />
+        <CountPanel title="By layer" counts={viewModel.counts.byLayer} emptyLabel="No layers" />
+        <CountPanel title="By owner" counts={viewModel.counts.byOwner} emptyLabel="No owners" />
+      </section>
     </div>
   );
 }
 
-type SnapshotDatumProps = {
+type MetricCardProps = {
   readonly label: string;
   readonly value: string;
+  readonly helper: string;
+  readonly testId: string;
 };
 
-function SnapshotDatum({ label, value }: SnapshotDatumProps): React.JSX.Element {
+function MetricCard({ label, value, helper, testId }: MetricCardProps): React.JSX.Element {
+  return (
+    <div className="rounded-lg border bg-card p-4 shadow-sm">
+      <p className="text-xs font-medium text-muted-foreground">{label}</p>
+      <p data-testid={testId} className="mt-2 truncate text-2xl font-semibold">
+        {value}
+      </p>
+      <p className="mt-1 truncate text-xs text-muted-foreground">{helper}</p>
+    </div>
+  );
+}
+
+type SourceStateDatumProps = {
+  readonly label: string;
+  readonly source: ProjectSourceState;
+};
+
+function SourceStateDatum({ label, source }: SourceStateDatumProps): React.JSX.Element {
+  const state = getSourceStateLabel(source);
+
   return (
     <div className="rounded-md border bg-muted/30 p-3">
       <dt className="text-xs font-medium text-muted-foreground">{label}</dt>
-      <dd className="mt-2 truncate text-sm font-semibold">{value}</dd>
+      <dd className="mt-2 flex items-center gap-2 text-sm font-semibold">
+        <Badge variant={state === 'ready' ? 'default' : state === 'missing' ? 'secondary' : 'destructive'}>
+          {state}
+        </Badge>
+      </dd>
+      {source.error !== null && <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">{source.error}</p>}
     </div>
   );
 }
@@ -511,30 +665,314 @@ function CompactCount({ label, value }: CompactCountProps): React.JSX.Element {
   );
 }
 
-const getSourceState = (project: Record<string, unknown>, key: string): string => {
-  const files = project.files;
-  if (!isRecord(files)) {
-    return 'unknown';
-  }
-
-  const source = files[key];
-  if (!isRecord(source)) {
-    return 'unknown';
-  }
-
-  const exists = getBooleanField(source, 'exists');
-  const parsed = getBooleanField(source, 'parsed');
-
-  if (exists === false) {
-    return 'missing';
-  }
-  if (parsed === false) {
-    return 'invalid';
-  }
-  if (exists === true && parsed === true) {
-    return 'ready';
-  }
-  return 'unknown';
+type CountPanelProps = {
+  readonly title: string;
+  readonly counts: readonly ProjectDocumentCount[];
+  readonly emptyLabel?: string;
 };
+
+function CountPanel({ title, counts, emptyLabel = 'No documents' }: CountPanelProps): React.JSX.Element {
+  return (
+    <section className="rounded-lg border bg-card p-5 shadow-sm">
+      <div className="mb-4 flex items-center gap-2">
+        <CircleDashed className="size-4 text-primary" />
+        <h2 className="text-base font-semibold">{title}</h2>
+      </div>
+      <div className="space-y-2">
+        {counts.map((count) => (
+          <div
+            key={count.label}
+            className="flex items-center justify-between gap-3 rounded-md border bg-muted/30 px-3 py-2"
+          >
+            <span className="truncate text-sm">{count.label}</span>
+            <span className="font-mono text-sm font-semibold">{count.count}</span>
+          </div>
+        ))}
+        {counts.length === 0 && <p className="text-sm text-muted-foreground">{emptyLabel}</p>}
+      </div>
+    </section>
+  );
+}
+
+type ContextGraphViewProps = {
+  readonly viewModel: ProjectViewModel;
+  readonly onOpenDocument: (path: string) => void;
+};
+
+function ContextGraphView({ viewModel, onOpenDocument }: ContextGraphViewProps): React.JSX.Element {
+  if (viewModel.documents.length === 0) {
+    return <ContextLayerEmptyState />;
+  }
+
+  return (
+    <section className="space-y-4">
+      {viewModel.graph.map((statusGroup) => (
+        <div key={statusGroup.status} className="rounded-lg border bg-card p-5 shadow-sm">
+          <div className="mb-4 flex flex-wrap items-center gap-2">
+            <Badge variant={getStatusBadgeVariant(statusGroup.status)}>{statusGroup.status}</Badge>
+            <span className="font-mono text-xs text-muted-foreground">{statusGroup.count} documents</span>
+          </div>
+          {statusGroup.layers.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No {statusGroup.status} documents</p>
+          ) : (
+            <div className="space-y-4">
+              {statusGroup.layers.map((layerGroup) => (
+                <div key={layerGroup.layer} className="rounded-md border bg-muted/20 p-3">
+                  <h3 className="text-sm font-semibold">{layerGroup.layer}</h3>
+                  <div className="mt-3 space-y-3">
+                    {layerGroup.owners.map((ownerGroup) => (
+                      <div key={ownerGroup.owner}>
+                        <p className="mb-2 text-xs font-medium text-muted-foreground">{ownerGroup.owner}</p>
+                        <div className="space-y-2">
+                          {ownerGroup.documents.map((document) => (
+                            <button
+                              key={document.path}
+                              type="button"
+                              className={cn(
+                                'flex w-full items-center gap-3 rounded-md border bg-card px-3 py-2 text-left text-sm transition-colors hover:bg-accent hover:text-accent-foreground',
+                                document.status !== 'Active' && 'border-destructive/30',
+                              )}
+                              onClick={() => {
+                                onOpenDocument(document.path);
+                              }}
+                            >
+                              <FileText className="size-4 shrink-0" />
+                              <span className="min-w-0 flex-1 truncate font-mono text-xs">{document.path}</span>
+                              {document.readError !== null && (
+                                <TriangleAlert className="size-4 shrink-0 text-destructive" />
+                              )}
+                              {document.contentHashMatches === false && (
+                                <Hash className="size-4 shrink-0 text-destructive" />
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
+    </section>
+  );
+}
+
+type DocumentsViewProps = {
+  readonly documents: readonly ProjectDocumentView[];
+  readonly selectedDocumentPath: string | null;
+  readonly onSelectDocument: (path: string | null) => void;
+};
+
+function DocumentsView({ documents, selectedDocumentPath, onSelectDocument }: DocumentsViewProps): React.JSX.Element {
+  const selectedDocument = selectProjectDocument(documents, selectedDocumentPath);
+
+  if (selectedDocument === null) {
+    return <ContextLayerEmptyState />;
+  }
+
+  return (
+    <section className="grid gap-4 xl:grid-cols-[minmax(220px,300px)_minmax(0,1fr)_minmax(280px,360px)]">
+      <DocumentList documents={documents} selectedPath={selectedDocument.path} onSelectDocument={onSelectDocument} />
+      <MarkdownPreview document={selectedDocument} />
+      <DocumentInspector document={selectedDocument} />
+    </section>
+  );
+}
+
+type DocumentListProps = {
+  readonly documents: readonly ProjectDocumentView[];
+  readonly selectedPath: string;
+  readonly onSelectDocument: (path: string | null) => void;
+};
+
+function DocumentList({ documents, selectedPath, onSelectDocument }: DocumentListProps): React.JSX.Element {
+  return (
+    <aside className="rounded-lg border bg-card p-3 shadow-sm">
+      <div className="mb-3 flex items-center gap-2 px-1">
+        <BookOpenText className="size-4 text-primary" />
+        <h2 className="text-sm font-semibold">Documents</h2>
+      </div>
+      <div className="shell-scrollbar max-h-[70vh] space-y-2 overflow-y-auto pr-1">
+        {documents.map((document) => {
+          const selected = document.path === selectedPath;
+
+          return (
+            <button
+              key={document.path}
+              type="button"
+              className={cn(
+                'w-full rounded-md border px-3 py-2 text-left transition-colors',
+                selected ? 'border-primary bg-secondary' : 'bg-background hover:bg-accent hover:text-accent-foreground',
+                document.status !== 'Active' && 'border-destructive/40',
+              )}
+              onClick={() => {
+                onSelectDocument(document.path);
+              }}
+            >
+              <span className="block truncate font-mono text-xs font-medium">{document.path}</span>
+              <span className="mt-2 flex flex-wrap items-center gap-2">
+                <Badge variant={getStatusBadgeVariant(document.status)}>{document.status}</Badge>
+                {document.trustWarning !== null && (
+                  <Badge variant="destructive">
+                    <TriangleAlert />
+                    Trust
+                  </Badge>
+                )}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </aside>
+  );
+}
+
+type MarkdownPreviewProps = {
+  readonly document: ProjectDocumentView;
+};
+
+function MarkdownPreview({ document }: MarkdownPreviewProps): React.JSX.Element {
+  return (
+    <article className="min-w-0 rounded-lg border bg-card shadow-sm">
+      <header className="border-b px-5 py-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant={getStatusBadgeVariant(document.status)}>{document.status}</Badge>
+          <Badge variant="outline">{document.layer}</Badge>
+        </div>
+        <h2 className="mt-3 break-words font-mono text-sm font-semibold">{document.path}</h2>
+      </header>
+      {document.readError !== null || document.content === null ? (
+        <div className="p-5">
+          <div className="rounded-md border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+            {document.readError ?? 'Document content is unavailable.'}
+          </div>
+        </div>
+      ) : (
+        <div className="markdown-preview shell-scrollbar max-h-[72vh] overflow-y-auto p-5">
+          <ReactMarkdown remarkPlugins={[remarkGfm, stripMarkdownHtml]} rehypePlugins={[rehypeSanitize]} skipHtml>
+            {document.content}
+          </ReactMarkdown>
+        </div>
+      )}
+    </article>
+  );
+}
+
+type DocumentInspectorProps = {
+  readonly document: ProjectDocumentView;
+};
+
+function DocumentInspector({ document }: DocumentInspectorProps): React.JSX.Element {
+  const warnings = [
+    document.trustWarning,
+    document.readError,
+    document.contentHashMatches === false ? 'Current content hash differs from the indexed content hash.' : null,
+  ].filter((warning): warning is string => warning !== null);
+
+  return (
+    <aside className="rounded-lg border bg-card p-5 shadow-sm">
+      <div className="mb-4 flex items-center gap-2">
+        <ShieldCheck className="size-4 text-primary" />
+        <h2 className="text-base font-semibold">Inspector</h2>
+      </div>
+      {warnings.length > 0 && (
+        <div className="mb-4 space-y-2" data-testid="inspector-warnings">
+          {warnings.map((warning) => (
+            <div
+              key={warning}
+              className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive"
+            >
+              {warning}
+            </div>
+          ))}
+        </div>
+      )}
+      <dl className="space-y-4">
+        <InspectorDatum label="Status">
+          <Badge variant={getStatusBadgeVariant(document.status)}>{document.status}</Badge>
+        </InspectorDatum>
+        <InspectorDatum label="Layer">{document.layer}</InspectorDatum>
+        <InspectorDatum label="Owner">{document.owner}</InspectorDatum>
+        <InspectorDatum label="Provenance">{document.provenance}</InspectorDatum>
+        <InspectorDatum label="Indexed hash">{document.indexedContentHash}</InspectorDatum>
+        <InspectorDatum label="Current hash">{document.currentContentHash ?? 'unavailable'}</InspectorDatum>
+        <InspectorDatum label="Match state">{getHashMatchLabel(document)}</InspectorDatum>
+        <InspectorDatum label="read_when">
+          <TokenList values={document.readWhen} />
+        </InspectorDatum>
+        <InspectorDatum label="update_when">
+          <TokenList values={document.updateWhen} />
+        </InspectorDatum>
+      </dl>
+    </aside>
+  );
+}
+
+type InspectorDatumProps = {
+  readonly label: string;
+  readonly children: ReactNode;
+};
+
+function InspectorDatum({ label, children }: InspectorDatumProps): React.JSX.Element {
+  return (
+    <div>
+      <dt className="text-xs font-medium text-muted-foreground">{label}</dt>
+      <dd className="mt-1 break-words text-sm">{children}</dd>
+    </div>
+  );
+}
+
+type TokenListProps = {
+  readonly values: readonly string[];
+};
+
+function TokenList({ values }: TokenListProps): React.JSX.Element {
+  if (values.length === 0) {
+    return <span className="text-muted-foreground">none</span>;
+  }
+
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {values.map((value) => (
+        <span key={value} className="rounded-sm border bg-muted/40 px-1.5 py-0.5 font-mono text-[11px]">
+          {value}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function ContextLayerEmptyState(): React.JSX.Element {
+  return (
+    <section className="rounded-lg border bg-card p-8 text-center shadow-sm">
+      <Archive className="mx-auto size-8 text-muted-foreground" />
+      <h2 className="mt-3 text-base font-semibold">No context-layer documents</h2>
+      <p className="mx-auto mt-2 max-w-lg text-sm text-muted-foreground">Snapshot document set is empty.</p>
+    </section>
+  );
+}
+
+type PlaceholderViewProps = {
+  readonly view: Exclude<StudioProjectView, 'overview' | 'context-graph' | 'documents'>;
+};
+
+function PlaceholderView({ view }: PlaceholderViewProps): React.JSX.Element {
+  return (
+    <section className="rounded-lg border bg-card p-8 shadow-sm">
+      <div className="flex items-start gap-3">
+        <div className="rounded-md bg-muted p-2 text-muted-foreground">
+          <CircleDashed className="size-5" />
+        </div>
+        <div>
+          <h2 className="text-base font-semibold">{view}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">{PLACEHOLDER_COPY[view]}</p>
+        </div>
+      </div>
+    </section>
+  );
+}
 
 export { App, StudioShell };

@@ -1,27 +1,33 @@
 import { create } from 'zustand';
 
-export const STUDIO_NAV_ITEMS = [
-  'project',
-  'runtime',
-  'settings',
+export const STUDIO_PROJECT_VIEWS = [
+  'overview',
+  'context-graph',
   'documents',
   'audit',
   'integrations',
-  'workflows',
+  'skills',
+  'subagents',
+  'hooks',
+  'appearance',
 ] as const;
 
-export type StudioNavItem = (typeof STUDIO_NAV_ITEMS)[number];
+export type StudioProjectView = (typeof STUDIO_PROJECT_VIEWS)[number];
 
 type StudioShellState = {
-  readonly selectedNav: StudioNavItem;
+  readonly selectedView: StudioProjectView;
+  readonly selectedDocumentPath: string | null;
   readonly sidebarCollapsed: boolean;
-  readonly setSelectedNav: (selectedNav: StudioNavItem) => void;
+  readonly setSelectedView: (selectedView: StudioProjectView) => void;
+  readonly setSelectedDocumentPath: (selectedDocumentPath: string | null) => void;
   readonly toggleSidebar: () => void;
 };
 
 export const useStudioShellStore = create<StudioShellState>((set) => ({
-  selectedNav: 'project',
+  selectedView: 'overview',
+  selectedDocumentPath: null,
   sidebarCollapsed: false,
-  setSelectedNav: (selectedNav) => set({ selectedNav }),
+  setSelectedView: (selectedView) => set({ selectedView }),
+  setSelectedDocumentPath: (selectedDocumentPath) => set({ selectedDocumentPath }),
   toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
 }));

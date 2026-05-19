@@ -4,16 +4,19 @@ import { useStudioShellStore } from './studio-shell-store';
 describe('studio shell store', () => {
   beforeEach(() => {
     useStudioShellStore.setState({
-      selectedNav: 'project',
+      selectedView: 'overview',
+      selectedDocumentPath: null,
       sidebarCollapsed: false,
     });
   });
 
-  it('tracks selected nav only as local shell state', () => {
-    useStudioShellStore.getState().setSelectedNav('runtime');
+  it('tracks selected view and document only as local shell state', () => {
+    useStudioShellStore.getState().setSelectedView('context-graph');
+    useStudioShellStore.getState().setSelectedDocumentPath('docs/agent/workflow.md');
 
     const state = useStudioShellStore.getState();
-    expect(state.selectedNav).toBe('runtime');
+    expect(state.selectedView).toBe('context-graph');
+    expect(state.selectedDocumentPath).toBe('docs/agent/workflow.md');
     expect(state).not.toHaveProperty('snapshot');
     expect(state).not.toHaveProperty('project');
     expect(state).not.toHaveProperty('runtime');
@@ -24,6 +27,13 @@ describe('studio shell store', () => {
 
     const state = useStudioShellStore.getState();
     expect(state.sidebarCollapsed).toBe(true);
-    expect(Object.keys(state).sort()).toEqual(['selectedNav', 'setSelectedNav', 'sidebarCollapsed', 'toggleSidebar']);
+    expect(Object.keys(state).sort()).toEqual([
+      'selectedDocumentPath',
+      'selectedView',
+      'setSelectedDocumentPath',
+      'setSelectedView',
+      'sidebarCollapsed',
+      'toggleSidebar',
+    ]);
   });
 });
