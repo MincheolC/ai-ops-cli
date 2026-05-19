@@ -208,7 +208,7 @@ flowchart TD
   Index --> Done["완료"]
 ```
 
-Phase 1 MVP는 root project만 다룬다. monorepo workspace override는 후속 개선으로 둔다.
+현재 `ai-ops init`은 monorepo root를 하나의 project로 설치할 수 있다. package/workspace별 adapter나 override 파일을 생성/관리하는 기능은 아직 제공하지 않으며, workspace별 operating layer override는 후속 개선으로 둔다.
 
 ### `ai-ops diff`
 
