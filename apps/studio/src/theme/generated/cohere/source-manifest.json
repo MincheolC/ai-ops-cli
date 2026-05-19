@@ -1,0 +1,17 @@
+{
+  "sourceSlug": "cohere",
+  "id": "cohere",
+  "label": "Cohere",
+  "command": "npx getdesign@latest add cohere",
+  "generatedFiles": [
+    {
+      "path": "DESIGN.md",
+      "included": true,
+      "checksum": "sha256:1c49a5a5f88d43841d4f4afa33831328d47a5715048700a3b75086a822575883"
+    }
+  ],
+  "importedFiles": [
+    "DESIGN.md"
+  ],
+  "excludedFiles": []
+}

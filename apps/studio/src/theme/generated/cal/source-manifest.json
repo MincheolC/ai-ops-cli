@@ -1,0 +1,17 @@
+{
+  "sourceSlug": "cal",
+  "id": "cal",
+  "label": "Cal",
+  "command": "npx getdesign@latest add cal",
+  "generatedFiles": [
+    {
+      "path": "DESIGN.md",
+      "included": true,
+      "checksum": "sha256:8cd21b7d67e94c899843d517f4b426e4fee33d47354a433d6a63ebcf79d5a654"
+    }
+  ],
+  "importedFiles": [
+    "DESIGN.md"
+  ],
+  "excludedFiles": []
+}

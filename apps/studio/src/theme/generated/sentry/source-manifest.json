@@ -1,0 +1,17 @@
+{
+  "sourceSlug": "sentry",
+  "id": "sentry",
+  "label": "Sentry",
+  "command": "npx getdesign@latest add sentry",
+  "generatedFiles": [
+    {
+      "path": "DESIGN.md",
+      "included": true,
+      "checksum": "sha256:5182d72c58883a4d91c688064d7e0a0b4e9eda33953578612d473c4bb7997c4d"
+    }
+  ],
+  "importedFiles": [
+    "DESIGN.md"
+  ],
+  "excludedFiles": []
+}

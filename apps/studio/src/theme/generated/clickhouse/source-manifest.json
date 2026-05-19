@@ -1,0 +1,17 @@
+{
+  "sourceSlug": "clickhouse",
+  "id": "clickhouse",
+  "label": "ClickHouse",
+  "command": "npx getdesign@latest add clickhouse",
+  "generatedFiles": [
+    {
+      "path": "DESIGN.md",
+      "included": true,
+      "checksum": "sha256:50987e29b603cc7503ebe724af810fcf43845e96fdd4083e0fbe5fe00d2cdd2e"
+    }
+  ],
+  "importedFiles": [
+    "DESIGN.md"
+  ],
+  "excludedFiles": []
+}

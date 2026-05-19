@@ -1,0 +1,17 @@
+{
+  "sourceSlug": "stripe",
+  "id": "stripe",
+  "label": "Stripe",
+  "command": "npx getdesign@latest add stripe",
+  "generatedFiles": [
+    {
+      "path": "DESIGN.md",
+      "included": true,
+      "checksum": "sha256:91d47137698936f1b6ea66aa12cc9dfa412c2ef39adfad4e75bd276555cd8ee1"
+    }
+  ],
+  "importedFiles": [
+    "DESIGN.md"
+  ],
+  "excludedFiles": []
+}
