@@ -5,6 +5,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-05-19
+
 ### Removed
 
 - `refactor(legacy)`: root `.ai-ops-manifest.json`, root `specs/`, preset-first rules scaffolder internals, and unused workspace/settings utilities removed.
