@@ -20,10 +20,10 @@ Use this skill when the input is still rough and the next artifact should be `./
 - Do not force awkward phonetic transliterations such as `소스 오브 트루스`, `타겟 플랫폼`, or `워크 패킷`.
 - If an English technical term needs explanation, keep the English term and add a short Korean gloss on first mention, for example `source of truth(가장 신뢰하는 기준)`.
 
-## Glossary Rule
+## Terminology Rule
 
-- Check `./docs/specs/baseline/01_glossary.md` only if it exists and the brief introduces product terms, user-facing labels, or domain nouns that may collide with existing terminology.
-- After writing the target document, `spec-shared-glossary-sync` is recommended because briefs often introduce new canonical terms.
+- Check `./docs/business/terminology.md` if it exists and the brief introduces product terms, user-facing labels, or domain nouns that may collide with existing terminology.
+- After writing the target document, `project-terminology-sync` is recommended because briefs often introduce new canonical terms.
 
 ## Objective
 

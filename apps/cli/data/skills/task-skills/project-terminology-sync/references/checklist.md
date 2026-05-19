@@ -1,6 +1,6 @@
-# Glossary Sync Checklist
+# Project Terminology Sync Checklist
 
-Use this checklist before finalizing `01_glossary.md`.
+Use this checklist before finalizing `docs/business/terminology.md`.
 
 ## Look For
 
@@ -30,7 +30,7 @@ Use this checklist before finalizing `01_glossary.md`.
 
 ## Update Rule
 
-- merge new terms into the existing glossary
+- merge new terms into the existing terminology document
 - do not delete stable terms unless they are clearly wrong
-- when uncertain, add the conflict to `정의 충돌 / 검토 필요`
-- keep simple terms in tables; avoid turning the whole glossary into long prose
+- when uncertain, add the conflict to `검토 중인 용어`
+- keep simple terms in tables; avoid turning the whole terminology document into long prose

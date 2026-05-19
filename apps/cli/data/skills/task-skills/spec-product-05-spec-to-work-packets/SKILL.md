@@ -130,10 +130,10 @@ Use these references while drafting:
 - [references/work-packet-template.md](references/work-packet-template.md)
 - [references/stitch-html-review.md](references/stitch-html-review.md) only when initial Stitch HTML exists and materially helps UI packet boundaries
 
-## Glossary Rule
+## Terminology Rule
 
-- Check `./docs/specs/baseline/01_glossary.md` only if packet wording could drift from established entity, state, or UI terminology.
-- Do not run `spec-shared-glossary-sync` by default after packet generation. Run it only if packeting surfaced meaningful new terms or clear terminology collisions.
+- Check `./docs/business/terminology.md` if packet wording could drift from established entity, state, or UI terminology.
+- Do not run `project-terminology-sync` by default after packet generation. Run it only if packeting surfaced meaningful new terms or clear terminology collisions.
 
 ## Mermaid Rule
 

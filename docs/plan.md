@@ -48,11 +48,13 @@ User/global runtime
 - `CLAUDE.md`
 - `docs/agent/rules/00-agent-baseline.md`
 - `docs/agent/workflow.md`
+- `docs/agent/terminology.md`
 - `docs/agent/rules/routing-rules.md`
 - `docs/agent/rules/doc-update-rules.md`
 - `docs/agent/rules/stop-rules.md`
 - `docs/agent/checks/impact-checklist.md`
 - `docs/agent/maps/codebase-map.md`
+- `docs/business/terminology.md`
 - `docs/business/business-rules.md`
 - `docs/docs-status.md`
 - `.ai-ops/manifest.json`
@@ -62,7 +64,7 @@ User/global runtime
 
 ### Optional packs
 
-`docs/specs/`는 optional pack 위치로 고정한다. spec lifecycle이 필요한 프로젝트만 설치한다.
+`docs/specs/`는 optional pack 위치로 고정한다. spec lifecycle이 필요한 프로젝트만 설치한다. 프로젝트 용어의 source of truth는 optional pack 내부가 아니라 base operating layer의 `docs/business/terminology.md`다.
 
 Deprecated old model:
 

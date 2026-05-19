@@ -1,5 +1,5 @@
 <!-- ai-ops:start -->
-<!-- sourceHash: 66b3c3 | generatedAt: 2026-05-19T03:23:37.905Z -->
+<!-- sourceHash: 388c18 | generatedAt: 2026-05-19T04:21:20.239Z -->
 
 ---
 status: Active
@@ -19,9 +19,10 @@ update_when:
 1. `AGENTS.md`
 2. `docs/agent/rules/00-agent-baseline.md`
 3. `docs/agent/workflow.md`
-4. 나머지 `docs/agent/rules/*.md`
-5. 변경 영향 확인이 필요하면 `docs/agent/checks/impact-checklist.md`
-6. `docs/docs-status.md`
+4. `docs/agent/terminology.md`
+5. 나머지 `docs/agent/rules/*.md`
+6. 변경 영향 확인이 필요하면 `docs/agent/checks/impact-checklist.md`
+7. `docs/docs-status.md`
 
 ## 문서 신뢰도
 

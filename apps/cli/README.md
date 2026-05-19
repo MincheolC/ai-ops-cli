@@ -44,11 +44,13 @@ GEMINI.md
 CLAUDE.md
 docs/agent/rules/00-agent-baseline.md
 docs/agent/workflow.md
+docs/agent/terminology.md
 docs/agent/rules/routing-rules.md
 docs/agent/rules/doc-update-rules.md
 docs/agent/rules/stop-rules.md
 docs/agent/checks/impact-checklist.md
 docs/agent/maps/codebase-map.md
+docs/business/terminology.md
 docs/business/business-rules.md
 docs/docs-status.md
 .ai-ops/manifest.json
@@ -76,7 +78,7 @@ receipts/config/*
 
 ### Which files should users edit directly?
 
-Project knowledge belongs in project-owned documents. The default project-owned documents are `docs/agent/maps/codebase-map.md`, `docs/business/business-rules.md`, and `docs/docs-status.md`. `docs/agent/maps/codebase-map.md` and `docs/business/business-rules.md` start as Reserved templates, but once the project fills them with real content, update does not automatically overwrite them.
+Project knowledge belongs in project-owned documents. The default project-owned documents are `docs/agent/maps/codebase-map.md`, `docs/business/terminology.md`, `docs/business/business-rules.md`, and `docs/docs-status.md`. `docs/agent/maps/codebase-map.md`, `docs/business/terminology.md`, and `docs/business/business-rules.md` start as Reserved templates, but once the project fills them with real content, update does not automatically overwrite them.
 
 `docs/docs-status.md` is project-owned, but it is not a free-form notebook. It is the context-layer registry. Update it together with document status/frontmatter changes; the update flow may also normalize its table from the manifest and current document frontmatter.
 
@@ -176,7 +178,7 @@ ai-ops pack update spec-lifecycle
 ai-ops pack uninstall spec-lifecycle
 ```
 
-The `spec-lifecycle` pack installs `docs/specs/README.md`, `docs/specs/README.ko.md`, `docs/specs/baseline/.gitkeep`, and `docs/specs/initial-build/.gitkeep`. Only Markdown documents are audited by the context-layer and `docs/docs-status.md`; `.gitkeep` files are tracked only as regular pack files in the manifest.
+The `spec-lifecycle` pack installs `docs/specs/README.md`, `docs/specs/README.ko.md`, `docs/specs/baseline/.gitkeep`, and `docs/specs/initial-build/.gitkeep`. Only Markdown documents are audited by the context-layer and `docs/docs-status.md`; `.gitkeep` files are tracked only as regular pack files in the manifest. Project terminology remains centralized in `docs/business/terminology.md`.
 
 ## Deprecated Old Model
 

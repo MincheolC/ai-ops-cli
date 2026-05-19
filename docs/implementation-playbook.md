@@ -55,11 +55,13 @@ rg -n -- '--project|project scope skill|\.ai-ops-manifest\.json|root `specs/`|pr
 - `CLAUDE.md`
 - `docs/agent/rules/00-agent-baseline.md`
 - `docs/agent/workflow.md`
+- `docs/agent/terminology.md`
 - `docs/agent/rules/routing-rules.md`
 - `docs/agent/rules/doc-update-rules.md`
 - `docs/agent/rules/stop-rules.md`
 - `docs/agent/checks/impact-checklist.md`
 - `docs/agent/maps/codebase-map.md`
+- `docs/business/terminology.md`
 - `docs/business/business-rules.md`
 - `docs/docs-status.md`
 - `.ai-ops/manifest.json`
@@ -146,8 +148,9 @@ AI_OPS_HOME="$(mktemp -d)" node apps/cli/dist/bin/index.js subagent install secu
 - `spec-lifecycle` pack을 추가한다.
 - 설치 위치는 `docs/specs/`로 고정한다.
 - 기존 root `specs/` scaffolding은 제거하거나 deprecated old model로만 남긴다.
-- `spec-to-packet`의 `spec-product-*`, `spec-baseline-sync`, `spec-shared-glossary-sync`는 이 pack의 global skill 후보로 이관한다.
+- `spec-to-packet`의 `spec-product-*`, `spec-baseline-sync`, `project-terminology-sync`는 이 pack의 global skill 후보로 이관한다.
 - 실제 spec 절차 실행은 global skill 후보로 분리한다.
+- 프로젝트 용어 source of truth는 `docs/business/terminology.md`로 유지하고 optional spec pack 안에 별도 용어 SSOT를 만들지 않는다.
 
 완료 기준:
 

@@ -60,9 +60,11 @@ In the new model, the project repo receives these operating documents and state 
 - `CLAUDE.md`
 - `docs/agent/rules/00-agent-baseline.md`
 - `docs/agent/workflow.md`
+- `docs/agent/terminology.md`
 - `docs/agent/rules/*`
 - `docs/agent/checks/impact-checklist.md`
 - `docs/agent/maps/codebase-map.md`
+- `docs/business/terminology.md`
 - `docs/business/business-rules.md`
 - `docs/docs-status.md`
 - `.ai-ops/manifest.json`
@@ -74,13 +76,13 @@ In the new model, the project repo receives these operating documents and state 
 
 ### What does `ai-ops update` overwrite?
 
-`AGENTS.md`, `GEMINI.md`, `CLAUDE.md`, `docs/agent/rules/*`, `docs/agent/checks/impact-checklist.md`, and `docs/agent/workflow.md` are ai-ops managed documents. In these files, the region from `<!-- ai-ops:start -->` through `<!-- ai-ops:end -->` is CLI template content. `ai-ops update` reapplies the current CLI template to that region. User edits inside that region are not preserved across update.
+`AGENTS.md`, `GEMINI.md`, `CLAUDE.md`, `docs/agent/rules/*`, `docs/agent/checks/impact-checklist.md`, `docs/agent/terminology.md`, and `docs/agent/workflow.md` are ai-ops managed documents. In these files, the region from `<!-- ai-ops:start -->` through `<!-- ai-ops:end -->` is CLI template content. `ai-ops update` reapplies the current CLI template to that region. User edits inside that region are not preserved across update.
 
 `.ai-ops/manifest.json` and `.ai-ops/context-layer.json` are also not direct-edit files. They are CLI state files for installation state and document indexing.
 
 ### Which files should users edit directly?
 
-Project knowledge belongs in project-owned documents. The default project-owned documents are `docs/agent/maps/codebase-map.md`, `docs/business/business-rules.md`, and `docs/docs-status.md`. `docs/agent/maps/codebase-map.md` and `docs/business/business-rules.md` start as Reserved templates, but once the project fills them with real content, update does not automatically overwrite them.
+Project knowledge belongs in project-owned documents. The default project-owned documents are `docs/agent/maps/codebase-map.md`, `docs/business/terminology.md`, `docs/business/business-rules.md`, and `docs/docs-status.md`. `docs/agent/maps/codebase-map.md`, `docs/business/terminology.md`, and `docs/business/business-rules.md` start as Reserved templates, but once the project fills them with real content, update does not automatically overwrite them.
 
 `docs/docs-status.md` is project-owned, but it is not a free-form notebook. It is the context-layer registry. Update it together with document status/frontmatter changes; the update flow may also normalize its table from the manifest and current document frontmatter.
 
@@ -167,7 +169,7 @@ ai-ops pack update spec-lifecycle
 ai-ops pack uninstall spec-lifecycle
 ```
 
-The `spec-lifecycle` pack runs only inside a project operating layer with `.ai-ops/manifest.json`. On install, `docs/specs/README.md` and `docs/specs/README.ko.md` are registered as Reserved documents in the context-layer and `docs/docs-status.md`; `.gitkeep` files are tracked only as regular pack files in the manifest.
+The `spec-lifecycle` pack runs only inside a project operating layer with `.ai-ops/manifest.json`. On install, `docs/specs/README.md` and `docs/specs/README.ko.md` are registered as Reserved documents in the context-layer and `docs/docs-status.md`; `.gitkeep` files are tracked only as regular pack files in the manifest. Project terminology remains centralized in `docs/business/terminology.md`.
 
 Deprecated old model:
 

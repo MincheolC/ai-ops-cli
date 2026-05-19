@@ -41,6 +41,7 @@ describe('project operating layer templates', () => {
     expect(reservedSpecs.map((spec) => spec.path)).toEqual([
       'docs/agent/maps/codebase-map.md',
       'docs/business/business-rules.md',
+      'docs/business/terminology.md',
     ]);
     expect(reservedSpecs.every((spec) => spec.content.includes('판단 근거로 사용하지 마세요'))).toBe(true);
   });
@@ -88,11 +89,19 @@ describe('project operating layer lifecycle', () => {
       expect(result.manifest.managed_files.map((file) => file.path)).toContain(
         'docs/agent/rules/00-agent-baseline.md',
       );
+      expect(result.manifest.managed_files.map((file) => file.path)).toContain('docs/agent/terminology.md');
+      expect(result.manifest.project_files.map((file) => file.path)).toContain('docs/business/terminology.md');
       expect(readProjectFile(dir, 'docs/docs-status.md')).toContain(
         '| docs/agent/rules/00-agent-baseline.md | Active | ai-ops |',
       );
+      expect(readProjectFile(dir, 'docs/docs-status.md')).toContain(
+        '| docs/business/terminology.md | Reserved | project |',
+      );
       expect(readProjectLayerContextIndex(dir)?.documents.map((document) => document.path)).toContain(
         'docs/agent/rules/00-agent-baseline.md',
+      );
+      expect(readProjectLayerContextIndex(dir)?.documents.map((document) => document.path)).toContain(
+        'docs/business/terminology.md',
       );
       expect(auditProjectLayer(dir).issues).toHaveLength(0);
     } finally {
@@ -122,13 +131,21 @@ describe('project operating layer lifecycle', () => {
     try {
       const installed = installProjectLayer({ basePath: dir, tools: resolveProjectLayerTools(['codex']) });
       const businessRulesPath = join(dir, 'docs/business/business-rules.md');
+      const terminologyPath = join(dir, 'docs/business/terminology.md');
       const customBusinessRules = readFileSync(businessRulesPath, 'utf-8').replace('- TBD', '- 결제 정책은 서버 응답을 우선한다.');
+      const customTerminology = readFileSync(terminologyPath, 'utf-8').replace(
+        '| TBD | TBD | TBD | TBD | TBD | TBD | TBD |',
+        '| 결제 | `payment` | 사용자 결제 행위 | product / ui | payment | 결재 | `10_product-spec.md` |',
+      );
       writeFileSync(businessRulesPath, customBusinessRules, 'utf-8');
+      writeFileSync(terminologyPath, customTerminology, 'utf-8');
 
       const result = updateProjectLayer({ basePath: dir, manifest: installed.manifest });
 
       expect(readProjectFile(dir, 'docs/business/business-rules.md')).toContain('결제 정책은 서버 응답을 우선한다.');
+      expect(readProjectFile(dir, 'docs/business/terminology.md')).toContain('사용자 결제 행위');
       expect(result.preservedProjectFiles).toContain('docs/business/business-rules.md');
+      expect(result.preservedProjectFiles).toContain('docs/business/terminology.md');
       expect(auditProjectLayer(dir).issues).toHaveLength(0);
     } finally {
       cleanup();
@@ -227,7 +244,16 @@ describe('project operating layer lifecycle', () => {
     try {
       const installed = installProjectLayer({ basePath: dir, tools: resolveProjectLayerTools(['codex']) });
       const businessRulesPath = join(dir, 'docs/business/business-rules.md');
+      const terminologyPath = join(dir, 'docs/business/terminology.md');
       writeFileSync(businessRulesPath, readFileSync(businessRulesPath, 'utf-8').replace('- TBD', '- 직접 보강한 규칙'), 'utf-8');
+      writeFileSync(
+        terminologyPath,
+        readFileSync(terminologyPath, 'utf-8').replace(
+          '| TBD | TBD | TBD | TBD | TBD | TBD | TBD |',
+          '| 루틴 | `routine` | 운동 계획 단위 | product | 프로그램 | 플랜 | `10_product-spec.md` |',
+        ),
+        'utf-8',
+      );
 
       const result = uninstallProjectLayer(dir, installed.manifest);
 
@@ -235,7 +261,9 @@ describe('project operating layer lifecycle', () => {
       expect(existsSync(join(dir, 'docs/docs-status.md'))).toBe(false);
       expect(existsSync(join(dir, 'docs/agent/maps/codebase-map.md'))).toBe(false);
       expect(existsSync(businessRulesPath)).toBe(true);
+      expect(existsSync(terminologyPath)).toBe(true);
       expect(result.preserved).toContain('docs/business/business-rules.md');
+      expect(result.preserved).toContain('docs/business/terminology.md');
       expect(existsSync(join(dir, '.ai-ops/manifest.json'))).toBe(false);
       expect(existsSync(join(dir, '.ai-ops/context-layer.json'))).toBe(false);
     } finally {
@@ -253,6 +281,7 @@ describe('project operating layer lifecycle', () => {
 
       expect(existsSync(join(dir, 'docs/docs-status.md'))).toBe(false);
       expect(existsSync(join(dir, 'docs/agent/maps/codebase-map.md'))).toBe(false);
+      expect(existsSync(join(dir, 'docs/business/terminology.md'))).toBe(false);
       expect(existsSync(join(dir, 'docs/business/business-rules.md'))).toBe(false);
     } finally {
       cleanup();

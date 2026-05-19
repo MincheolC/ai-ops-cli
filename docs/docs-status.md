@@ -20,6 +20,8 @@ update_when:
 | docs/agent/rules/doc-update-rules.md | Active | ai-ops |
 | docs/agent/rules/routing-rules.md | Active | ai-ops |
 | docs/agent/rules/stop-rules.md | Active | ai-ops |
+| docs/agent/terminology.md | Active | ai-ops |
 | docs/agent/workflow.md | Active | ai-ops |
 | docs/business/business-rules.md | Reserved | project |
+| docs/business/terminology.md | Reserved | project |
 | docs/docs-status.md | Active | project |

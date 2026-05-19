@@ -116,12 +116,14 @@ const TEMPLATE_PATHS = [
   'GEMINI.md',
   'CLAUDE.md',
   'docs/agent/workflow.md',
+  'docs/agent/terminology.md',
   'docs/agent/rules/00-agent-baseline.md',
   'docs/agent/rules/routing-rules.md',
   'docs/agent/rules/doc-update-rules.md',
   'docs/agent/rules/stop-rules.md',
   'docs/agent/checks/impact-checklist.md',
   'docs/agent/maps/codebase-map.md',
+  'docs/business/terminology.md',
   'docs/business/business-rules.md',
   'docs/docs-status.md',
 ] as const;
@@ -129,6 +131,7 @@ const TEMPLATE_PATHS = [
 const PROJECT_OWNED_PATHS = new Set<string>([
   'docs/docs-status.md',
   'docs/agent/maps/codebase-map.md',
+  'docs/business/terminology.md',
   'docs/business/business-rules.md',
 ]);
 

@@ -1,17 +1,14 @@
 <!-- ai-ops:start -->
-<!-- sourceHash: 66b3c3 | generatedAt: 2026-05-19T03:23:37.905Z -->
+<!-- sourceHash: 388c18 | generatedAt: 2026-05-19T04:21:20.239Z -->
 
 ---
-
 status: Active
 layer: agent
 owner: ai-ops
 read_when:
-
-- before_task
-  update_when:
-- workflow_changes
-
+  - before_task
+update_when:
+  - workflow_changes
 ---
 
 # Workflow

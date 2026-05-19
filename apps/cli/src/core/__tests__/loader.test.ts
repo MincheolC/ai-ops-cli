@@ -44,13 +44,13 @@ describe('I/O', () => {
     const contents = specSkills.flatMap((skill) => skill.files.map((file) => file.content));
 
     expect(specSkills.map((skill) => skill.id)).toEqual([
+      'project-terminology-sync',
       'spec-baseline-sync',
       'spec-product-01-idea-to-brief',
       'spec-product-02-brief-to-technical-context',
       'spec-product-03-brief-to-product-spec',
       'spec-product-04-product-spec-to-ui-spec',
       'spec-product-05-spec-to-work-packets',
-      'spec-shared-glossary-sync',
     ]);
     expect(specSkills.every((skill) => skill.kind === 'task')).toBe(true);
     expect(contents.some((content) => content.includes('./docs/specs/'))).toBe(true);

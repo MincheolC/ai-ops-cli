@@ -50,10 +50,10 @@ Keep this pass lightweight and product-facing.
 
 Use [references/template.md](references/template.md) when drafting the file.
 
-## Glossary Rule
+## Terminology Rule
 
-- Check `./docs/specs/baseline/01_glossary.md` if it exists and the product spec introduces or chooses domain terms, entity names, state names, or user-facing labels.
-- After writing the target document, `spec-shared-glossary-sync` is recommended because product specs often add or refine canonical vocabulary.
+- Check `./docs/business/terminology.md` if it exists and the product spec introduces or chooses domain terms, entity names, state names, or user-facing labels.
+- After writing the target document, `project-terminology-sync` is recommended because product specs often add or refine canonical vocabulary.
 
 ## Required Sections
 

@@ -1,7 +1,20 @@
-# 01_glossary.md Template
+# docs/business/terminology.md Template
 
 ```md
-# 01 Glossary
+---
+status: Active
+layer: business
+owner: project
+read_when:
+  - terminology_check
+  - business_rule_check
+  - spec_lifecycle
+update_when:
+  - terminology_changes
+  - business_rule_changes
+  - spec_lifecycle_changes
+---
+# Terminology
 
 용어 표기 원칙:
 
@@ -38,21 +51,9 @@
 |---|---|---|
 | 표현 1 | 왜 피해야 하는지 | 표준 표현 |
 
-## 복잡한 개념 상세 설명
+## 검토 중인 용어
 
-### 개념 1
-
-- 왜 이 개념이 표만으로는 충분하지 않은지 설명
-- 어떤 문맥에서 다른 표현과 충돌하는지 설명
-
-```mermaid
-flowchart TD
-    A["개념 A"] --> B["개념 B"]
-```
-
-## 정의 충돌 / 검토 필요
-
-| 항목 | 현재 표준 | 충돌 표현 | 판단 메모 |
-|---|---|---|---|
-| 충돌 항목 | 현재 표준 표현 | 새로 발견된 표현 | 판단 메모 |
+| 항목 | 후보 표현 | 충돌 / 불확실성 | 판단 메모 | 관련 문서 |
+|---|---|---|---|---|
+| 충돌 항목 | 새로 발견된 표현 | 현재 표준 표현과의 차이 | 판단 메모 | `10_product-spec.md` |
 ```

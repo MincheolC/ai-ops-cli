@@ -49,7 +49,7 @@ ai-ops pack uninstall <pack-id>
   - `spec-product-04-product-spec-to-ui-spec`
   - `spec-product-05-spec-to-work-packets`
   - `spec-baseline-sync`
-  - `spec-shared-glossary-sync`
+  - `project-terminology-sync`
   - 모두 `apps/cli/data/skills/task-skills/`로 복사하고 `skill-registry.json`에 `groups: ["spec-lifecycle"]`, `included_in_presets: []`로 등록한다.
   - 모든 output/input path는 root `./specs/...`에서 `./docs/specs/...`로 바꾼다.
 
