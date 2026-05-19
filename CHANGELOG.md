@@ -5,6 +5,24 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-05-19
+
+### Added
+
+- `feat(integration)`: `ai-ops integration list|install|status|uninstall` 상위 명령 추가
+- `feat(integration)`: `context-promotion`과 `pc` integration catalog 및 user/global integration manifest 추가
+- `feat(pc)`: 성공적인 `git commit` 이후 `$pc:done` handoff 누락을 방지하는 `pc` Codex skill과 `PostToolUse` hook runner 추가
+
+### Changed
+
+- `refactor(codex-hook)`: Codex hook 설치/상태/제거 로직을 공통 hook definition 기반으로 정리하고 integration installer에서 재사용
+- `docs(integration)`: 제품 정의를 project operating layer와 user/global runtime integration 구조로 갱신
+
+### Fixed
+
+- `fix(integration)`: integration install이 기존 skill의 `sourceHash`를 비교해 오래된 user/global skill source를 최신 bundled source로 보정
+- `fix(pc)`: active workstream이 현재 `HEAD`를 이미 마지막 확인 commit으로 기록한 경우 `$pc:done` continuation prompt를 중복 요청하지 않도록 처리
+
 ## [1.1.1] - 2026-05-18
 
 ### Fixed
