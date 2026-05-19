@@ -121,6 +121,48 @@ describe('studio snapshot core', () => {
     }
   });
 
+  it('keeps valid context documents when another context document has an unsafe path', () => {
+    const { dir, userHome, codexHome, cleanup } = setup();
+    try {
+      installProjectLayer({ basePath: dir, tools: resolveProjectLayerTools(['codex']) });
+      const contextIndex = readProjectLayerContextIndex(dir);
+      const firstDocument = contextIndex?.documents[0];
+      const secondDocument = contextIndex?.documents[1];
+      if (contextIndex === null || firstDocument === undefined || secondDocument === undefined) {
+        throw new Error('context index missing documents in test setup');
+      }
+      writeFileSync(
+        join(dir, '.ai-ops/context-layer.json'),
+        JSON.stringify(
+          {
+            ...contextIndex,
+            documents: [
+              firstDocument,
+              {
+                ...secondDocument,
+                path: '../outside.md',
+              },
+            ],
+          },
+          null,
+          2,
+        ) + '\n',
+        'utf-8',
+      );
+
+      const snapshot = buildSnapshotForTest({ dir, userHome, codexHome });
+      const unsafeDocument = snapshot.project.documents.find((document) => document.path === '../outside.md');
+
+      expect(snapshot.project.state).toBe('degraded');
+      expect(snapshot.project.files.contextIndex.parsed).toBe(false);
+      expect(snapshot.project.documents.find((document) => document.path === firstDocument.path)?.readError).toBeNull();
+      expect(unsafeDocument?.readError).toContain('unsafe-path');
+      expect(snapshot.project.documents).toHaveLength(2);
+    } finally {
+      cleanup();
+    }
+  });
+
   it('marks context-layer-only documents without treating manifest as a fallback source', () => {
     const { dir, userHome, codexHome, cleanup } = setup();
     try {

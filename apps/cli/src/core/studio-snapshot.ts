@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
+import { z } from 'zod';
 import {
   CONTEXT_PROMOTION_CODEX_HOOK,
   PC_CODEX_HOOK,
@@ -14,7 +15,6 @@ import {
   PROJECT_LAYER_MANIFEST_RELATIVE_PATH,
   auditProjectLayer,
   parseProjectLayerDocument,
-  readProjectLayerContextIndex,
   readProjectLayerManifest,
   resolveProjectLayerContextIndexPath,
   resolveProjectLayerFilePath,
@@ -24,6 +24,10 @@ import { readSkillRegistry, resolveCanonicalSkillId, resolveSkillRegistryPath } 
 import { getCliVersion } from './source-hash.js';
 import { readSubagentManifest, resolveSubagentManifestPath } from './subagent-manifest-io.js';
 import { StudioSnapshotSchema } from './schemas/index.js';
+import {
+  ProjectLayerContextIndexSchema,
+  ProjectLayerDocumentStatusSchema,
+} from './schemas/index.js';
 import type {
   CodexHookDefinition,
   IntegrationCatalogComponent,
@@ -86,6 +90,25 @@ const SUBAGENTS_MANIFEST_FALLBACK_PATH = '.ai-ops/subagents-manifest.json';
 const HOOKS_FALLBACK_PATH = '.codex/hooks.json';
 
 const KNOWN_CODEX_HOOK_DEFINITIONS = [CONTEXT_PROMOTION_CODEX_HOOK, PC_CODEX_HOOK] as const;
+
+const RecoverableContextDocumentSchema = z
+  .object({
+    status: ProjectLayerDocumentStatusSchema,
+    layer: z.string().min(1),
+    owner: z.string().min(1),
+    read_when: z.array(z.string().min(1)),
+    update_when: z.array(z.string().min(1)),
+    path: z.string().min(1),
+    contentHash: z.string().min(1),
+  });
+
+const RecoverableContextIndexSchema = z
+  .object({
+    schemaVersion: z.literal(1),
+    kind: z.literal('context-layer-index'),
+    documents: z.array(z.unknown()),
+    generatedAt: z.string().min(1),
+  });
 
 // ----- shared helpers -----
 
@@ -190,15 +213,52 @@ const readProjectContextIndexSnapshot = (basePath: string): ProjectContextIndexR
   }
 
   try {
-    const contextIndex = readProjectLayerContextIndex(basePath);
+    const parsedJson: unknown = JSON.parse(readFileSync(contextIndexPath, 'utf-8'));
+    const strictContextIndex = ProjectLayerContextIndexSchema.safeParse(parsedJson);
+    if (strictContextIndex.success) {
+      return {
+        source: buildSourceState({
+          path: PROJECT_LAYER_CONTEXT_INDEX_RELATIVE_PATH,
+          exists: true,
+          parsed: true,
+          generatedAt: strictContextIndex.data.generatedAt,
+        }),
+        contextIndex: strictContextIndex.data,
+      };
+    }
+
+    const recoverableContextIndex = RecoverableContextIndexSchema.safeParse(parsedJson);
+    if (!recoverableContextIndex.success) {
+      return {
+        source: buildSourceState({
+          path: PROJECT_LAYER_CONTEXT_INDEX_RELATIVE_PATH,
+          exists: true,
+          parsed: false,
+          error: strictContextIndex.error.message,
+        }),
+        contextIndex: null,
+      };
+    }
+
+    const documents = recoverableContextIndex.data.documents.flatMap((document): ProjectLayerContextDocument[] => {
+      const parsedDocument = RecoverableContextDocumentSchema.safeParse(document);
+      return parsedDocument.success ? [parsedDocument.data] : [];
+    });
+
     return {
       source: buildSourceState({
         path: PROJECT_LAYER_CONTEXT_INDEX_RELATIVE_PATH,
         exists: true,
-        parsed: contextIndex !== null,
-        generatedAt: contextIndex?.generatedAt ?? null,
+        parsed: false,
+        generatedAt: recoverableContextIndex.data.generatedAt,
+        error: strictContextIndex.error.message,
       }),
-      contextIndex,
+      contextIndex: {
+        schemaVersion: 1,
+        kind: 'context-layer-index',
+        documents,
+        generatedAt: recoverableContextIndex.data.generatedAt,
+      },
     };
   } catch (error) {
     return {
@@ -259,26 +319,46 @@ const buildProjectDocumentSnapshot = (params: {
   indexed: ProjectLayerContextDocument;
   provenance: StudioProjectDocumentProvenance;
 }): StudioProjectDocument => {
+  let absolutePath: string;
   try {
-    const absolutePath = resolveProjectLayerFilePath(params.basePath, params.indexed.path);
-    if (!existsSync(absolutePath)) {
-      return {
-        path: params.indexed.path,
-        status: params.indexed.status,
-        layer: params.indexed.layer,
-        owner: params.indexed.owner,
-        read_when: params.indexed.read_when,
-        update_when: params.indexed.update_when,
-        indexedContentHash: params.indexed.contentHash,
-        currentContentHash: null,
-        contentHashMatches: null,
-        provenance: params.provenance,
-        content: null,
-        trustWarning: getTrustWarning(params.indexed.status),
-        readError: buildDocumentReadError('missing-file', `파일 없음: ${params.indexed.path}`),
-      };
-    }
+    absolutePath = resolveProjectLayerFilePath(params.basePath, params.indexed.path);
+  } catch (error) {
+    return {
+      path: params.indexed.path,
+      status: params.indexed.status,
+      layer: params.indexed.layer,
+      owner: params.indexed.owner,
+      read_when: params.indexed.read_when,
+      update_when: params.indexed.update_when,
+      indexedContentHash: params.indexed.contentHash,
+      currentContentHash: null,
+      contentHashMatches: null,
+      provenance: params.provenance,
+      content: null,
+      trustWarning: getTrustWarning(params.indexed.status),
+      readError: buildDocumentReadError('unsafe-path', getErrorMessage(error)),
+    };
+  }
 
+  if (!existsSync(absolutePath)) {
+    return {
+      path: params.indexed.path,
+      status: params.indexed.status,
+      layer: params.indexed.layer,
+      owner: params.indexed.owner,
+      read_when: params.indexed.read_when,
+      update_when: params.indexed.update_when,
+      indexedContentHash: params.indexed.contentHash,
+      currentContentHash: null,
+      contentHashMatches: null,
+      provenance: params.provenance,
+      content: null,
+      trustWarning: getTrustWarning(params.indexed.status),
+      readError: buildDocumentReadError('missing-file', `파일 없음: ${params.indexed.path}`),
+    };
+  }
+
+  try {
     const document = parseProjectLayerDocument(params.indexed.path, readFileSync(absolutePath, 'utf-8'));
     return {
       path: params.indexed.path,
