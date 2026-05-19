@@ -210,6 +210,11 @@ npm run dev
 
 # Lint + test
 npm run check
+
+# Studio desktop shell
+npm run studio:dev
+npm run studio:build
+npm run studio:test
 ```
 
 코드와 운영 문서 변경은 `npm run check`를 기본 검증으로 사용합니다. CLI 배포 산출물 확인은 `npm run build`와 `npm run compile`을 함께 사용합니다.

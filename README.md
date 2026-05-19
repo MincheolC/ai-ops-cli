@@ -210,6 +210,11 @@ npm run dev
 
 # Lint + test
 npm run check
+
+# Studio desktop shell
+npm run studio:dev
+npm run studio:build
+npm run studio:test
 ```
 
 Use `npm run check` as the default validation for code and operating-document changes. For CLI release artifacts, run both `npm run build` and `npm run compile`.

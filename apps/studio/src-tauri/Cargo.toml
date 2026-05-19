@@ -1,0 +1,15 @@
+[package]
+name = "ai-ops-studio"
+version = "0.0.0"
+description = "Desktop shell for the ai-ops project operating layer"
+edition = "2021"
+
+[lib]
+name = "ai_ops_studio_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
