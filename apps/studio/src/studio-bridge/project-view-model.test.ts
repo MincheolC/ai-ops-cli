@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildProjectViewModel, selectProjectDocument } from './project-view-model';
+import { buildProjectViewModel, selectAuditIssue, selectProjectDocument } from './project-view-model';
 import { STUDIO_SNAPSHOT_KIND, STUDIO_SNAPSHOT_SCHEMA_VERSION, type StudioSnapshotEnvelope } from './studio-snapshot';
 
 const createSnapshot = (documents: readonly unknown[]): StudioSnapshotEnvelope => ({
@@ -94,5 +94,66 @@ describe('project view model', () => {
       'docs/agent/maps/codebase-map.md',
     );
     expect(selectProjectDocument(documents, null)?.path).toBe('AGENTS.md');
+  });
+
+  it('parses audit issue metadata and groups by severity, code, source, and affected path', () => {
+    const viewModel = buildProjectViewModel({
+      ...createSnapshot([activeDocument]),
+      project: {
+        ...createSnapshot([activeDocument]).project,
+        audit: {
+          currentSourceHash: '388c18',
+          hasErrors: true,
+          hasWarnings: true,
+          issues: [
+            {
+              level: 'error',
+              code: 'missing-file',
+              message: 'File missing: AGENTS.md',
+              source: 'file-system',
+              affectedPath: 'AGENTS.md',
+              suggestedActionLabel: 'Review missing file',
+            },
+            {
+              level: 'warning',
+              code: 'missing-file',
+              message: 'File missing again: AGENTS.md',
+              source: 'file-system',
+              affectedPath: 'AGENTS.md',
+              suggestedActionLabel: 'Review missing file',
+            },
+            {
+              level: 'warning',
+              code: 'custom-code',
+              message: 'Legacy issue shape',
+            },
+          ],
+        },
+      },
+    });
+
+    expect(viewModel.audit.summary).toEqual({
+      errors: 1,
+      warnings: 2,
+      affectedPaths: 1,
+      issueSources: 2,
+    });
+    expect(viewModel.audit.issues[0]).toMatchObject({
+      id: '0:error:missing-file:file-system:AGENTS.md',
+      source: 'file-system',
+      affectedPath: 'AGENTS.md',
+      suggestedActionLabel: 'Review missing file',
+    });
+    expect(viewModel.audit.issues[2]).toMatchObject({
+      source: 'unknown',
+      affectedPath: null,
+      suggestedActionLabel: null,
+    });
+    expect(viewModel.audit.groups.map((group) => group.id)).toEqual([
+      'error:missing-file:file-system:AGENTS.md',
+      'warning:custom-code:unknown:none',
+      'warning:missing-file:file-system:AGENTS.md',
+    ]);
+    expect(selectAuditIssue(viewModel.audit.issues, null)?.id).toBe('0:error:missing-file:file-system:AGENTS.md');
   });
 });

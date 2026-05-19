@@ -96,7 +96,16 @@ const snapshot = {
       currentSourceHash: '388c18',
       hasErrors: false,
       hasWarnings: true,
-      issues: [{ level: 'warning', code: 'reserved-doc', message: 'Reserved document present' }],
+      issues: [
+        {
+          level: 'warning',
+          code: 'docs-status-mismatch',
+          message: 'docs/agent/workflow.md docs-status owner mismatch',
+          source: 'docs-status',
+          affectedPath: 'docs/agent/workflow.md',
+          suggestedActionLabel: 'Review docs status',
+        },
+      ],
     },
     documents: [agentDocument, workflowDocument, reservedDocument],
     repoWideFiles: [{ path: 'package.json' }],
@@ -118,6 +127,71 @@ const uninitializedSnapshot = {
   },
 } as const satisfies StudioSnapshotEnvelope;
 
+const cleanAuditSnapshot = {
+  ...snapshot,
+  project: {
+    ...snapshot.project,
+    audit: {
+      currentSourceHash: '388c18',
+      hasErrors: false,
+      hasWarnings: false,
+      issues: [],
+    },
+  },
+} as const satisfies StudioSnapshotEnvelope;
+
+const auditSnapshot = {
+  ...snapshot,
+  project: {
+    ...snapshot.project,
+    audit: {
+      currentSourceHash: '388c18',
+      hasErrors: true,
+      hasWarnings: true,
+      issues: [
+        {
+          level: 'error',
+          code: 'missing-file',
+          message: 'File missing: AGENTS.md',
+          source: 'file-system',
+          affectedPath: 'AGENTS.md',
+          suggestedActionLabel: 'Review missing file',
+        },
+        {
+          level: 'warning',
+          code: 'docs-status-mismatch',
+          message: 'docs/agent/workflow.md docs-status owner mismatch',
+          source: 'docs-status',
+          affectedPath: 'docs/agent/workflow.md',
+          suggestedActionLabel: 'Review docs status',
+        },
+      ],
+    },
+  },
+} as const satisfies StudioSnapshotEnvelope;
+
+const manifestAuditSnapshot = {
+  ...snapshot,
+  project: {
+    ...snapshot.project,
+    audit: {
+      currentSourceHash: null,
+      hasErrors: true,
+      hasWarnings: false,
+      issues: [
+        {
+          level: 'error',
+          code: 'missing-manifest',
+          message: '.ai-ops/manifest.json is missing',
+          source: 'manifest',
+          affectedPath: '.ai-ops/manifest.json',
+          suggestedActionLabel: 'Review manifest record',
+        },
+      ],
+    },
+  },
+} as const satisfies StudioSnapshotEnvelope;
+
 describe('App shell', () => {
   afterEach(() => {
     cleanup();
@@ -127,6 +201,7 @@ describe('App shell', () => {
     useStudioShellStore.setState({
       selectedView: 'overview',
       selectedDocumentPath: null,
+      selectedAuditIssueId: null,
       sidebarCollapsed: false,
     });
   });
@@ -200,6 +275,54 @@ describe('App shell', () => {
     expect(screen.getByText('Uninitialized project')).toBeInTheDocument();
     expect(screen.getByText('No context-layer documents')).toBeInTheDocument();
     expect(screen.getByText('Snapshot document set is empty.')).toBeInTheDocument();
+  });
+
+  it('renders a clear Audit state from snapshot audit issues', async () => {
+    const user = userEvent.setup();
+    render(<App queryClient={createTestQueryClient()} snapshotLoader={async () => cleanAuditSnapshot} />);
+
+    await user.click(await screen.findByRole('button', { name: /Audit/ }));
+
+    expect(screen.getByRole('heading', { name: 'Audit clear', level: 2 })).toBeInTheDocument();
+    expect(screen.getByTestId('audit-errors')).toHaveTextContent('0');
+    expect(screen.getByTestId('audit-warnings')).toHaveTextContent('0');
+  });
+
+  it('groups Audit diagnostics and opens selected document-linked issues', async () => {
+    const user = userEvent.setup();
+    render(<App queryClient={createTestQueryClient()} snapshotLoader={async () => auditSnapshot} />);
+
+    await user.click(await screen.findByRole('button', { name: /Audit/ }));
+
+    expect(screen.getByTestId('audit-errors')).toHaveTextContent('1');
+    expect(screen.getByTestId('audit-warnings')).toHaveTextContent('1');
+    expect(screen.getByTestId('audit-affected-paths')).toHaveTextContent('2');
+    expect(screen.getByTestId('audit-issue-sources')).toHaveTextContent('2');
+    expect(screen.getAllByText('missing-file').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('docs-status-mismatch').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('file-system').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('docs-status').length).toBeGreaterThan(0);
+
+    await user.click(screen.getByRole('button', { name: /docs-status-mismatch/ }));
+
+    expect(screen.getByText('Review docs status')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Review docs status/ })).not.toBeInTheDocument();
+
+    await user.click(screen.getByTestId('open-audit-document'));
+
+    expect(screen.getByText('Inspector')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Workflow', level: 1 })).toBeInTheDocument();
+  });
+
+  it('does not show document navigation for non-document Audit issues', async () => {
+    const user = userEvent.setup();
+    render(<App queryClient={createTestQueryClient()} snapshotLoader={async () => manifestAuditSnapshot} />);
+
+    await user.click(await screen.findByRole('button', { name: /Audit/ }));
+
+    expect(screen.getAllByText('missing-manifest').length).toBeGreaterThan(0);
+    expect(screen.getByText('Review manifest record')).toBeInTheDocument();
+    expect(screen.queryByTestId('open-audit-document')).not.toBeInTheDocument();
   });
 
   it('renders string Tauri command failures without replacing the message', async () => {

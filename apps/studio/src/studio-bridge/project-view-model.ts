@@ -8,6 +8,19 @@ export type ProjectDocumentStatus = (typeof PROJECT_DOCUMENT_STATUSES)[number];
 
 export type ProjectDocumentProvenance = 'ai-ops-managed' | 'project-owned' | 'pack-document' | 'context-only';
 
+export const PROJECT_AUDIT_ISSUE_SOURCES = [
+  'manifest',
+  'context-layer',
+  'docs-status',
+  'frontmatter',
+  'managed-section',
+  'file-system',
+  'source-hash',
+  'unknown',
+] as const;
+
+export type ProjectAuditIssueSource = (typeof PROJECT_AUDIT_ISSUE_SOURCES)[number];
+
 export type ProjectSourceState = {
   readonly path: string;
   readonly exists: boolean | null;
@@ -33,9 +46,29 @@ export type ProjectDocumentView = {
 };
 
 export type ProjectAuditIssueView = {
+  readonly id: string;
   readonly level: 'error' | 'warning';
   readonly code: string;
   readonly message: string;
+  readonly source: ProjectAuditIssueSource;
+  readonly affectedPath: string | null;
+  readonly suggestedActionLabel: string | null;
+};
+
+export type ProjectAuditIssueGroup = {
+  readonly id: string;
+  readonly level: ProjectAuditIssueView['level'];
+  readonly code: string;
+  readonly source: ProjectAuditIssueSource;
+  readonly affectedPath: string | null;
+  readonly issues: readonly ProjectAuditIssueView[];
+};
+
+export type ProjectAuditSummary = {
+  readonly errors: number;
+  readonly warnings: number;
+  readonly affectedPaths: number;
+  readonly issueSources: number;
 };
 
 export type ProjectAuditView = {
@@ -43,6 +76,8 @@ export type ProjectAuditView = {
   readonly hasErrors: boolean;
   readonly hasWarnings: boolean;
   readonly issues: readonly ProjectAuditIssueView[];
+  readonly groups: readonly ProjectAuditIssueGroup[];
+  readonly summary: ProjectAuditSummary;
 };
 
 export type ProjectDocumentCount = {
@@ -98,6 +133,9 @@ const isProjectDocumentStatus = (value: unknown): value is ProjectDocumentStatus
 
 const isProjectDocumentProvenance = (value: unknown): value is ProjectDocumentProvenance =>
   typeof value === 'string' && PROJECT_DOCUMENT_PROVENANCES.includes(value as ProjectDocumentProvenance);
+
+const isProjectAuditIssueSource = (value: unknown): value is ProjectAuditIssueSource =>
+  typeof value === 'string' && PROJECT_AUDIT_ISSUE_SOURCES.includes(value as ProjectAuditIssueSource);
 
 // ----- field readers -----
 
@@ -200,7 +238,67 @@ const parseProjectDocuments = (project: Record<string, unknown>): readonly Proje
   });
 };
 
-const parseAuditIssue = (value: unknown): ProjectAuditIssueView | null => {
+const createAuditIssueId = (params: {
+  index: number;
+  level: ProjectAuditIssueView['level'];
+  code: string;
+  source: ProjectAuditIssueSource;
+  affectedPath: string | null;
+}): string => [params.index, params.level, params.code, params.source, params.affectedPath ?? 'none'].join(':');
+
+const getAuditIssueGroupId = (issue: ProjectAuditIssueView): string =>
+  [issue.level, issue.code, issue.source, issue.affectedPath ?? 'none'].join(':');
+
+const compareIssueSeverity = (
+  left: ProjectAuditIssueView['level'],
+  right: ProjectAuditIssueView['level'],
+): number => {
+  const rank = { error: 0, warning: 1 } as const satisfies Record<ProjectAuditIssueView['level'], number>;
+  return rank[left] - rank[right];
+};
+
+const buildAuditIssueGroups = (issues: readonly ProjectAuditIssueView[]): readonly ProjectAuditIssueGroup[] => {
+  const groups = new Map<string, ProjectAuditIssueView[]>();
+  for (const issue of issues) {
+    const groupId = getAuditIssueGroupId(issue);
+    const group = groups.get(groupId) ?? [];
+    group.push(issue);
+    groups.set(groupId, group);
+  }
+
+  return [...groups.entries()]
+    .map(([id, groupIssues]): ProjectAuditIssueGroup => {
+      const [firstIssue] = groupIssues;
+      if (firstIssue === undefined) {
+        throw new Error('Audit issue group cannot be empty');
+      }
+
+      return {
+        id,
+        level: firstIssue.level,
+        code: firstIssue.code,
+        source: firstIssue.source,
+        affectedPath: firstIssue.affectedPath,
+        issues: groupIssues,
+      };
+    })
+    .sort(
+      (left, right) =>
+        compareIssueSeverity(left.level, right.level) ||
+        left.code.localeCompare(right.code) ||
+        left.source.localeCompare(right.source) ||
+        (left.affectedPath ?? '').localeCompare(right.affectedPath ?? ''),
+    );
+};
+
+const buildAuditSummary = (issues: readonly ProjectAuditIssueView[]): ProjectAuditSummary => ({
+  errors: issues.filter((issue) => issue.level === 'error').length,
+  warnings: issues.filter((issue) => issue.level === 'warning').length,
+  affectedPaths: new Set(issues.flatMap((issue) => (issue.affectedPath === null ? [] : [issue.affectedPath]))).size,
+  issueSources: new Set(issues.map((issue) => issue.source)).size,
+});
+
+const parseAuditIssue = (value: unknown, index: number): ProjectAuditIssueView | null => {
   if (!isRecord(value)) {
     return null;
   }
@@ -208,14 +306,21 @@ const parseAuditIssue = (value: unknown): ProjectAuditIssueView | null => {
   const level = value.level;
   const code = getString(value, 'code');
   const message = getString(value, 'message');
+  const source = isProjectAuditIssueSource(value.source) ? value.source : 'unknown';
+  const affectedPath = getString(value, 'affectedPath');
+  const suggestedActionLabel = getString(value, 'suggestedActionLabel');
   if ((level !== 'error' && level !== 'warning') || code === null || message === null) {
     return null;
   }
 
   return {
+    id: createAuditIssueId({ index, level, code, source, affectedPath }),
     level,
     code,
     message,
+    source,
+    affectedPath,
+    suggestedActionLabel,
   };
 };
 
@@ -227,21 +332,31 @@ const parseAudit = (project: Record<string, unknown>): ProjectAuditView => {
       hasErrors: false,
       hasWarnings: false,
       issues: [],
+      groups: [],
+      summary: {
+        errors: 0,
+        warnings: 0,
+        affectedPaths: 0,
+        issueSources: 0,
+      },
     };
   }
 
   const issues = Array.isArray(audit.issues)
-    ? audit.issues.flatMap((issue): ProjectAuditIssueView[] => {
-        const parsed = parseAuditIssue(issue);
+    ? audit.issues.flatMap((issue, index): ProjectAuditIssueView[] => {
+        const parsed = parseAuditIssue(issue, index);
         return parsed === null ? [] : [parsed];
       })
     : [];
+  const groups = buildAuditIssueGroups(issues);
 
   return {
     currentSourceHash: getNullableString(audit, 'currentSourceHash'),
     hasErrors: getBoolean(audit, 'hasErrors') ?? issues.some((issue) => issue.level === 'error'),
     hasWarnings: getBoolean(audit, 'hasWarnings') ?? issues.some((issue) => issue.level === 'warning'),
     issues,
+    groups,
+    summary: buildAuditSummary(issues),
   };
 };
 
@@ -340,4 +455,13 @@ export const selectProjectDocument = (
   documents.find((document) => document.path === selectedPath) ??
   documents.find((document) => document.status === 'Active') ??
   documents[0] ??
+  null;
+
+export const selectAuditIssue = (
+  issues: readonly ProjectAuditIssueView[],
+  selectedIssueId: string | null,
+): ProjectAuditIssueView | null =>
+  issues.find((issue) => issue.id === selectedIssueId) ??
+  issues.find((issue) => issue.level === 'error') ??
+  issues[0] ??
   null;

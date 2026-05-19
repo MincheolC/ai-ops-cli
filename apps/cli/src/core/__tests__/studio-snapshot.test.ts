@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import {
   buildStudioSnapshot,
   installProjectLayer,
+  normalizeStudioProjectIssue,
   parseProjectLayerDocument,
   readProjectLayerContextIndex,
   resolveProjectLayerTools,
@@ -13,6 +14,7 @@ import {
   writeSkillRegistry,
   writeSubagentManifest,
 } from '../index.js';
+import type { StudioProjectIssue } from '../index.js';
 
 const GENERATED_AT = '2026-05-19T06:00:00.000Z';
 
@@ -62,6 +64,21 @@ const listFiles = (root: string): string[] => {
   return files;
 };
 
+const findIssue = (
+  issues: readonly StudioProjectIssue[],
+  params: { code: string; affectedPath?: string | null },
+): StudioProjectIssue => {
+  const found = issues.find(
+    (issue) =>
+      issue.code === params.code &&
+      (params.affectedPath === undefined || issue.affectedPath === params.affectedPath),
+  );
+  if (found === undefined) {
+    throw new Error(`Expected audit issue not found: ${params.code}`);
+  }
+  return found;
+};
+
 describe('studio snapshot core', () => {
   it('builds a ready project snapshot from context-layer documents only', () => {
     const { dir, userHome, codexHome, cleanup } = setup();
@@ -92,12 +109,139 @@ describe('studio snapshot core', () => {
 
       expect(snapshot.project.state).toBe('uninitialized');
       expect(snapshot.project.files.manifest.exists).toBe(false);
-      expect(snapshot.project.audit.issues.some((issue) => issue.code === 'missing-manifest')).toBe(true);
+      const manifestIssue = findIssue(snapshot.project.audit.issues, {
+        code: 'missing-manifest',
+        affectedPath: '.ai-ops/manifest.json',
+      });
+      expect(manifestIssue).toMatchObject({
+        level: 'error',
+        code: 'missing-manifest',
+        source: 'manifest',
+        suggestedActionLabel: 'Review manifest record',
+      });
+      expect(manifestIssue.message).toContain('.ai-ops/manifest.json');
       expect(existsSync(join(dir, '.ai-ops'))).toBe(false);
       expect(after).toEqual(before);
     } finally {
       cleanup();
     }
+  });
+
+  it('adds docs-status audit metadata with the affected document path', () => {
+    const { dir, userHome, codexHome, cleanup } = setup();
+    try {
+      installProjectLayer({ basePath: dir, tools: resolveProjectLayerTools(['codex']) });
+      const docsStatusPath = join(dir, 'docs/docs-status.md');
+      const docsStatus = readFileSync(docsStatusPath, 'utf-8');
+      writeFileSync(
+        docsStatusPath,
+        docsStatus.replace('| AGENTS.md | Active | ai-ops |', '| AGENTS.md | Draft | ai-ops |'),
+        'utf-8',
+      );
+
+      const snapshot = buildSnapshotForTest({ dir, userHome, codexHome });
+      const issue = findIssue(snapshot.project.audit.issues, {
+        code: 'docs-status-mismatch',
+        affectedPath: 'AGENTS.md',
+      });
+
+      expect(issue.source).toBe('docs-status');
+      expect(issue.suggestedActionLabel).toBe('Review docs status');
+      expect(issue).toMatchObject({
+        level: 'error',
+        code: 'docs-status-mismatch',
+      });
+    } finally {
+      cleanup();
+    }
+  });
+
+  it('adds context-layer audit metadata with the affected document path', () => {
+    const { dir, userHome, codexHome, cleanup } = setup();
+    try {
+      installProjectLayer({ basePath: dir, tools: resolveProjectLayerTools(['codex']) });
+      const contextIndex = readProjectLayerContextIndex(dir);
+      if (contextIndex === null) {
+        throw new Error('context index missing in test setup');
+      }
+      writeFileSync(
+        join(dir, '.ai-ops/context-layer.json'),
+        serializeProjectLayerContextIndex({
+          ...contextIndex,
+          documents: contextIndex.documents.map((document) =>
+            document.path === 'AGENTS.md' ? { ...document, owner: 'project' } : document,
+          ),
+        }),
+        'utf-8',
+      );
+
+      const snapshot = buildSnapshotForTest({ dir, userHome, codexHome });
+      const issue = findIssue(snapshot.project.audit.issues, {
+        code: 'context-document-mismatch',
+        affectedPath: 'AGENTS.md',
+      });
+
+      expect(issue.source).toBe('context-layer');
+      expect(issue.suggestedActionLabel).toBe('Review context index');
+      expect(issue.message).toContain('context owner');
+    } finally {
+      cleanup();
+    }
+  });
+
+  it('adds file-system audit metadata for missing files', () => {
+    const { dir, userHome, codexHome, cleanup } = setup();
+    try {
+      installProjectLayer({ basePath: dir, tools: resolveProjectLayerTools(['codex']) });
+      rmSync(join(dir, 'AGENTS.md'));
+
+      const snapshot = buildSnapshotForTest({ dir, userHome, codexHome });
+      const issue = findIssue(snapshot.project.audit.issues, {
+        code: 'missing-file',
+        affectedPath: 'AGENTS.md',
+      });
+
+      expect(issue.source).toBe('file-system');
+      expect(issue.suggestedActionLabel).toBe('Review missing file');
+    } finally {
+      cleanup();
+    }
+  });
+
+  it('adds frontmatter audit metadata for invalid documents', () => {
+    const { dir, userHome, codexHome, cleanup } = setup();
+    try {
+      installProjectLayer({ basePath: dir, tools: resolveProjectLayerTools(['codex']) });
+      writeFileSync(join(dir, 'AGENTS.md'), '# Broken document\n', 'utf-8');
+
+      const snapshot = buildSnapshotForTest({ dir, userHome, codexHome });
+      const issue = findIssue(snapshot.project.audit.issues, {
+        code: 'invalid-frontmatter',
+        affectedPath: 'AGENTS.md',
+      });
+
+      expect(issue.source).toBe('frontmatter');
+      expect(issue.suggestedActionLabel).toBe('Review frontmatter');
+    } finally {
+      cleanup();
+    }
+  });
+
+  it('normalizes unknown audit issue codes without crashing', () => {
+    expect(
+      normalizeStudioProjectIssue({
+        level: 'warning',
+        code: 'custom-audit-code',
+        message: 'custom warning',
+      }),
+    ).toEqual({
+      level: 'warning',
+      code: 'custom-audit-code',
+      message: 'custom warning',
+      source: 'unknown',
+      affectedPath: null,
+      suggestedActionLabel: null,
+    });
   });
 
   it('keeps snapshot generation alive for invalid project sources', () => {

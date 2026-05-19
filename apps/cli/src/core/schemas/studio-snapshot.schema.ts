@@ -37,11 +37,25 @@ export const StudioSourceStateSchema = z
   })
   .strict();
 
+export const StudioProjectIssueSourceSchema = z.union([
+  z.literal('manifest'),
+  z.literal('context-layer'),
+  z.literal('docs-status'),
+  z.literal('frontmatter'),
+  z.literal('managed-section'),
+  z.literal('file-system'),
+  z.literal('source-hash'),
+  z.literal('unknown'),
+]);
+
 export const StudioProjectIssueSchema = z
   .object({
     level: z.union([z.literal('error'), z.literal('warning')]),
     code: z.string().min(1),
     message: z.string().min(1),
+    source: StudioProjectIssueSourceSchema,
+    affectedPath: nullableString,
+    suggestedActionLabel: nullableString,
   })
   .strict();
 
@@ -190,6 +204,7 @@ export const StudioSnapshotSchema = z
 export type StudioProjectState = z.infer<typeof StudioProjectStateSchema>;
 export type StudioProjectDocumentProvenance = z.infer<typeof StudioProjectDocumentProvenanceSchema>;
 export type StudioSourceState = z.infer<typeof StudioSourceStateSchema>;
+export type StudioProjectIssueSource = z.infer<typeof StudioProjectIssueSourceSchema>;
 export type StudioProjectIssue = z.infer<typeof StudioProjectIssueSchema>;
 export type StudioProjectDocument = z.infer<typeof StudioProjectDocumentSchema>;
 export type StudioProjectSnapshot = z.infer<typeof StudioProjectSnapshotSchema>;

@@ -6,17 +6,20 @@ describe('studio shell store', () => {
     useStudioShellStore.setState({
       selectedView: 'overview',
       selectedDocumentPath: null,
+      selectedAuditIssueId: null,
       sidebarCollapsed: false,
     });
   });
 
-  it('tracks selected view and document only as local shell state', () => {
+  it('tracks selected view, document, and audit issue only as local shell state', () => {
     useStudioShellStore.getState().setSelectedView('context-graph');
     useStudioShellStore.getState().setSelectedDocumentPath('docs/agent/workflow.md');
+    useStudioShellStore.getState().setSelectedAuditIssueId('0:error:missing-file:file-system:AGENTS.md');
 
     const state = useStudioShellStore.getState();
     expect(state.selectedView).toBe('context-graph');
     expect(state.selectedDocumentPath).toBe('docs/agent/workflow.md');
+    expect(state.selectedAuditIssueId).toBe('0:error:missing-file:file-system:AGENTS.md');
     expect(state).not.toHaveProperty('snapshot');
     expect(state).not.toHaveProperty('project');
     expect(state).not.toHaveProperty('runtime');
@@ -28,8 +31,10 @@ describe('studio shell store', () => {
     const state = useStudioShellStore.getState();
     expect(state.sidebarCollapsed).toBe(true);
     expect(Object.keys(state).sort()).toEqual([
+      'selectedAuditIssueId',
       'selectedDocumentPath',
       'selectedView',
+      'setSelectedAuditIssueId',
       'setSelectedDocumentPath',
       'setSelectedView',
       'sidebarCollapsed',
