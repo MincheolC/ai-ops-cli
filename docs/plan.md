@@ -52,7 +52,6 @@ User/global runtime
 - `docs/agent/rules/doc-update-rules.md`
 - `docs/agent/rules/stop-rules.md`
 - `docs/agent/checks/impact-checklist.md`
-- `docs/agent/checks/review-checklist.md`
 - `docs/agent/maps/codebase-map.md`
 - `docs/business/business-rules.md`
 - `docs/docs-status.md`
@@ -115,7 +114,7 @@ update_when:
 
 | 상태       | 의미                                         | 기본 적용 문서                      |
 | ---------- | -------------------------------------------- | ----------------------------------- |
-| `Active`   | 에이전트가 판단 근거로 사용할 수 있음        | workflow, rules, checks             |
+| `Active`   | 에이전트가 판단 근거로 사용할 수 있음        | workflow, rules, impact checklist   |
 | `Reserved` | 자리만 만들었고 근거로 쓰면 안 됨            | codebase-map, business-rules, specs |
 | `Draft`    | 작성 중이며 사용 전 검토가 필요함            | 프로젝트가 직접 작성 중인 확장 문서 |
 | `Archived` | 과거 기록이며 현재 운영 판단에 사용하지 않음 | deprecated 문서                     |

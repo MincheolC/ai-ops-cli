@@ -9,43 +9,39 @@
   "managed_files": [
     {
       "path": "AGENTS.md",
-      "sourceHash": "f57bbf"
+      "sourceHash": "66b3c3"
     },
     {
       "path": "CLAUDE.md",
-      "sourceHash": "f57bbf"
+      "sourceHash": "66b3c3"
     },
     {
       "path": "docs/agent/checks/impact-checklist.md",
-      "sourceHash": "f57bbf"
-    },
-    {
-      "path": "docs/agent/checks/review-checklist.md",
-      "sourceHash": "f57bbf"
+      "sourceHash": "66b3c3"
     },
     {
       "path": "docs/agent/rules/00-agent-baseline.md",
-      "sourceHash": "f57bbf"
+      "sourceHash": "66b3c3"
     },
     {
       "path": "docs/agent/rules/doc-update-rules.md",
-      "sourceHash": "f57bbf"
+      "sourceHash": "66b3c3"
     },
     {
       "path": "docs/agent/rules/routing-rules.md",
-      "sourceHash": "f57bbf"
+      "sourceHash": "66b3c3"
     },
     {
       "path": "docs/agent/rules/stop-rules.md",
-      "sourceHash": "f57bbf"
+      "sourceHash": "66b3c3"
     },
     {
       "path": "docs/agent/workflow.md",
-      "sourceHash": "f57bbf"
+      "sourceHash": "66b3c3"
     },
     {
       "path": "GEMINI.md",
-      "sourceHash": "f57bbf"
+      "sourceHash": "66b3c3"
     }
   ],
   "project_files": [
@@ -61,13 +57,13 @@
     },
     {
       "path": "docs/docs-status.md",
-      "templateHash": "6105c0",
+      "templateHash": "99f482",
       "created": true
     }
   ],
   "packs": [],
   "settings": {},
-  "sourceHash": "f57bbf",
-  "cliVersion": "1.1.1",
-  "generatedAt": "2026-05-18T14:27:41.415Z"
+  "sourceHash": "66b3c3",
+  "cliVersion": "1.2.0",
+  "generatedAt": "2026-05-19T03:23:37.905Z"
 }

@@ -13,7 +13,7 @@
         "operating_layer_changes"
       ],
       "path": "AGENTS.md",
-      "contentHash": "b98f8c"
+      "contentHash": "bdeaee"
     },
     {
       "status": "Active",
@@ -46,27 +46,14 @@
       "layer": "agent",
       "owner": "ai-ops",
       "read_when": [
+        "change_impact_analysis",
         "before_finish"
       ],
       "update_when": [
-        "checklist_changes"
+        "impact_policy_changes"
       ],
       "path": "docs/agent/checks/impact-checklist.md",
-      "contentHash": "7ddaf5"
-    },
-    {
-      "status": "Active",
-      "layer": "agent",
-      "owner": "ai-ops",
-      "read_when": [
-        "review",
-        "before_finish"
-      ],
-      "update_when": [
-        "checklist_changes"
-      ],
-      "path": "docs/agent/checks/review-checklist.md",
-      "contentHash": "5a03cd"
+      "contentHash": "4b785a"
     },
     {
       "status": "Reserved",
@@ -145,7 +132,7 @@
         "workflow_changes"
       ],
       "path": "docs/agent/workflow.md",
-      "contentHash": "f5ffcb"
+      "contentHash": "b0e7fd"
     },
     {
       "status": "Reserved",
@@ -171,8 +158,8 @@
         "document_status_changes"
       ],
       "path": "docs/docs-status.md",
-      "contentHash": "6105c0"
+      "contentHash": "99f482"
     }
   ],
-  "generatedAt": "2026-05-18T14:27:41.415Z"
+  "generatedAt": "2026-05-19T03:23:37.905Z"
 }

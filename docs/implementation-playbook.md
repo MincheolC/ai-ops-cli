@@ -59,7 +59,6 @@ rg -n -- '--project|project scope skill|\.ai-ops-manifest\.json|root `specs/`|pr
 - `docs/agent/rules/doc-update-rules.md`
 - `docs/agent/rules/stop-rules.md`
 - `docs/agent/checks/impact-checklist.md`
-- `docs/agent/checks/review-checklist.md`
 - `docs/agent/maps/codebase-map.md`
 - `docs/business/business-rules.md`
 - `docs/docs-status.md`
@@ -256,6 +255,8 @@ node apps/cli/dist/bin/index.js uninstall --yes
 node apps/cli/dist/bin/index.js init --tool codex --tool gemini --tool claude-code
 node apps/cli/dist/bin/index.js audit
 ```
+
+내부 lifecycle 검증에서는 계획 의도와 실제 diff, 테스트가 잡지 못하는 런타임 회귀 위험, create-only/managed section 보존 정책, manifest/context-layer/실제 파일 상태 일치, 변경 범위에 직접적인 검증 명령을 함께 확인한다.
 
 이 repo의 최종 project layer:
 

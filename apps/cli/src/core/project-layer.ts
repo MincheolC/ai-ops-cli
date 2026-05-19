@@ -121,7 +121,6 @@ const TEMPLATE_PATHS = [
   'docs/agent/rules/doc-update-rules.md',
   'docs/agent/rules/stop-rules.md',
   'docs/agent/checks/impact-checklist.md',
-  'docs/agent/checks/review-checklist.md',
   'docs/agent/maps/codebase-map.md',
   'docs/business/business-rules.md',
   'docs/docs-status.md',

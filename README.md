@@ -61,7 +61,7 @@ In the new model, the project repo receives these operating documents and state 
 - `docs/agent/rules/00-agent-baseline.md`
 - `docs/agent/workflow.md`
 - `docs/agent/rules/*`
-- `docs/agent/checks/*`
+- `docs/agent/checks/impact-checklist.md`
 - `docs/agent/maps/codebase-map.md`
 - `docs/business/business-rules.md`
 - `docs/docs-status.md`
@@ -74,7 +74,7 @@ In the new model, the project repo receives these operating documents and state 
 
 ### What does `ai-ops update` overwrite?
 
-`AGENTS.md`, `GEMINI.md`, `CLAUDE.md`, `docs/agent/rules/*`, `docs/agent/checks/*`, and `docs/agent/workflow.md` are ai-ops managed documents. In these files, the region from `<!-- ai-ops:start -->` through `<!-- ai-ops:end -->` is CLI template content. `ai-ops update` reapplies the current CLI template to that region. User edits inside that region are not preserved across update.
+`AGENTS.md`, `GEMINI.md`, `CLAUDE.md`, `docs/agent/rules/*`, `docs/agent/checks/impact-checklist.md`, and `docs/agent/workflow.md` are ai-ops managed documents. In these files, the region from `<!-- ai-ops:start -->` through `<!-- ai-ops:end -->` is CLI template content. `ai-ops update` reapplies the current CLI template to that region. User edits inside that region are not preserved across update.
 
 `.ai-ops/manifest.json` and `.ai-ops/context-layer.json` are also not direct-edit files. They are CLI state files for installation state and document indexing.
 

@@ -34,7 +34,7 @@ hook이 전달한 Project root가 이 검토의 유일한 프로젝트 기준이
    - `docs/docs-status.md`
    - `.ai-ops/context-layer.json`
    - `docs/agent/rules/*`
-   - `docs/agent/checks/*`
+   - `docs/agent/checks/impact-checklist.md`
 5. context layer 파일이 없으면 absent로 기록하고, 다른 repo에서 대체 근거를 찾지 않는다.
 6. 이미 있는 규칙이면 `already-covered`로 보고하고 새 승격 후보로 만들지 않는다.
 7. 새 후보가 있으면 `core`, `project-local`, `global` 중 하나 이상으로 분류하고, 추천 위치를 제안한다.
