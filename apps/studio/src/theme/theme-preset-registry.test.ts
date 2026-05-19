@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -40,6 +41,9 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const studioRoot = join(__dirname, '../../');
 
 const resolveStudioPath = (relativePath: string): string => join(studioRoot, relativePath);
+
+const computeSha256Checksum = (relativePath: string): string =>
+  `sha256:${createHash('sha256').update(readFileSync(resolveStudioPath(relativePath))).digest('hex')}`;
 
 const isSourceManifest = (value: unknown): value is SourceManifest => {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
@@ -91,8 +95,21 @@ describe('studio theme preset registry', () => {
       expect(manifest.sourceSlug).toBe(preset.sourceSlug);
       expect(manifest.command).toBe(`npx getdesign@latest add ${preset.sourceSlug}`);
       expect(manifest.importedFiles).toEqual(['DESIGN.md']);
-      expect(manifest.generatedFiles.some((file) => file.path === 'DESIGN.md' && file.included)).toBe(true);
-      expect(manifest.generatedFiles.every((file) => file.checksum.startsWith('sha256:'))).toBe(true);
+
+      const designFile = manifest.generatedFiles.find((file) => file.path === 'DESIGN.md' && file.included);
+      if (designFile === undefined) {
+        throw new Error(`Missing included DESIGN.md entry: ${preset.id}`);
+      }
+
+      for (const file of manifest.generatedFiles) {
+        expect(file.checksum, `${preset.id}.${file.path}`).toMatch(/^sha256:[0-9a-f]{64}$/);
+
+        if (file.included) {
+          expect(file.checksum, `${preset.id}.${file.path}`).toBe(
+            computeSha256Checksum(join(dirname(preset.sourceManifestPath), file.path)),
+          );
+        }
+      }
     }
   });
 
