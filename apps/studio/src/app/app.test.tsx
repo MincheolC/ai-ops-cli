@@ -387,6 +387,41 @@ describe('App shell', () => {
     expect(screen.queryByText('package.json')).not.toBeInTheDocument();
   });
 
+  it('keeps the full v1 navigation graph-scoped, separated, and read-only', async () => {
+    const user = userEvent.setup();
+    render(<App queryClient={createTestQueryClient()} snapshotLoader={async () => snapshot} />);
+
+    expect(await screen.findByText('Project read surface / overview')).toBeInTheDocument();
+    expect(screen.queryByText('package.json')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /Context Graph/ }));
+    expect(screen.getByText('Project read surface / context-graph')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /AGENTS\.md/ })).toBeInTheDocument();
+    expect(screen.queryByText('package.json')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /Documents/ }));
+    expect(screen.getByText('Project read surface / documents')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Agent Operating Layer', level: 1 })).toBeInTheDocument();
+    expect(screen.queryByText('package.json')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /Audit/ }));
+    expect(screen.getByText('Project read surface / audit')).toBeInTheDocument();
+    expect(screen.getByText('Diagnostics')).toBeInTheDocument();
+
+    for (const view of ['Integrations', 'Skills', 'Subagents', 'Hooks']) {
+      await user.click(screen.getByRole('button', { name: new RegExp(view) }));
+      expect(screen.getByText(new RegExp(`Runtime read surface / ${view.toLowerCase()}`))).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /^Install$/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /^Update$/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /^Uninstall$/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /^Edit$/i })).not.toBeInTheDocument();
+    }
+
+    await user.click(screen.getByRole('button', { name: /Appearance/ }));
+    expect(screen.getByText('Settings / appearance')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Theme preset', level: 2 })).toBeInTheDocument();
+  });
+
   it('renders context graph grouping and opens graph rows in Documents', async () => {
     const user = userEvent.setup();
     render(<App queryClient={createTestQueryClient()} snapshotLoader={async () => snapshot} />);

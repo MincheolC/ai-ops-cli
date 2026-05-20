@@ -12,7 +12,7 @@
     "format": "prettier --write \"**/*.{ts,json,yaml,md}\"",
     "lint": "eslint .",
     "check": "npm run lint && npm run test",
-    "studio:dev": "npm run build --workspace=apps/cli && AI_OPS_STUDIO_PROJECT_ROOT=\"$PWD\" npm run tauri:dev --workspace=apps/studio",
+    "studio:dev": "npm run build --workspace=apps/cli && AI_OPS_STUDIO_PROJECT_ROOT=\"${AI_OPS_STUDIO_PROJECT_ROOT:-$PWD}\" npm run tauri:dev --workspace=apps/studio",
     "studio:build": "npm run build --workspace=apps/cli && npm run build --workspace=apps/studio && npm run tauri:check --workspace=apps/studio",
     "studio:test": "npm run test --workspace=apps/studio",
     "publish:patch": "./scripts/publish.sh patch",

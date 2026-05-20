@@ -30,19 +30,23 @@ flowchart LR
 ```text
 .
 ├── apps/
-│   └── cli/
-│       ├── src/
-│       │   ├── bin/        # CLI entrypoint
-│       │   ├── commands/   # init/diff/audit/update/uninstall/skill/subagent/pack/integration/hooks
-│       │   ├── core/       # schemas, loader, renderer, registry, project layer, integrations
-│       │   └── lib/        # integration component and legacy helper utilities
-│       ├── data/
-│       │   ├── context-layer/ # project operating layer templates
-│       │   ├── integrations/  # integration catalog data
-│       │   ├── skills/        # skill component source/catalog data
-│       │   ├── packs/         # optional project pack source data
-│       │   └── subagents/     # subagent component source/catalog data
-│       └── README.md          # package-level operating layer and integrations contract
+│   ├── cli/
+│   │   ├── src/
+│   │   │   ├── bin/        # CLI entrypoint
+│   │   │   ├── commands/   # init/diff/audit/update/uninstall/skill/subagent/pack/integration/hooks
+│   │   │   ├── core/       # schemas, loader, renderer, registry, project layer, integrations
+│   │   │   └── lib/        # integration component and legacy helper utilities
+│   │   ├── data/
+│   │   │   ├── context-layer/ # project operating layer templates
+│   │   │   ├── integrations/  # integration catalog data
+│   │   │   ├── skills/        # skill component source/catalog data
+│   │   │   ├── packs/         # optional project pack source data
+│   │   │   └── subagents/     # subagent component source/catalog data
+│   │   └── README.md          # package-level operating layer and integrations contract
+│   └── studio/
+│       ├── src/               # Tauri/Vite React read-only Studio UI
+│       ├── src-tauri/         # desktop shell and snapshot bridge
+│       └── README.md          # Studio Dev MVP guide
 ├── docs/
 │   ├── plan.md                     # master blueprint
 │   ├── implementation-playbook.md  # phase execution guide
@@ -198,6 +202,31 @@ npm install
 npm run build
 npm test
 ```
+
+## Studio Dev MVP
+
+`apps/studio` is the desktop Dev MVP for `ai-ops Studio`: a project-bound, read-only control plane for the operating-layer graph in `.ai-ops/context-layer.json`. It previews project operating documents, audit diagnostics, runtime integration/component status, and app-local appearance preferences without adding a repo-wide explorer or mutation controls.
+
+Launch against the current repository:
+
+```bash
+npm run studio:dev
+```
+
+Launch against another project root:
+
+```bash
+AI_OPS_STUDIO_PROJECT_ROOT=/path/to/project npm run studio:dev
+```
+
+Build and test the Studio workspace:
+
+```bash
+npm run studio:test
+npm run studio:build
+```
+
+See [apps/studio/README.md](./apps/studio/README.md) for scope, boundaries, and smoke scenarios.
 
 Common commands:
 
