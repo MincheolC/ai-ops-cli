@@ -27,7 +27,7 @@ export const requiredStudioThemeTokenKeys = [
   'chart5',
 ] as const satisfies readonly (keyof StudioThemeTokenMap)[];
 
-const createPreset = (preset: StudioThemePreset): StudioThemePreset => preset;
+const createPreset = <const T extends StudioThemePreset>(preset: T): T => preset;
 
 export const studioThemePresets = [
   createPreset({
@@ -506,6 +506,13 @@ export const studioThemePresets = [
 ] as const satisfies readonly StudioThemePreset[];
 
 export type StudioThemePresetId = (typeof studioThemePresets)[number]['id'];
+
+export const studioThemePresetIds = studioThemePresets.map((preset) => preset.id);
+
+const studioThemePresetIdSet: ReadonlySet<string> = new Set(studioThemePresetIds);
+
+export const isStudioThemePresetId = (value: unknown): value is StudioThemePresetId =>
+  typeof value === 'string' && studioThemePresetIdSet.has(value);
 
 export const getStudioThemePreset = (id: StudioThemePresetId): StudioThemePreset =>
   studioThemePresets.find((preset) => preset.id === id) ?? studioThemePresets[0];

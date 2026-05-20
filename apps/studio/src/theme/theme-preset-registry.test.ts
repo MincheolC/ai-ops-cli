@@ -3,10 +3,8 @@ import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import {
-  requiredStudioThemeTokenKeys,
-  studioThemePresets,
-} from './theme-preset-registry.js';
+import { requiredStudioThemeTokenKeys, studioThemePresets } from './theme-preset-registry.js';
+import type { StudioThemePresetId } from './theme-preset-registry.js';
 import type { StudioThemePreset } from './theme-preset.types.js';
 
 type SourceManifest = {
@@ -43,7 +41,17 @@ const studioRoot = join(__dirname, '../../');
 const resolveStudioPath = (relativePath: string): string => join(studioRoot, relativePath);
 
 const computeSha256Checksum = (relativePath: string): string =>
-  `sha256:${createHash('sha256').update(readFileSync(resolveStudioPath(relativePath))).digest('hex')}`;
+  `sha256:${createHash('sha256')
+    .update(readFileSync(resolveStudioPath(relativePath)))
+    .digest('hex')}`;
+
+const acceptPresetId = (presetId: StudioThemePresetId): StudioThemePresetId => presetId;
+
+const _assertPresetIdType = (): void => {
+  acceptPresetId('x-ai');
+  // @ts-expect-error invalid preset ids must not be accepted at compile time.
+  acceptPresetId('unknown');
+};
 
 const isSourceManifest = (value: unknown): value is SourceManifest => {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
@@ -83,6 +91,10 @@ describe('studio theme preset registry', () => {
   it('normalizes dotted source slugs into stable preset ids', () => {
     expect(studioThemePresets.find((preset) => preset.sourceSlug === 'x.ai')?.id).toBe('x-ai');
     expect(studioThemePresets.find((preset) => preset.sourceSlug === 'linear.app')?.id).toBe('linear-app');
+  });
+
+  it('exposes preset ids as a literal union instead of string', () => {
+    expect(acceptPresetId('x-ai')).toBe('x-ai');
   });
 
   it('keeps generated design docs and source manifests on disk', () => {

@@ -3,12 +3,14 @@ import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { App } from './app';
+import { DEFAULT_STUDIO_APPEARANCE, useStudioAppearanceStore } from '@/stores/studio-appearance-store';
 import { useStudioShellStore } from '@/stores/studio-shell-store';
 import {
   STUDIO_SNAPSHOT_KIND,
   STUDIO_SNAPSHOT_SCHEMA_VERSION,
   type StudioSnapshotEnvelope,
 } from '@/studio-bridge/studio-snapshot';
+import { studioThemePresets } from '@/theme/theme-preset-registry';
 
 const createTestQueryClient = (): QueryClient =>
   new QueryClient({
@@ -363,6 +365,7 @@ describe('App shell', () => {
   });
 
   beforeEach(() => {
+    window.localStorage.clear();
     useStudioShellStore.setState({
       selectedView: 'overview',
       selectedDocumentPath: null,
@@ -370,6 +373,7 @@ describe('App shell', () => {
       selectedRuntimeItemId: null,
       sidebarCollapsed: false,
     });
+    useStudioAppearanceStore.setState(DEFAULT_STUDIO_APPEARANCE);
   });
 
   it('renders project overview summary from a mocked snapshot', async () => {
@@ -545,6 +549,58 @@ describe('App shell', () => {
 
     expect(screen.getByText('pc hook inactive')).toBeInTheDocument();
     expect(screen.getByText('hook parse failure')).toBeInTheDocument();
+  });
+
+  it('opens Appearance as a real settings view with all bundled presets', async () => {
+    const user = userEvent.setup();
+    render(<App queryClient={createTestQueryClient()} snapshotLoader={async () => snapshot} />);
+
+    await user.click(await screen.findByRole('button', { name: /Appearance/ }));
+
+    expect(screen.getByRole('heading', { name: 'Theme preset', level: 2 })).toBeInTheDocument();
+    expect(screen.getByText(`${studioThemePresets.length} presets`)).toBeInTheDocument();
+    for (const preset of studioThemePresets) {
+      expect(screen.getAllByText(preset.label).length).toBeGreaterThan(0);
+    }
+    expect(screen.queryByText('Appearance controls stay in a later phase.')).not.toBeInTheDocument();
+  });
+
+  it('updates the top bar theme badge after preset changes', async () => {
+    const user = userEvent.setup();
+    render(<App queryClient={createTestQueryClient()} snapshotLoader={async () => snapshot} />);
+
+    expect(await screen.findByTestId('theme-badge')).toHaveTextContent('Cohere / light');
+
+    await user.click(screen.getByRole('button', { name: /Appearance/ }));
+    await user.click(screen.getByRole('button', { name: /x\.ai/ }));
+
+    expect(screen.getByTestId('theme-badge')).toHaveTextContent('x.ai / dark');
+  });
+
+  it('persists Appearance preferences through localStorage and rerender', async () => {
+    const user = userEvent.setup();
+    const rendered = render(<App queryClient={createTestQueryClient()} snapshotLoader={async () => snapshot} />);
+
+    await user.click(await screen.findByRole('button', { name: /Appearance/ }));
+    await user.click(screen.getByRole('button', { name: /Linear/ }));
+
+    expect(window.localStorage.getItem('ai-ops-studio.appearance.v1')).toContain('linear-app');
+
+    rendered.rerender(<App queryClient={createTestQueryClient()} snapshotLoader={async () => snapshot} />);
+
+    expect(await screen.findByTestId('theme-badge')).toHaveTextContent('Linear / dark');
+  });
+
+  it('does not add runtime mutation controls to Appearance', async () => {
+    const user = userEvent.setup();
+    render(<App queryClient={createTestQueryClient()} snapshotLoader={async () => snapshot} />);
+
+    await user.click(await screen.findByRole('button', { name: /Appearance/ }));
+
+    expect(screen.queryByRole('button', { name: /^Install$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Update$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Uninstall$/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Edit$/i })).not.toBeInTheDocument();
   });
 
   it('renders string Tauri command failures without replacing the message', async () => {

@@ -1,4 +1,4 @@
-import { Boxes, Cable, CircleDashed, FileWarning, SearchCode, ShieldCheck, Wrench } from 'lucide-react';
+import { Boxes, Cable, CircleDashed, FileWarning, SearchCode, Wrench } from 'lucide-react';
 import type { ComponentProps, ReactNode } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';

@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState, type ReactNode } from 'react';
+import { StudioAppearanceProvider } from '@/theme/theme-application';
 
 export const createStudioQueryClient = (): QueryClient =>
   new QueryClient({
@@ -21,5 +22,9 @@ export function StudioProviders({ children, queryClient }: StudioProvidersProps)
   const [defaultQueryClient] = useState(() => createStudioQueryClient());
   const client = queryClient ?? defaultQueryClient;
 
-  return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={client}>
+      <StudioAppearanceProvider>{children}</StudioAppearanceProvider>
+    </QueryClientProvider>
+  );
 }

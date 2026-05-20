@@ -31,6 +31,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
+import { AppearanceView } from './appearance-view';
 import { StudioProviders } from './providers';
 import { RuntimeView } from './runtime-view';
 import {
@@ -58,6 +59,8 @@ import {
   type StudioProjectView,
   type StudioRuntimeView,
 } from '@/stores/studio-shell-store';
+import { useStudioAppearanceStore } from '@/stores/studio-appearance-store';
+import { getStudioThemePreset } from '@/theme/theme-preset-registry';
 
 type SnapshotLoader = () => Promise<StudioSnapshotEnvelope>;
 
@@ -74,7 +77,6 @@ type NavDefinition = {
   readonly id: StudioProjectView;
   readonly label: string;
   readonly icon: LucideIcon;
-  readonly placeholder?: boolean;
 };
 
 type NavGroup = {
@@ -113,17 +115,9 @@ const NAV_GROUPS: readonly NavGroup[] = [
   },
   {
     label: 'Settings',
-    items: [{ id: 'appearance', label: 'Appearance', icon: Palette, placeholder: true }],
+    items: [{ id: 'appearance', label: 'Appearance', icon: Palette }],
   },
 ];
-
-type PlaceholderProjectView = Extract<StudioProjectView, 'appearance'>;
-
-const PLACEHOLDER_VIEWS = ['appearance'] as const satisfies readonly PlaceholderProjectView[];
-
-const PLACEHOLDER_COPY: Record<PlaceholderProjectView, string> = {
-  appearance: 'Appearance controls stay in a later phase.',
-};
 
 const getStringField = (record: Record<string, unknown>, key: string, fallback: string): string => {
   const value = record[key];
@@ -227,9 +221,6 @@ const getHashMatchLabel = (document: ProjectDocumentView): string => {
   return 'Not checked';
 };
 
-const isPlaceholderView = (view: StudioProjectView): view is PlaceholderProjectView =>
-  PLACEHOLDER_VIEWS.includes(view as PlaceholderProjectView);
-
 const isRuntimeView = (view: StudioProjectView): view is StudioRuntimeView =>
   STUDIO_RUNTIME_VIEWS.includes(view as StudioRuntimeView);
 
@@ -269,6 +260,8 @@ function StudioShell({ snapshotLoader }: StudioShellProps): React.JSX.Element {
   const setSelectedRuntimeItemId = useStudioShellStore((state) => state.setSelectedRuntimeItemId);
   const sidebarCollapsed = useStudioShellStore((state) => state.sidebarCollapsed);
   const toggleSidebar = useStudioShellStore((state) => state.toggleSidebar);
+  const selectedThemePresetId = useStudioAppearanceStore((state) => state.presetId);
+  const selectedThemePreset = getStudioThemePreset(selectedThemePresetId);
   const snapshotQuery = useQuery({
     queryKey: ['studio-snapshot'],
     queryFn: snapshotLoader,
@@ -290,7 +283,7 @@ function StudioShell({ snapshotLoader }: StudioShellProps): React.JSX.Element {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <header className="flex min-h-16 items-center gap-4 border-b bg-card px-4 md:px-6">
+      <header className="studio-shell-header flex min-h-16 items-center gap-4 border-b bg-card px-4 md:px-6">
         <Button
           type="button"
           variant="ghost"
@@ -307,6 +300,10 @@ function StudioShell({ snapshotLoader }: StudioShellProps): React.JSX.Element {
           <p className="truncate text-sm font-semibold md:text-base">{projectRoot}</p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
+          <Badge variant="outline" className="hidden lg:inline-flex" data-testid="theme-badge">
+            <Palette />
+            {selectedThemePreset.label} / {selectedThemePreset.preview.appearance}
+          </Badge>
           <Badge variant={getProjectStateBadge(projectState)} className="hidden sm:inline-flex">
             {projectState}
           </Badge>
@@ -330,7 +327,7 @@ function StudioShell({ snapshotLoader }: StudioShellProps): React.JSX.Element {
 
       <div className="grid min-h-[calc(100vh-4rem)] grid-cols-1 md:grid-cols-[auto_1fr]">
         <aside className={cn('border-b bg-card md:border-b-0 md:border-r', sidebarCollapsed ? 'md:w-16' : 'md:w-64')}>
-          <nav className="shell-scrollbar flex gap-2 overflow-x-auto p-3 md:h-[calc(100vh-4rem)] md:flex-col md:overflow-y-auto md:p-4">
+          <nav className="studio-shell-nav shell-scrollbar flex gap-2 overflow-x-auto p-3 md:h-[calc(100vh-4rem)] md:flex-col md:overflow-y-auto md:p-4">
             {NAV_GROUPS.map((group) => (
               <div key={group.label} className="flex shrink-0 gap-2 md:flex-col">
                 {!sidebarCollapsed && (
@@ -358,9 +355,6 @@ function StudioShell({ snapshotLoader }: StudioShellProps): React.JSX.Element {
                     >
                       <Icon className="size-4 shrink-0" />
                       {!sidebarCollapsed && <span className="truncate">{item.label}</span>}
-                      {!sidebarCollapsed && item.placeholder === true && (
-                        <span className="ml-auto rounded-sm border px-1.5 py-0.5 text-[10px] leading-none">Later</span>
-                      )}
                     </button>
                   );
                 })}
@@ -370,7 +364,7 @@ function StudioShell({ snapshotLoader }: StudioShellProps): React.JSX.Element {
           </nav>
         </aside>
 
-        <main className="shell-scrollbar overflow-y-auto p-4 md:p-6">
+        <main className="studio-shell-main shell-scrollbar overflow-y-auto p-4 md:p-6">
           {snapshotQuery.isLoading && <SnapshotLoadingState />}
           {snapshotQuery.isError && (
             <SnapshotErrorState
@@ -408,7 +402,7 @@ function SnapshotLoadingState(): React.JSX.Element {
       </div>
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {['overview', 'graph', 'documents', 'inspector'].map((item) => (
-          <div key={item} className="rounded-lg border bg-card p-4">
+          <div key={item} className="studio-density-card rounded-lg border bg-card p-4">
             <Skeleton className="mb-4 h-3 w-24" />
             <Skeleton className="mb-2 h-8 w-20" />
             <Skeleton className="h-3 w-40 max-w-full" />
@@ -426,7 +420,7 @@ type SnapshotErrorStateProps = {
 
 function SnapshotErrorState({ errorDisplay, onRetry }: SnapshotErrorStateProps): React.JSX.Element {
   return (
-    <section className="max-w-3xl rounded-lg border bg-card p-5 shadow-sm">
+    <section className="studio-density-card max-w-3xl rounded-lg border bg-card p-5 shadow-sm">
       <div className="flex items-start gap-3">
         <div className="rounded-md bg-destructive/10 p-2 text-destructive">
           <AlertCircle className="size-5" />
@@ -507,7 +501,7 @@ function ProjectSurface({
           onSelectRuntimeItem={onSelectRuntimeItem}
         />
       )}
-      {isPlaceholderView(selectedView) && <PlaceholderView view={selectedView} />}
+      {selectedView === 'appearance' && <AppearanceView />}
     </div>
   );
 }
@@ -520,12 +514,12 @@ type ProjectSurfaceHeaderProps = {
 function ProjectSurfaceHeader({ viewModel, selectedView }: ProjectSurfaceHeaderProps): React.JSX.Element {
   const surfaceLabel = isRuntimeView(selectedView)
     ? 'Runtime read surface'
-    : isPlaceholderView(selectedView)
+    : selectedView === 'appearance'
       ? 'Settings'
       : 'Project read surface';
 
   return (
-    <section className="rounded-lg border bg-card p-5 shadow-sm">
+    <section className="studio-density-card rounded-lg border bg-card p-5 shadow-sm">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
           <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -570,7 +564,7 @@ function ProjectStateNotice({ state }: ProjectStateNoticeProps): React.JSX.Eleme
       : 'Snapshot loaded with recoverable project issues.';
 
   return (
-    <section className="rounded-lg border bg-card p-4 shadow-sm">
+    <section className="studio-density-card rounded-lg border bg-card p-4 shadow-sm">
       <div className="flex items-start gap-3">
         <div className="rounded-md bg-secondary p-2 text-secondary-foreground">
           <TriangleAlert className="size-4" />
@@ -625,7 +619,7 @@ function OverviewView({ viewModel }: OverviewViewProps): React.JSX.Element {
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(280px,380px)]">
-        <div className="rounded-lg border bg-card p-5 shadow-sm">
+        <div className="studio-density-card rounded-lg border bg-card p-5 shadow-sm">
           <div className="mb-4 flex items-center gap-2">
             <FolderKanban className="size-4 text-primary" />
             <h2 className="text-base font-semibold">Source file health</h2>
@@ -637,7 +631,7 @@ function OverviewView({ viewModel }: OverviewViewProps): React.JSX.Element {
           </dl>
         </div>
 
-        <div className="rounded-lg border bg-card p-5 shadow-sm">
+        <div className="studio-density-card rounded-lg border bg-card p-5 shadow-sm">
           <div className="mb-4 flex items-center gap-2">
             <ShieldAlert className="size-4 text-accent" />
             <h2 className="text-base font-semibold">Audit summary</h2>
@@ -735,7 +729,7 @@ function AuditSummaryGrid({ viewModel }: AuditSummaryGridProps): React.JSX.Eleme
 
 function AuditClearState(): React.JSX.Element {
   return (
-    <section className="rounded-lg border bg-card p-8 text-center shadow-sm">
+    <section className="studio-density-card rounded-lg border bg-card p-8 text-center shadow-sm">
       <ShieldCheck className="mx-auto size-8 text-primary" />
       <h2 className="mt-3 text-base font-semibold">Audit clear</h2>
       <p className="mx-auto mt-2 max-w-lg text-sm text-muted-foreground">Snapshot audit has no errors or warnings.</p>
@@ -751,7 +745,7 @@ type AuditIssueGroupsProps = {
 
 function AuditIssueGroups({ groups, selectedIssueId, onSelectIssue }: AuditIssueGroupsProps): React.JSX.Element {
   return (
-    <section className="rounded-lg border bg-card p-4 shadow-sm">
+    <section className="studio-density-card rounded-lg border bg-card p-4 shadow-sm">
       <div className="mb-4 flex items-center gap-2">
         <ShieldAlert className="size-4 text-primary" />
         <h2 className="text-base font-semibold">Diagnostics</h2>
@@ -810,7 +804,7 @@ function AuditIssueDetails({ issue, documents, onOpenDocument }: AuditIssueDetai
 
   if (issue === null) {
     return (
-      <aside className="rounded-lg border bg-card p-5 shadow-sm">
+      <aside className="studio-density-card rounded-lg border bg-card p-5 shadow-sm">
         <div className="flex items-start gap-3">
           <div className="rounded-md bg-muted p-2 text-muted-foreground">
             <CircleDashed className="size-5" />
@@ -825,7 +819,7 @@ function AuditIssueDetails({ issue, documents, onOpenDocument }: AuditIssueDetai
   }
 
   return (
-    <aside className="rounded-lg border bg-card p-5 shadow-sm">
+    <aside className="studio-density-card rounded-lg border bg-card p-5 shadow-sm">
       <div className="mb-4 flex items-center gap-2">
         <ShieldCheck className="size-4 text-primary" />
         <h2 className="text-base font-semibold">Issue details</h2>
@@ -875,7 +869,7 @@ type MetricCardProps = {
 
 function MetricCard({ label, value, helper, testId }: MetricCardProps): React.JSX.Element {
   return (
-    <div className="rounded-lg border bg-card p-4 shadow-sm">
+    <div className="studio-density-card rounded-lg border bg-card p-4 shadow-sm">
       <p className="text-xs font-medium text-muted-foreground">{label}</p>
       <p data-testid={testId} className="mt-2 truncate text-2xl font-semibold">
         {value}
@@ -928,7 +922,7 @@ type CountPanelProps = {
 
 function CountPanel({ title, counts, emptyLabel = 'No documents' }: CountPanelProps): React.JSX.Element {
   return (
-    <section className="rounded-lg border bg-card p-5 shadow-sm">
+    <section className="studio-density-card rounded-lg border bg-card p-5 shadow-sm">
       <div className="mb-4 flex items-center gap-2">
         <CircleDashed className="size-4 text-primary" />
         <h2 className="text-base font-semibold">{title}</h2>
@@ -962,7 +956,7 @@ function ContextGraphView({ viewModel, onOpenDocument }: ContextGraphViewProps):
   return (
     <section className="space-y-4">
       {viewModel.graph.map((statusGroup) => (
-        <div key={statusGroup.status} className="rounded-lg border bg-card p-5 shadow-sm">
+        <div key={statusGroup.status} className="studio-density-card rounded-lg border bg-card p-5 shadow-sm">
           <div className="mb-4 flex flex-wrap items-center gap-2">
             <Badge variant={getStatusBadgeVariant(statusGroup.status)}>{statusGroup.status}</Badge>
             <span className="font-mono text-xs text-muted-foreground">{statusGroup.count} documents</span>
@@ -1045,7 +1039,7 @@ type DocumentListProps = {
 
 function DocumentList({ documents, selectedPath, onSelectDocument }: DocumentListProps): React.JSX.Element {
   return (
-    <aside className="rounded-lg border bg-card p-3 shadow-sm">
+    <aside className="studio-density-card rounded-lg border bg-card p-3 shadow-sm">
       <div className="mb-3 flex items-center gap-2 px-1">
         <BookOpenText className="size-4 text-primary" />
         <h2 className="text-sm font-semibold">Documents</h2>
@@ -1128,7 +1122,7 @@ function DocumentInspector({ document }: DocumentInspectorProps): React.JSX.Elem
   ].filter((warning): warning is string => warning !== null);
 
   return (
-    <aside className="rounded-lg border bg-card p-5 shadow-sm">
+    <aside className="studio-density-card rounded-lg border bg-card p-5 shadow-sm">
       <div className="mb-4 flex items-center gap-2">
         <ShieldCheck className="size-4 text-primary" />
         <h2 className="text-base font-semibold">Inspector</h2>
@@ -1202,30 +1196,10 @@ function TokenList({ values }: TokenListProps): React.JSX.Element {
 
 function ContextLayerEmptyState(): React.JSX.Element {
   return (
-    <section className="rounded-lg border bg-card p-8 text-center shadow-sm">
+    <section className="studio-density-card rounded-lg border bg-card p-8 text-center shadow-sm">
       <Archive className="mx-auto size-8 text-muted-foreground" />
       <h2 className="mt-3 text-base font-semibold">No context-layer documents</h2>
       <p className="mx-auto mt-2 max-w-lg text-sm text-muted-foreground">Snapshot document set is empty.</p>
-    </section>
-  );
-}
-
-type PlaceholderViewProps = {
-  readonly view: PlaceholderProjectView;
-};
-
-function PlaceholderView({ view }: PlaceholderViewProps): React.JSX.Element {
-  return (
-    <section className="rounded-lg border bg-card p-8 shadow-sm">
-      <div className="flex items-start gap-3">
-        <div className="rounded-md bg-muted p-2 text-muted-foreground">
-          <CircleDashed className="size-5" />
-        </div>
-        <div>
-          <h2 className="text-base font-semibold">{view}</h2>
-          <p className="mt-1 text-sm text-muted-foreground">{PLACEHOLDER_COPY[view]}</p>
-        </div>
-      </div>
     </section>
   );
 }
