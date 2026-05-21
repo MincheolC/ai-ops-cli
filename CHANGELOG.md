@@ -5,6 +5,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.5.1] - 2026-05-22
+
 ### Added
 
 - `docs(agent-layer)`: `Reference-Backed Implementation` workflow rule을 추가해 reference 문서의 핵심 제약을 acceptance condition, test fixture, smoke command로 고정하도록 안내

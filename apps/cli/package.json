@@ -1,6 +1,6 @@
 {
   "name": "ai-ops-cli",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "description": "CLI for AI agent operating layers and global runtime integrations",
   "license": "MIT",
   "repository": {
