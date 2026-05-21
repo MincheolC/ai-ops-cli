@@ -5,6 +5,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-05-22
+
+### Added
+
+- `feat(project-layer)`: `docs/agent/project-rules/*.md` project-owned agent rule discovery를 추가하고, `update`/`diff`/`audit`/Studio snapshot이 manifest, context-layer, docs-status와 함께 추적하도록 지원
+
 ### Fixed
 
 - `fix(codex-permissions)`: `safe-local` generated Codex 0.130.0-compatible permission profile TOML using `:project_roots` and `none` so `~/.codex/config.toml` loads without `FilesystemPermissionToml` errors
