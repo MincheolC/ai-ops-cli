@@ -5,6 +5,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- `fix(codex-permissions)`: `safe-local` generated Codex 0.130.0-compatible permission profile TOML using `:project_roots` and `none` so `~/.codex/config.toml` loads without `FilesystemPermissionToml` errors
+
 ## [1.4.1] - 2026-05-21
 
 ### Added

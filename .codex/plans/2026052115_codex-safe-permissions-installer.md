@@ -15,7 +15,7 @@ v2 목표는 세 가지다.
 - `config.toml` 관리를 permission profile 중심으로 변경한다.
   - `default_permissions = "ai-ops-safe-local"`과 `[permissions.ai-ops-safe-local]` managed block을 user-level `~/.codex/config.toml`에 upsert한다.
   - profile은 `:minimal = "read"`, `~/.personal-project-contexts = "write"`, `${AI_OPS_HOME ?? HOME}/.ai-ops/context-promotion = "write"`를 부여한다.
-  - `[permissions.ai-ops-safe-local.filesystem.":workspace_roots"]`는 `"." = "write"`, `".git" = "read"`, `".codex" = "read"`, `".codex/plans" = "write"`, `"**/*.env" = "deny"`로 둔다.
+  - `[permissions.ai-ops-safe-local.filesystem.":project_roots"]`는 `"." = "write"`, `".git" = "read"`, `".codex" = "read"`, `".codex/plans" = "write"`, `"**/*.env" = "none"`으로 둔다.
   - `[permissions.ai-ops-safe-local.network] enabled = false`로 시작한다.
   - user-owned `sandbox_mode`/`sandbox_workspace_write`가 있으면 profile이 무시되므로 conflict로 fail-closed한다.
   - 기존 ai-ops v1 managed `sandbox_mode`/`writable_roots` block만 있으면 제거하고 v2 profile block으로 교체한다.

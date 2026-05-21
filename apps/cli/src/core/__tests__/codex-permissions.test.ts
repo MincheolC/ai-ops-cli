@@ -103,13 +103,13 @@ describe('Codex safe permissions profile config', () => {
       expect(config).toContain('":minimal" = "read"');
       expect(config).toContain(`"${paths.personalContextRoot}" = "write"`);
       expect(config).toContain(`"${join(paths.userBasePath, '.ai-ops', 'context-promotion')}" = "write"`);
-      expect(config).toContain('[permissions.ai-ops-safe-local.filesystem.":workspace_roots"]');
+      expect(config).toContain('[permissions.ai-ops-safe-local.filesystem.":project_roots"]');
       expect(config).toContain('glob_scan_max_depth = 3');
       expect(config).toContain('"." = "write"');
       expect(config).toContain('".git" = "read"');
       expect(config).toContain('".codex" = "read"');
       expect(config).toContain('".codex/plans" = "write"');
-      expect(config).toContain('"**/*.env" = "deny"');
+      expect(config).toContain('"**/*.env" = "none"');
       expect(config).toContain('enabled = false');
       expect(config).not.toContain('sandbox_mode');
       expect(existsSync(resolveCodexRulesPath(paths.codexHomePath))).toBe(false);

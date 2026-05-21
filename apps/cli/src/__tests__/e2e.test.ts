@@ -28,6 +28,8 @@ describe('documentation contracts', () => {
       expect(raw).toContain('approval_policy="never"');
       expect(raw).toContain('default_permissions=":read-only"');
       expect(raw).toContain('default_permissions="ai-worker-impl"');
+      expect(raw).toContain('":project_roots"');
+      expect(raw).toContain('"**/*.env"="none"');
       expect(raw).toContain('.codex/plans');
       expect(raw).toContain('.git');
       expect(raw).toContain('orchestrator');
@@ -286,10 +288,11 @@ describe.skipIf(!distExists)('codex permissions subprocess', () => {
       expect(configRaw).toContain('[permissions.ai-ops-safe-local]');
       expect(configRaw).toContain(`"${join(home, '.personal-project-contexts')}" = "write"`);
       expect(configRaw).toContain(`"${join(userHome, '.ai-ops/context-promotion')}" = "write"`);
+      expect(configRaw).toContain('[permissions.ai-ops-safe-local.filesystem.":project_roots"]');
       expect(configRaw).toContain('glob_scan_max_depth = 3');
       expect(configRaw).toContain('".codex/plans" = "write"');
       expect(configRaw).toContain('".git" = "read"');
-      expect(configRaw).toContain('"**/*.env" = "deny"');
+      expect(configRaw).toContain('"**/*.env" = "none"');
       expect(configRaw).not.toContain('sandbox_mode');
       expect(existsSync(join(codexHome, 'rules/default.rules'))).toBe(false);
       expect(existsSync(join(codexHome, 'hooks.json'))).toBe(false);
