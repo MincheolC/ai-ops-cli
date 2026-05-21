@@ -282,7 +282,15 @@ describe('context promotion PostToolUse hook', () => {
       expect(before?.reason).toContain('Do not inspect other repositories');
       expect(before?.reason).toContain('Do not search the web');
       expect(before?.reason).toContain('report them as absent');
+      expect(before?.reason).toContain('review-loop learnings');
+      expect(before?.reason).toContain('git status --short');
+      expect(before?.reason).toContain('git diff --name-only');
+      expect(before?.reason).toContain('git diff --cached --name-only');
+      expect(before?.reason).toContain('git ls-files --others --exclude-standard');
       expect(before?.reason).toContain('git show --stat HEAD');
+      expect(before?.reason).toContain('Active context layer already has the same agent behavior rule');
+      expect(before?.reason).toContain('changeset pollution');
+      expect(before?.reason).toContain('near-miss or discarded candidates');
       expect(before?.hookSpecificOutput.hookEventName).toBe('PostToolUse');
 
       const objectResponse = evaluateContextPromotionPostToolUseHook({
