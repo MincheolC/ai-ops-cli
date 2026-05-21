@@ -16,4 +16,5 @@ export * from './paths.js';
 export * from './context-promotion.js';
 export * from './pc-integration.js';
 export * from './codex-hook.js';
+export * from './codex-permissions.js';
 export * from './tool-use-hook.js';

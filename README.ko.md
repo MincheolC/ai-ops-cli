@@ -109,6 +109,7 @@ Integration component 명령은 `AI_OPS_HOME` 또는 `HOME`이 있어야 실행�
 - task skills
 - subagents
 - Codex hooks
+- Codex safe permissions
 - user-local context-promotion receipts
 
 Integration lifecycle 명령:
@@ -124,6 +125,36 @@ ai-ops integration uninstall pc
 `context-promotion`은 `context-promotion-review` Codex skill, Codex `PostToolUse` hook, user-local receipt workflow를 설치해 `git commit` 이후 재사용 가능한 운영 지식 승격 검토를 돕습니다.
 
 `pc`는 `pc` Codex skill과 Codex `PostToolUse` hook runner를 설치합니다. 성공적인 `git commit` 이후 `~/.personal-project-contexts/`에 matching workspace, active workstream, current repo scope가 준비된 경우에만 Codex가 `$pc:done`으로 이어가게 합니다. 준비되지 않은 repository에는 pc context를 새로 만들지 않습니다.
+
+Codex safe permissions는 `pc`와 `context-promotion-review`가 쓰는 좁은 user-local 작업에서 반복 approval prompt를 줄입니다.
+
+```bash
+ai-ops codex-permissions install safe-local
+ai-ops codex-permissions status safe-local
+ai-ops codex-permissions uninstall safe-local
+```
+
+`safe-local`은 `~/.codex/config.toml`에 `ai-ops-safe-local` user-level Codex permission profile을 upsert합니다. `~/.personal-project-contexts`, `${AI_OPS_HOME:-$HOME}/.ai-ops/context-promotion`, active workspace root 아래 `.codex/plans`에는 write를 허용하고, `.git`은 read-only로 두며 `**/*.env`는 deny합니다. `PermissionRequest` hook이나 command allow rule은 설치하지 않습니다.
+
+ai-coding worker에서는 Codex subprocess를 run-scoped로 실행하고, commit/push/PR 생성은 orchestrator가 담당하게 합니다.
+
+```bash
+codex exec --ignore-user-config --ignore-rules --cd "$WORKTREE" \
+  -c 'approval_policy="never"' \
+  -c 'default_permissions=":read-only"'
+
+codex exec --ignore-user-config --ignore-rules --cd "$WORKTREE" \
+  -c 'approval_policy="never"' \
+  -c 'default_permissions="ai-worker-impl"' \
+  -c 'permissions.ai-worker-impl.filesystem.":minimal"="read"' \
+  -c 'permissions.ai-worker-impl.filesystem.":workspace_roots"."."="write"' \
+  -c 'permissions.ai-worker-impl.filesystem.":workspace_roots".".git"="read"' \
+  -c 'permissions.ai-worker-impl.filesystem.":workspace_roots".".codex/plans"="write"' \
+  -c 'permissions.ai-worker-impl.filesystem.":workspace_roots"."**/*.env"="deny"' \
+  -c 'permissions.ai-worker-impl.network.enabled=false'
+```
+
+각 Codex 실행 후 orchestrator가 HEAD, branch ref, changed-file scope를 검증해야 합니다. Validation command 실행, commit 생성, branch push, `gh pr create --draft` 호출은 Codex가 아니라 orchestrator가 수행합니다.
 
 Integration 소유권은 user/global runtime home 아래 `.ai-ops/integrations-manifest.json`에 기록됩니다. Uninstall은 integration install이 소유한 component만 제거하고, 기존에 수동 설치되어 있던 skill이나 hook은 보존합니다.
 

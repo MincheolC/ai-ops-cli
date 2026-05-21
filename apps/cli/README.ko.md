@@ -162,7 +162,32 @@ ai-ops codex-hook install context-promotion
 ai-ops codex-hook install context-promotion --command "/custom/bin/ai-ops context-promotion hook post-tool-use"
 ai-ops codex-hook status context-promotion
 ai-ops codex-hook uninstall context-promotion
+ai-ops codex-permissions install safe-local
+ai-ops codex-permissions status safe-local
+ai-ops codex-permissions uninstall safe-local
 ```
+
+`safe-local`은 `~/.codex/config.toml`에 `ai-ops-safe-local` user-level Codex permission profile을 관리합니다. `~/.personal-project-contexts`, `${AI_OPS_HOME:-$HOME}/.ai-ops/context-promotion`, active workspace root 아래 `.codex/plans`에는 write를 허용하고, `.git`은 read-only로 두며 `**/*.env`는 deny합니다. `PermissionRequest` hook이나 command allow rule은 설치하지 않습니다.
+
+ai-coding worker에서는 Codex subprocess를 run-scoped로 실행하고, commit/push/PR 생성은 orchestrator가 담당하게 합니다.
+
+```bash
+codex exec --ignore-user-config --ignore-rules --cd "$WORKTREE" \
+  -c 'approval_policy="never"' \
+  -c 'default_permissions=":read-only"'
+
+codex exec --ignore-user-config --ignore-rules --cd "$WORKTREE" \
+  -c 'approval_policy="never"' \
+  -c 'default_permissions="ai-worker-impl"' \
+  -c 'permissions.ai-worker-impl.filesystem.":minimal"="read"' \
+  -c 'permissions.ai-worker-impl.filesystem.":workspace_roots"."."="write"' \
+  -c 'permissions.ai-worker-impl.filesystem.":workspace_roots".".git"="read"' \
+  -c 'permissions.ai-worker-impl.filesystem.":workspace_roots".".codex/plans"="write"' \
+  -c 'permissions.ai-worker-impl.filesystem.":workspace_roots"."**/*.env"="deny"' \
+  -c 'permissions.ai-worker-impl.network.enabled=false'
+```
+
+각 Codex 실행 후 orchestrator가 HEAD, branch ref, changed-file scope를 검증해야 합니다. Validation command 실행, commit 생성, branch push, `gh pr create --draft` 호출은 Codex가 아니라 orchestrator가 수행합니다.
 
 Subagent lifecycle 명령:
 

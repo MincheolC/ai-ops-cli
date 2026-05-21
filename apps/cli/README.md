@@ -162,7 +162,32 @@ ai-ops codex-hook install context-promotion
 ai-ops codex-hook install context-promotion --command "/custom/bin/ai-ops context-promotion hook post-tool-use"
 ai-ops codex-hook status context-promotion
 ai-ops codex-hook uninstall context-promotion
+ai-ops codex-permissions install safe-local
+ai-ops codex-permissions status safe-local
+ai-ops codex-permissions uninstall safe-local
 ```
+
+`safe-local` manages a user-level Codex permission profile named `ai-ops-safe-local` in `~/.codex/config.toml`. It grants write access to `~/.personal-project-contexts`, `${AI_OPS_HOME:-$HOME}/.ai-ops/context-promotion`, and `.codex/plans` under active workspace roots while keeping `.git` read-only and denying `**/*.env`. It does not install `PermissionRequest` hooks or command allow rules.
+
+For an ai-coding worker, keep Codex subprocesses run-scoped and let the orchestrator own commits, pushes, and PR creation:
+
+```bash
+codex exec --ignore-user-config --ignore-rules --cd "$WORKTREE" \
+  -c 'approval_policy="never"' \
+  -c 'default_permissions=":read-only"'
+
+codex exec --ignore-user-config --ignore-rules --cd "$WORKTREE" \
+  -c 'approval_policy="never"' \
+  -c 'default_permissions="ai-worker-impl"' \
+  -c 'permissions.ai-worker-impl.filesystem.":minimal"="read"' \
+  -c 'permissions.ai-worker-impl.filesystem.":workspace_roots"."."="write"' \
+  -c 'permissions.ai-worker-impl.filesystem.":workspace_roots".".git"="read"' \
+  -c 'permissions.ai-worker-impl.filesystem.":workspace_roots".".codex/plans"="write"' \
+  -c 'permissions.ai-worker-impl.filesystem.":workspace_roots"."**/*.env"="deny"' \
+  -c 'permissions.ai-worker-impl.network.enabled=false'
+```
+
+After each Codex run, the orchestrator should verify HEAD, branch refs, and changed-file scope. The orchestrator, not Codex, should run validation commands, create commits, push branches, and call `gh pr create --draft`.
 
 Subagent lifecycle commands:
 

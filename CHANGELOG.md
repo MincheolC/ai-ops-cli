@@ -5,6 +5,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- `feat(codex-permissions)`: `safe-local`을 permission profile 기반으로 전환해 `pc` context repo와 workspace `.codex/plans` write를 허용하고, ai-coding worker용 run-scoped `codex exec` 가이드를 문서화
+
 ## [1.4.0] - 2026-05-21
 
 ### Fixed

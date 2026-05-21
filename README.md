@@ -109,6 +109,7 @@ Maintained runtime surfaces:
 - task skills
 - subagents
 - Codex hooks
+- Codex safe permissions
 - user-local context-promotion receipts
 
 Integration lifecycle commands:
@@ -124,6 +125,36 @@ ai-ops integration uninstall pc
 `context-promotion` installs the `context-promotion-review` Codex skill, a Codex `PostToolUse` hook, and user-local receipt workflow for reusable operating knowledge review after `git commit`.
 
 `pc` installs the `pc` Codex skill and a Codex `PostToolUse` hook runner. After a successful `git commit`, the hook asks Codex to continue into `$pc:done` only when `~/.personal-project-contexts/` already has a matching workspace, active workstream, and current repo scope. It does not create pc context for unprepared repositories.
+
+Codex safe permissions can reduce repeated approval prompts for the narrow user-local work used by `pc` and `context-promotion-review`:
+
+```bash
+ai-ops codex-permissions install safe-local
+ai-ops codex-permissions status safe-local
+ai-ops codex-permissions uninstall safe-local
+```
+
+`safe-local` upserts a user-level Codex permission profile named `ai-ops-safe-local` in `~/.codex/config.toml`. It grants write access to `~/.personal-project-contexts`, `${AI_OPS_HOME:-$HOME}/.ai-ops/context-promotion`, and `.codex/plans` under active workspace roots while keeping `.git` read-only and denying `**/*.env`. It does not install `PermissionRequest` hooks or command allow rules.
+
+For an ai-coding worker, keep Codex subprocesses run-scoped and let the orchestrator own commits, pushes, and PR creation:
+
+```bash
+codex exec --ignore-user-config --ignore-rules --cd "$WORKTREE" \
+  -c 'approval_policy="never"' \
+  -c 'default_permissions=":read-only"'
+
+codex exec --ignore-user-config --ignore-rules --cd "$WORKTREE" \
+  -c 'approval_policy="never"' \
+  -c 'default_permissions="ai-worker-impl"' \
+  -c 'permissions.ai-worker-impl.filesystem.":minimal"="read"' \
+  -c 'permissions.ai-worker-impl.filesystem.":workspace_roots"."."="write"' \
+  -c 'permissions.ai-worker-impl.filesystem.":workspace_roots".".git"="read"' \
+  -c 'permissions.ai-worker-impl.filesystem.":workspace_roots".".codex/plans"="write"' \
+  -c 'permissions.ai-worker-impl.filesystem.":workspace_roots"."**/*.env"="deny"' \
+  -c 'permissions.ai-worker-impl.network.enabled=false'
+```
+
+After each Codex run, the orchestrator should verify HEAD, branch refs, and changed-file scope. The orchestrator, not Codex, should run validation commands, create commits, push branches, and call `gh pr create --draft`.
 
 Integration ownership is recorded in `.ai-ops/integrations-manifest.json` under the user/global runtime home. Uninstall removes only components that the integration install owned; pre-existing manual skill or hook installs are preserved.
 

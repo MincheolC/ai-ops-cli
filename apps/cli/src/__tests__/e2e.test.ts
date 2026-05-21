@@ -6,6 +6,10 @@ import { execFileSync, spawnSync } from 'node:child_process';
 
 const BIN_PATH = new URL('../../dist/bin/index.js', import.meta.url).pathname;
 const PACKAGE_JSON_PATH = new URL('../../package.json', import.meta.url).pathname;
+const ROOT_README_PATH = new URL('../../../../README.md', import.meta.url).pathname;
+const ROOT_README_KO_PATH = new URL('../../../../README.ko.md', import.meta.url).pathname;
+const CLI_README_PATH = new URL('../../README.md', import.meta.url).pathname;
+const CLI_README_KO_PATH = new URL('../../README.ko.md', import.meta.url).pathname;
 
 // dist/ 빌드가 없어도 compiler API 통합 테스트는 실행 가능
 // subprocess 테스트는 dist 존재 시에만 실행
@@ -15,6 +19,21 @@ const setup = () => {
   const dir = mkdtempSync(join(tmpdir(), 'e2e-test-'));
   return { dir, cleanup: () => rmSync(dir, { recursive: true, force: true }) };
 };
+
+describe('documentation contracts', () => {
+  it('documents the run-scoped codex exec worker guidance', () => {
+    for (const readmePath of [ROOT_README_PATH, ROOT_README_KO_PATH, CLI_README_PATH, CLI_README_KO_PATH]) {
+      const raw = readFileSync(readmePath, 'utf-8');
+      expect(raw).toContain('codex exec --ignore-user-config --ignore-rules --cd "$WORKTREE"');
+      expect(raw).toContain('approval_policy="never"');
+      expect(raw).toContain('default_permissions=":read-only"');
+      expect(raw).toContain('default_permissions="ai-worker-impl"');
+      expect(raw).toContain('.codex/plans');
+      expect(raw).toContain('.git');
+      expect(raw).toContain('orchestrator');
+    }
+  });
+});
 
 // ─────────────────────────────────────────────────────────────
 // subprocess: --version / --help (dist 빌드 필요)
@@ -225,6 +244,121 @@ describe.skipIf(!distExists)('codex hook subprocess', () => {
       expect(readFileSync(join(codexHome, 'hooks.json'), 'utf-8')).toContain(`"command": "${customCommand}"`);
     } finally {
       rmSync(userHome, { recursive: true, force: true });
+      rmSync(codexHome, { recursive: true, force: true });
+      cleanup();
+    }
+  });
+});
+
+describe.skipIf(!distExists)('codex permissions subprocess', () => {
+  it('safe-local install/status/uninstall manages Codex permission profile and legacy cleanup', () => {
+    const { dir, cleanup } = setup();
+    const userHome = mkdtempSync(join(tmpdir(), 'ai-ops-home-'));
+    const home = mkdtempSync(join(tmpdir(), 'home-'));
+    const codexHome = mkdtempSync(join(tmpdir(), 'codex-home-'));
+    const env = { ...process.env, AI_OPS_HOME: userHome, HOME: home, CODEX_HOME: codexHome };
+    try {
+      const installResult = spawnSync(process.execPath, [BIN_PATH, 'codex-permissions', 'install', 'safe-local'], {
+        cwd: dir,
+        encoding: 'utf-8',
+        env,
+      });
+      const reinstallResult = spawnSync(process.execPath, [BIN_PATH, 'codex-permissions', 'install', 'safe-local'], {
+        cwd: dir,
+        encoding: 'utf-8',
+        env,
+      });
+      const statusResult = spawnSync(process.execPath, [BIN_PATH, 'codex-permissions', 'status', 'safe-local'], {
+        cwd: dir,
+        encoding: 'utf-8',
+        env,
+      });
+
+      expect(installResult.status).toBe(0);
+      expect(reinstallResult.status).toBe(0);
+      expect(statusResult.status).toBe(0);
+      expect(statusResult.stdout).toContain('config: installed');
+      expect(statusResult.stdout).toContain('rules: installed');
+      expect(statusResult.stdout).toContain('hook: installed');
+
+      const configRaw = readFileSync(join(codexHome, 'config.toml'), 'utf-8');
+      expect(configRaw).toContain('default_permissions = "ai-ops-safe-local"');
+      expect(configRaw).toContain('[permissions.ai-ops-safe-local]');
+      expect(configRaw).toContain(`"${join(home, '.personal-project-contexts')}" = "write"`);
+      expect(configRaw).toContain(`"${join(userHome, '.ai-ops/context-promotion')}" = "write"`);
+      expect(configRaw).toContain('glob_scan_max_depth = 3');
+      expect(configRaw).toContain('".codex/plans" = "write"');
+      expect(configRaw).toContain('".git" = "read"');
+      expect(configRaw).toContain('"**/*.env" = "deny"');
+      expect(configRaw).not.toContain('sandbox_mode');
+      expect(existsSync(join(codexHome, 'rules/default.rules'))).toBe(false);
+      expect(existsSync(join(codexHome, 'hooks.json'))).toBe(false);
+
+      const uninstallResult = spawnSync(process.execPath, [BIN_PATH, 'codex-permissions', 'uninstall', 'safe-local'], {
+        cwd: dir,
+        encoding: 'utf-8',
+        env,
+      });
+      expect(uninstallResult.status).toBe(0);
+      expect(readFileSync(join(codexHome, 'config.toml'), 'utf-8')).not.toContain('ai-ops-safe-local');
+      expect(existsSync(join(dir, '.codex'))).toBe(false);
+      expect(existsSync(join(dir, '.ai-ops'))).toBe(false);
+    } finally {
+      rmSync(userHome, { recursive: true, force: true });
+      rmSync(home, { recursive: true, force: true });
+      rmSync(codexHome, { recursive: true, force: true });
+      cleanup();
+    }
+  });
+
+  it('deprecated safe-local permission-request hook remains a no-op compatibility command', () => {
+    const { dir, cleanup } = setup();
+    const home = mkdtempSync(join(tmpdir(), 'home-'));
+    try {
+      const env = { ...process.env, HOME: home };
+      const result = spawnSync(
+        process.execPath,
+        [BIN_PATH, 'codex-permissions', 'hook', 'permission-request', 'safe-local'],
+        {
+          cwd: dir,
+          encoding: 'utf-8',
+          input: JSON.stringify({
+            hook_event_name: 'PermissionRequest',
+            cwd: dir,
+            tool_name: 'Bash',
+            tool_input: { command: 'git commit -m product-work' },
+          }),
+          env,
+        },
+      );
+
+      expect(result.status).toBe(0);
+      expect(result.stdout.trim()).toBe('');
+    } finally {
+      rmSync(home, { recursive: true, force: true });
+      cleanup();
+    }
+  });
+
+  it('safe-local install exits non-zero when user-owned sandbox config conflicts', () => {
+    const { dir, cleanup } = setup();
+    const home = mkdtempSync(join(tmpdir(), 'home-'));
+    const codexHome = mkdtempSync(join(tmpdir(), 'codex-home-'));
+    const env = { ...process.env, HOME: home, CODEX_HOME: codexHome };
+    try {
+      writeFileSync(join(codexHome, 'config.toml'), 'sandbox_mode = "workspace-write"\n', 'utf-8');
+      const installResult = spawnSync(process.execPath, [BIN_PATH, 'codex-permissions', 'install', 'safe-local'], {
+        cwd: dir,
+        encoding: 'utf-8',
+        env,
+      });
+
+      expect(installResult.status).toBe(1);
+      expect(installResult.stdout).toContain('config: not installed');
+      expect(installResult.stdout).toContain('conflict: sandbox_mode/sandbox_workspace_write is active');
+      expect(readFileSync(join(codexHome, 'config.toml'), 'utf-8')).toBe('sandbox_mode = "workspace-write"\n');
+    } finally {
+      rmSync(home, { recursive: true, force: true });
       rmSync(codexHome, { recursive: true, force: true });
       cleanup();
     }

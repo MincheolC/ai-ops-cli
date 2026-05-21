@@ -41,6 +41,12 @@ import {
   integrationStatusCommand,
   integrationUninstallCommand,
 } from '../commands/integration.js';
+import {
+  codexPermissionsInstallCommand,
+  codexPermissionsPermissionRequestHookCommand,
+  codexPermissionsStatusCommand,
+  codexPermissionsUninstallCommand,
+} from '../commands/codex-permissions.js';
 import { getCliVersion } from '../core/index.js';
 
 const program = new Command();
@@ -222,6 +228,34 @@ codexHookCommand
   .command('uninstall <hookId>')
   .description('Codex hook 제거')
   .action((hookId) => codexHookUninstallCommand(hookId));
+
+const codexPermissionsCommand = program
+  .command('codex-permissions')
+  .description('Codex safe permission 설정 관리');
+
+codexPermissionsCommand
+  .command('install <profile>')
+  .description('Codex safe permission profile 설치')
+  .action((profile) => codexPermissionsInstallCommand(profile));
+
+codexPermissionsCommand
+  .command('status <profile>')
+  .description('Codex safe permission profile 상태 확인')
+  .action((profile) => codexPermissionsStatusCommand(profile));
+
+codexPermissionsCommand
+  .command('uninstall <profile>')
+  .description('Codex safe permission profile 제거')
+  .action((profile) => codexPermissionsUninstallCommand(profile));
+
+const codexPermissionsHookCommand = codexPermissionsCommand
+  .command('hook', { hidden: true })
+  .description('Deprecated Codex permission hook 내부 명령');
+
+codexPermissionsHookCommand
+  .command('permission-request <profile>', { hidden: true })
+  .description('Deprecated no-op Codex PermissionRequest hook entrypoint')
+  .action((profile) => codexPermissionsPermissionRequestHookCommand(profile));
 
 const integrationCommand = program.command('integration').description('user/global runtime integration 설치/조회/제거');
 
