@@ -1,5 +1,5 @@
 <!-- ai-ops:start -->
-<!-- sourceHash: ff653a | generatedAt: 2026-05-21T15:11:30.423Z -->
+<!-- sourceHash: c2028f | generatedAt: 2026-05-21T16:02:14.603Z -->
 
 ---
 status: Active
@@ -34,6 +34,14 @@ update_when:
 - `Reserved` 문서는 자리만 만든 문서이므로 현재 사실로 인용하지 않는다.
 - project-owned 문서가 비어 있거나 stale하면 실제 코드, 설정, schema, runtime 파일을 우선한다.
 - 문서 상태가 애매하면 `docs/docs-status.md`와 각 문서 frontmatter를 함께 확인한다.
+
+## Reference-Backed Implementation
+
+reference 문서에 근거해 구현할 때는 문서의 핵심 제약을 먼저 검증 가능한 acceptance condition으로 바꾼다.
+
+- `must`, `required`, `top-level`, `cannot mix`, `does not compose` 같은 강제 제약은 그냥 읽고 넘어가지 않는다.
+- config, schema, parser, runtime이 직접 해석하는 구조와 permission, sandbox, credential, network, filesystem boundary는 테스트, fixture, smoke command, audit check 중 하나로 고정한다.
+- 문서의 중요한 문장을 테스트 이름으로 바꾼다.
 
 ## 보존 원칙
 

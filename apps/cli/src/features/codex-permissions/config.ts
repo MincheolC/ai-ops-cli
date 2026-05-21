@@ -1,14 +1,37 @@
-import { join } from "node:path";
-import type { CodexSafePermissionPaths, ConfigEditResult } from "./types.js";
-import { CONFIG_CONFLICT_DEFAULT_PERMISSIONS, CONFIG_CONFLICT_EXISTING_PROFILE, CONFIG_CONFLICT_SANDBOX, LEGACY_CONFIG_BLOCK_END, LEGACY_CONFIG_BLOCK_START, LEGACY_WRITABLE_ROOTS_BLOCK_END, LEGACY_WRITABLE_ROOTS_BLOCK_START, PROFILE_BLOCK_END, PROFILE_BLOCK_START, SAFE_LOCAL_CODEX_PERMISSION_NAME } from "./types.js";
-import { findTableRange, hasActiveTable, hasActiveTablePrefix, quoteTomlString, readActiveStringAssignment, replaceOrAppendBlock, stripBlock } from "./file-utils.js";
+import { join } from 'node:path';
+import type { CodexSafePermissionPaths, ConfigEditResult } from './types.js';
+import {
+  CONFIG_CONFLICT_DEFAULT_PERMISSIONS,
+  CONFIG_CONFLICT_EXISTING_PROFILE,
+  CONFIG_CONFLICT_SANDBOX,
+  LEGACY_CONFIG_BLOCK_END,
+  LEGACY_CONFIG_BLOCK_START,
+  LEGACY_WRITABLE_ROOTS_BLOCK_END,
+  LEGACY_WRITABLE_ROOTS_BLOCK_START,
+  PROFILE_BLOCK_END,
+  PROFILE_BLOCK_START,
+  SAFE_LOCAL_CODEX_PERMISSION_NAME,
+} from './types.js';
+import {
+  findTableRange,
+  hasActiveTable,
+  hasActiveTablePrefix,
+  insertBlockBeforeFirstTable,
+  quoteTomlString,
+  readActiveStringAssignment,
+  readTopLevelStringAssignment,
+  replaceOrAppendBlock,
+  stripBlock,
+} from './file-utils.js';
 
 // ----- config.toml management -----
 
 const buildPermissionProfileBlock = (paths: CodexSafePermissionPaths, includeDefaultPermissions: boolean): string =>
   [
     PROFILE_BLOCK_START,
-    ...(includeDefaultPermissions ? [`default_permissions = ${quoteTomlString(SAFE_LOCAL_CODEX_PERMISSION_NAME)}`, ''] : []),
+    ...(includeDefaultPermissions
+      ? [`default_permissions = ${quoteTomlString(SAFE_LOCAL_CODEX_PERMISSION_NAME)}`, '']
+      : []),
     `[permissions.${SAFE_LOCAL_CODEX_PERMISSION_NAME}]`,
     '',
     `[permissions.${SAFE_LOCAL_CODEX_PERMISSION_NAME}.filesystem]`,
@@ -65,7 +88,11 @@ const removeLegacyManagedSandboxWorkspaceWriteTable = (content: string): string 
   }
 
   const nextLines = [...lines.slice(0, tableRange.start), ...lines.slice(tableRange.end)];
-  return `${nextLines.join('\n').replace(/\n{3,}/g, '\n\n').trimStart().trimEnd()}\n`;
+  return `${nextLines
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trimStart()
+    .trimEnd()}\n`;
 };
 
 const cleanupLegacySandboxConfig = (content: string): string =>
@@ -74,9 +101,12 @@ const cleanupLegacySandboxConfig = (content: string): string =>
 export const editConfigForInstall = (content: string, paths: CodexSafePermissionPaths): ConfigEditResult => {
   const withoutCurrentProfileBlock = stripBlock(content, PROFILE_BLOCK_START, PROFILE_BLOCK_END);
   const withoutLegacy = cleanupLegacySandboxConfig(withoutCurrentProfileBlock);
-  const activeDefaultPermissions = readActiveStringAssignment(withoutLegacy, 'default_permissions');
+  const activeDefaultPermissions = readTopLevelStringAssignment(withoutLegacy, 'default_permissions');
 
-  if (readActiveStringAssignment(withoutLegacy, 'sandbox_mode') || hasActiveTable(withoutLegacy, 'sandbox_workspace_write')) {
+  if (
+    readActiveStringAssignment(withoutLegacy, 'sandbox_mode') ||
+    hasActiveTable(withoutLegacy, 'sandbox_workspace_write')
+  ) {
     return {
       content,
       installed: false,
@@ -103,12 +133,11 @@ export const editConfigForInstall = (content: string, paths: CodexSafePermission
     };
   }
 
-  const nextContent = replaceOrAppendBlock(
-    withoutLegacy,
-    PROFILE_BLOCK_START,
-    PROFILE_BLOCK_END,
-    buildPermissionProfileBlock(paths, activeDefaultPermissions !== SAFE_LOCAL_CODEX_PERMISSION_NAME),
-  );
+  const shouldWriteDefaultPermissions = activeDefaultPermissions !== SAFE_LOCAL_CODEX_PERMISSION_NAME;
+  const profileBlock = buildPermissionProfileBlock(paths, shouldWriteDefaultPermissions);
+  const nextContent = shouldWriteDefaultPermissions
+    ? insertBlockBeforeFirstTable(withoutLegacy, profileBlock)
+    : replaceOrAppendBlock(withoutLegacy, PROFILE_BLOCK_START, PROFILE_BLOCK_END, profileBlock);
 
   return {
     content: nextContent,

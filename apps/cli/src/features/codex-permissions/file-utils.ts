@@ -1,6 +1,6 @@
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname } from "node:path";
-import type { CodexSafePermissionFileStatus } from "./types.js";
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname } from 'node:path';
+import type { CodexSafePermissionFileStatus } from './types.js';
 
 // ----- shared helpers -----
 
@@ -54,7 +54,10 @@ const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\
 
 export const stripBlock = (content: string, start: string, end: string): string => {
   const pattern = new RegExp(`\\n?${escapeRegExp(start)}[\\s\\S]*?${escapeRegExp(end)}\\n?`, 'g');
-  return content.replace(pattern, '\n').replace(/\n{3,}/g, '\n\n').trimStart();
+  return content
+    .replace(pattern, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trimStart();
 };
 
 export const hasBlock = (content: string, start: string, end: string): boolean => {
@@ -72,12 +75,49 @@ export const replaceOrAppendBlock = (content: string, start: string, end: string
   return `${content}${separator}${cleanBlock}`;
 };
 
+export const insertBlockBeforeFirstTable = (content: string, block: string): string => {
+  const cleanBlock = block.endsWith('\n') ? block : `${block}\n`;
+  if (content.trim().length === 0) {
+    return cleanBlock;
+  }
+
+  const lines = content.split('\n');
+  const firstTableIndex = lines.findIndex(
+    (line) => !line.trimStart().startsWith('#') && /^\s*\[[^\]]+\]\s*(?:#.*)?$/.test(line),
+  );
+  if (firstTableIndex < 0) {
+    const separator = content.endsWith('\n') ? '\n' : '\n\n';
+    return `${content}${separator}${cleanBlock}`;
+  }
+
+  const before = lines.slice(0, firstTableIndex).join('\n').trimEnd();
+  const after = lines.slice(firstTableIndex).join('\n').trimStart();
+  return `${[before, cleanBlock.trimEnd(), after].filter((section) => section.length > 0).join('\n\n')}\n`;
+};
+
 export const quoteTomlString = (value: string): string => JSON.stringify(value);
 
 export const readActiveStringAssignment = (content: string, key: string): string | null => {
   for (const line of content.split('\n')) {
     if (line.trimStart().startsWith('#')) {
       continue;
+    }
+    const match = new RegExp(`^\\s*${key}\\s*=\\s*["']([^"']+)["']`).exec(line);
+    if (match) {
+      return match[1];
+    }
+  }
+  return null;
+};
+
+export const readTopLevelStringAssignment = (content: string, key: string): string | null => {
+  for (const line of content.split('\n')) {
+    const trimmed = line.trim();
+    if (trimmed.length === 0 || trimmed.startsWith('#')) {
+      continue;
+    }
+    if (/^\[[^\]]+\]\s*(?:#.*)?$/.test(trimmed)) {
+      return null;
     }
     const match = new RegExp(`^\\s*${key}\\s*=\\s*["']([^"']+)["']`).exec(line);
     if (match) {

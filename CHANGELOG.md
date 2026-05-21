@@ -5,6 +5,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- `docs(agent-layer)`: `Reference-Backed Implementation` workflow rule을 추가해 reference 문서의 핵심 제약을 acceptance condition, test fixture, smoke command로 고정하도록 안내
+
+### Fixed
+
+- `fix(codex-permissions)`: `safe-local` now writes `default_permissions` before the first TOML table so existing Codex config tables do not scope the selector under another table.
+
 ## [1.5.0] - 2026-05-22
 
 ### Added

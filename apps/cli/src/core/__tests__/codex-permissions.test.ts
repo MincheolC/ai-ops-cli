@@ -119,6 +119,42 @@ describe('Codex safe permissions profile config', () => {
     }
   });
 
+  it('keeps default_permissions top-level when config already has tables', () => {
+    const paths = setup();
+    try {
+      mkdirSync(paths.codexHomePath, { recursive: true });
+      writeFileSync(
+        resolveCodexConfigPath(paths.codexHomePath),
+        [
+          'model = "gpt-5.5"',
+          '',
+          '[profiles.safe-local]',
+          `default_permissions = "${SAFE_LOCAL_CODEX_PERMISSION_NAME}"`,
+          'model = "gpt-5.5"',
+          '',
+        ].join('\n'),
+        'utf-8',
+      );
+
+      const result = installCodexSafePermissions(paths);
+      const config = readFileSync(resolveCodexConfigPath(paths.codexHomePath), 'utf-8');
+
+      expect(result.config.conflict).toBe(null);
+      expect(result.config.changed).toBe(true);
+      expect(config.indexOf('model = "gpt-5.5"')).toBeLessThan(
+        config.indexOf(`default_permissions = "${SAFE_LOCAL_CODEX_PERMISSION_NAME}"`),
+      );
+      expect(config.indexOf(`default_permissions = "${SAFE_LOCAL_CODEX_PERMISSION_NAME}"`)).toBeLessThan(
+        config.indexOf('[permissions.ai-ops-safe-local]'),
+      );
+      expect(config.indexOf('[permissions.ai-ops-safe-local.network]')).toBeLessThan(
+        config.indexOf('[profiles.safe-local]'),
+      );
+    } finally {
+      paths.cleanup();
+    }
+  });
+
   it('fails closed for user-owned sandbox settings and different default permissions', () => {
     const sandboxMode = setup();
     const sandboxWorkspace = setup();
