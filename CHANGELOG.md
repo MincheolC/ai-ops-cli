@@ -5,9 +5,19 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.4.1] - 2026-05-21
+
 ### Added
 
 - `feat(codex-permissions)`: `safe-local`을 permission profile 기반으로 전환해 `pc` context repo와 workspace `.codex/plans` write를 허용하고, ai-coding worker용 run-scoped `codex exec` 가이드를 문서화
+- `docs(agent-layer)`: baseline과 impact checklist에 파일 크기, Rule of Three, 책임 경계 기반 리팩토링 검토 신호를 soft trigger로 추가
+
+### Changed
+
+- `refactor(cli)`: `apps/cli/src`를 `commands/core/lib` 중심에서 `features/*`, `shared`, `cli/program.ts` 중심 구조로 재배치하고 CLI command/options/JSON contract는 유지
+- `refactor(project-layer)`: project-layer lifecycle, audit, docs-status, pack source/loading, command shell을 feature-local 모듈로 분리
+- `refactor(studio)`: Studio snapshot 생성을 project snapshot, runtime snapshot, issue normalization/source state 단위로 분리
+- `refactor(runtime-assets)`: skills, subagents, integrations, Codex hooks, permissions, context-promotion, pc 로직을 각 feature 내부로 이동하고 `core`는 schema/facade 중심으로 축소
 
 ## [1.4.0] - 2026-05-21
 
