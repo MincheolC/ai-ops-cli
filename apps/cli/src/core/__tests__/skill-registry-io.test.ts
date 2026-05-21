@@ -8,7 +8,7 @@ import {
   resolveSkillRegistryPath,
   readSkillRegistry,
   writeSkillRegistry,
-} from '../skill-registry-io.js';
+} from '../../features/skills/registry-io.js';
 import type { SkillRegistry } from '../schemas/index.js';
 
 describe('skill-registry-io', () => {

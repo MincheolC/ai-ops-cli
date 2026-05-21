@@ -3,18 +3,17 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, 
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import {
-  buildStudioSnapshot,
   installProjectLayer,
-  normalizeStudioProjectIssue,
   parseProjectLayerDocument,
   readProjectLayerContextIndex,
   resolveProjectLayerTools,
   serializeProjectLayerContextIndex,
-  writeIntegrationManifest,
-  writeSkillRegistry,
-  writeSubagentManifest,
-} from '../index.js';
-import type { StudioProjectIssue } from '../index.js';
+} from '../../features/project-layer/index.js';
+import { writeIntegrationManifest } from '../../features/integrations/manifest-io.js';
+import { writeSkillRegistry } from '../../features/skills/registry-io.js';
+import { writeSubagentManifest } from '../../features/subagents/manifest-io.js';
+import { buildStudioSnapshot, normalizeStudioProjectIssue } from '../../features/studio/snapshot.js';
+import type { StudioProjectIssue } from '../schemas/index.js';
 
 const GENERATED_AT = '2026-05-19T06:00:00.000Z';
 

@@ -13,7 +13,7 @@ import {
   resolveProjectLayerTools,
   uninstallProjectLayer,
   updateProjectLayer,
-} from '../project-layer.js';
+} from '../../features/project-layer/index.js';
 import type { ProjectLayerManifest } from '../schemas/index.js';
 
 const setup = (): { dir: string; cleanup: () => void } => {
@@ -96,6 +96,18 @@ describe('project operating layer lifecycle', () => {
       );
       expect(readProjectFile(dir, 'docs/docs-status.md')).toContain(
         '| docs/business/terminology.md | Reserved | project |',
+      );
+      expect(readProjectFile(dir, 'docs/agent/rules/00-agent-baseline.md')).toContain(
+        '## 유지보수/리팩토링 기준',
+      );
+      expect(readProjectFile(dir, 'docs/agent/rules/00-agent-baseline.md')).toContain(
+        'production TypeScript 파일이 600줄을 넘으면',
+      );
+      expect(readProjectFile(dir, 'docs/agent/checks/impact-checklist.md')).toContain(
+        'touched production file이 250줄을 넘는가?',
+      );
+      expect(readProjectFile(dir, 'docs/agent/checks/impact-checklist.md')).toContain(
+        '같은 패턴이 세 번째 등장했는가?',
       );
       expect(readProjectLayerContextIndex(dir)?.documents.map((document) => document.path)).toContain(
         'docs/agent/rules/00-agent-baseline.md',

@@ -10,7 +10,7 @@ import {
   resolveCodexRulesPath,
   SAFE_LOCAL_CODEX_PERMISSION_NAME,
   uninstallCodexSafePermissions,
-} from '../codex-permissions.js';
+} from '../../features/codex-permissions/core.js';
 
 const setup = (): {
   codexHomePath: string;

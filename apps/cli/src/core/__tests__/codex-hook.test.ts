@@ -14,7 +14,7 @@ import {
   resolveCodexHooksPath,
   uninstallContextPromotionHook,
   uninstallCodexHook,
-} from '../codex-hook.js';
+} from '../../features/codex-hooks/core.js';
 
 const setup = (): { dir: string; hooksPath: string; cleanup: () => void } => {
   const dir = mkdtempSync(join(tmpdir(), 'codex-hook-test-'));

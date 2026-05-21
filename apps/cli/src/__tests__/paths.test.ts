@@ -10,7 +10,7 @@ import {
   resolveIntegrationCatalogPath,
   resolveBasePath,
   resolveUserBasePath,
-} from '../lib/paths.js';
+} from '../shared/command-paths.js';
 
 const ORIGINAL_AI_OPS_HOME = process.env.AI_OPS_HOME;
 const ORIGINAL_HOME = process.env.HOME;

@@ -4,7 +4,7 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse } from 'yaml';
 import { z } from 'zod';
-import { parseMarkdownFrontmatter } from '../../frontmatter.js';
+import { parseMarkdownFrontmatter } from '../../../shared/markdown/frontmatter.js';
 import { SkillCatalogSchema } from '../skill-catalog.schema.js';
 import { SkillFrontmatterSchema } from '../skill.schema.js';
 

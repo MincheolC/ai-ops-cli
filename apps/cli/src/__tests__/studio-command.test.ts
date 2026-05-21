@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { studioSnapshotCommand } from '../commands/studio.js';
+import { studioSnapshotCommand } from '../features/studio/commands.js';
 
 const setup = (): { dir: string; userHome: string; cleanup: () => void } => {
   const dir = mkdtempSync(join(tmpdir(), 'studio-command-project-'));

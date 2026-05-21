@@ -6,8 +6,8 @@ import {
   resolveInstalledSubagentPaths,
   resolveRequestedSubagentTools,
   upsertInstalledSubagent,
-} from '../lib/subagent-state.js';
-import type { InstalledSubagent } from '@/core/index.js';
+} from '../features/subagents/state.js';
+import type { InstalledSubagent } from '../core/schemas/index.js';
 
 const installedSubagent: InstalledSubagent = {
   id: 'security-gate',

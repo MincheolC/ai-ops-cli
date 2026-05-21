@@ -10,8 +10,8 @@ import {
   resolveProjectLayerTools,
   uninstallProjectLayerPack,
   updateProjectLayerPack,
-} from '../index.js';
-import { COMPILER_DATA_DIR } from '../paths.js';
+} from '../../features/project-layer/index.js';
+import { COMPILER_DATA_DIR } from '../../shared/paths.js';
 
 const setup = (): { dir: string; cleanup: () => void } => {
   const dir = mkdtempSync(join(tmpdir(), 'project-layer-pack-test-'));

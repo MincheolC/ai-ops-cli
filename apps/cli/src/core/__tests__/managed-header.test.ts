@@ -6,7 +6,7 @@ import {
   hasAiOpsSection,
   stripAiOpsSection,
   replaceAiOpsSection,
-} from '../managed-header.js';
+} from '../../features/project-layer/managed-header.js';
 
 const META = { sourceHash: 'a1b2c3', generatedAt: '2026-02-27T00:00:00.000Z' };
 

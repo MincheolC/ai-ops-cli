@@ -5,11 +5,13 @@ import { describe, expect, it } from 'vitest';
 import {
   INTEGRATION_COMPONENT_TYPE,
   INTEGRATION_ID,
+} from '../schemas/index.js';
+import {
   findInstalledIntegration,
   readIntegrationManifest,
   resolveIntegrationManifestPath,
   writeUserIntegrationState,
-} from '../index.js';
+} from '../../features/integrations/manifest-io.js';
 
 describe('integration manifest IO', () => {
   it('writes, upserts, and removes user-local integration ownership state', () => {

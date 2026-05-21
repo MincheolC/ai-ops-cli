@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { loadAllSkills, loadAllIntegrations, loadIntegrationCatalog, loadSkillCatalog } from '../loader.js';
+import { loadAllSkills, loadAllIntegrations, loadIntegrationCatalog, loadSkillCatalog } from '../../shared/catalog-loader.js';
 import { INTEGRATION_COMPONENT_TYPE } from '../schemas/index.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));

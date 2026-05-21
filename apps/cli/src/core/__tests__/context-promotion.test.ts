@@ -15,7 +15,7 @@ import {
   resolveContextPromotion,
   resolveContextPromotionReceiptIndexPath,
   upsertContextPromotionReceipt,
-} from '../context-promotion.js';
+} from '../../features/context-promotion/core.js';
 
 const TEST_COMMIT_HASH = '0123456789abcdef0123456789abcdef01234567';
 

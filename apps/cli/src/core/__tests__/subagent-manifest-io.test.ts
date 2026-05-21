@@ -9,7 +9,7 @@ import {
   serializeSubagentManifest,
   SUBAGENT_MANIFEST_FILENAME,
   writeSubagentManifest,
-} from '../subagent-manifest-io.js';
+} from '../../features/subagents/manifest-io.js';
 import type { SubagentManifest } from '../schemas/index.js';
 
 const VALID_MANIFEST: SubagentManifest = {

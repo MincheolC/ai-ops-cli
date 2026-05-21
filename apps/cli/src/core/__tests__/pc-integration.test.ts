@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { describe, expect, it } from 'vitest';
-import { evaluatePcPostToolUseHook, getPcHandoffStatus } from '../pc-integration.js';
+import { evaluatePcPostToolUseHook, getPcHandoffStatus } from '../../features/pc/core.js';
 
 const setupGitRepo = (): { dir: string; cleanup: () => void } => {
   const dir = mkdtempSync(join(tmpdir(), 'pc-integration-repo-'));

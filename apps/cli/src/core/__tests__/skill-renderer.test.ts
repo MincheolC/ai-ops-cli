@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildSkillInstallPlan } from '../skill-renderer.js';
+import { buildSkillInstallPlan } from '../../features/skills/renderer.js';
 import type { Skill } from '../schemas/index.js';
 
 const makeSkill = (partial?: Partial<Skill>): Skill => ({

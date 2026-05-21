@@ -8,7 +8,7 @@ import {
   computeSourceHash,
   computeInstalledSkillHash,
   computeInstalledSubagentHash,
-} from '../source-hash.js';
+} from '../../shared/source-hash.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const dataDir = resolve(__dirname, '../../../data');
