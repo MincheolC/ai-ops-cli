@@ -7,6 +7,7 @@ import { parseProjectLayerContextIndex, parseProjectLayerManifest, serializeProj
 import { parseProjectLayerDocument } from "./document.logic.js";
 import { resolveProjectLayerContextIndexPath, resolveProjectLayerFilePath, resolveProjectLayerManifestPath } from "./path.util.js";
 import { updateDocsStatusProjectFileRecord, updateDocsStatusTable } from "./docs-status.logic.js";
+import { syncCustomProjectRuleFiles } from "./custom-project-rules.js";
 
 // ----- manifest and index I/O -----
 
@@ -81,10 +82,14 @@ export const refreshProjectLayerDerivedState = (params: {
   manifest: ProjectLayerManifest;
   contextIndex: ProjectLayerContextIndex;
 } => {
-  const documentPaths = collectDocumentPathsFromManifest(params.manifest);
+  const manifestWithCustomRules = syncCustomProjectRuleFiles({
+    basePath: params.basePath,
+    manifest: params.manifest,
+  });
+  const documentPaths = collectDocumentPathsFromManifest(manifestWithCustomRules);
   const docsStatusHashes = updateDocsStatusTable(params.basePath, documentPaths);
   const manifest = updateDocsStatusProjectFileRecord({
-    manifest: params.manifest,
+    manifest: manifestWithCustomRules,
     beforeHash: docsStatusHashes.beforeHash,
     afterHash: docsStatusHashes.afterHash,
   });

@@ -6,6 +6,7 @@ import type { ProjectLayerTool } from '@/core/schemas/index.js';
 
 export const PROJECT_LAYER_MANIFEST_RELATIVE_PATH = '.ai-ops/manifest.json';
 export const PROJECT_LAYER_CONTEXT_INDEX_RELATIVE_PATH = '.ai-ops/context-layer.json';
+export const CUSTOM_PROJECT_RULES_DIR = 'docs/agent/project-rules';
 
 export const CONTEXT_LAYER_DATA_DIR = join(COMPILER_DATA_DIR, 'context-layer');
 

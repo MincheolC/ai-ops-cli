@@ -4,6 +4,7 @@ export * from "./path.util.js";
 export * from "./serialization.js";
 export * from "./document.logic.js";
 export * from "./templates.js";
+export * from "./custom-project-rules.js";
 export * from "./state-io.js";
 export * from "./lifecycle.logic.js";
 export * from "./audit.logic.js";

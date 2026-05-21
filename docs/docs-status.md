@@ -16,6 +16,7 @@ update_when:
 | GEMINI.md | Active | ai-ops |
 | docs/agent/checks/impact-checklist.md | Active | ai-ops |
 | docs/agent/maps/codebase-map.md | Reserved | project |
+| docs/agent/project-rules/routing-rules.md | Active | project |
 | docs/agent/rules/00-agent-baseline.md | Active | ai-ops |
 | docs/agent/rules/doc-update-rules.md | Active | ai-ops |
 | docs/agent/rules/routing-rules.md | Active | ai-ops |

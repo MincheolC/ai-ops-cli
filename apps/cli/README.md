@@ -74,19 +74,19 @@ receipts/config/*
 
 `AGENTS.md`, `GEMINI.md`, `CLAUDE.md`, `docs/agent/rules/*`, `docs/agent/checks/impact-checklist.md`, and `docs/agent/workflow.md` are ai-ops managed documents. In these files, the region from `<!-- ai-ops:start -->` through `<!-- ai-ops:end -->` is CLI template content. `ai-ops update` reapplies the current CLI template to that region. User edits inside that region are not preserved across update.
 
+`docs/agent/project-rules/*.md` is project-owned and is not overwritten by `ai-ops update --force`.
+
 `.ai-ops/manifest.json` and `.ai-ops/context-layer.json` are also not direct-edit files. They are CLI state files for installation state and document indexing.
 
 ### Which files should users edit directly?
 
-Project knowledge belongs in project-owned documents. The default project-owned documents are `docs/agent/maps/codebase-map.md`, `docs/business/terminology.md`, `docs/business/business-rules.md`, and `docs/docs-status.md`. `docs/agent/maps/codebase-map.md`, `docs/business/terminology.md`, and `docs/business/business-rules.md` start as Reserved templates, but once the project fills them with real content, update does not automatically overwrite them.
+Project knowledge belongs in project-owned documents. The default project-owned documents are `docs/agent/maps/codebase-map.md`, `docs/business/terminology.md`, `docs/business/business-rules.md`, and `docs/docs-status.md`. Project-specific agent behavior rules belong in `docs/agent/project-rules/*.md`. `docs/agent/maps/codebase-map.md`, `docs/business/terminology.md`, and `docs/business/business-rules.md` start as Reserved templates, but once the project fills them with real content, update does not automatically overwrite them.
 
 `docs/docs-status.md` is project-owned, but it is not a free-form notebook. It is the context-layer registry. Update it together with document status/frontmatter changes; the update flow may also normalize its table from the manifest and current document frontmatter.
 
 ### Where should project-specific agent rules go?
 
-The default layer currently has project-owned documents for project structure and business rules, but it does not yet provide a first-class Active template for project-specific agent behavior rules. Because of that, adding rules inside the managed region of `AGENTS.md` or inside a tool adapter is not an update-safe contract.
-
-To support project-specific agent rules safely, the next product extension should add a project-owned Active document such as `docs/agent/rules/project-rules.md` and have the manifest, context-layer index, and docs-status table track it together.
+Use `docs/agent/project-rules/*.md`. Files in this directory are project-owned context documents when they have valid operating-layer frontmatter. `ai-ops update`, `diff`, and `audit` discover them, track them in `.ai-ops/manifest.json`, `.ai-ops/context-layer.json`, and `docs/docs-status.md`, and preserve their content across forced updates.
 
 ## CLI Surface
 

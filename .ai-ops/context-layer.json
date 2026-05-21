@@ -13,7 +13,7 @@
         "operating_layer_changes"
       ],
       "path": "AGENTS.md",
-      "contentHash": "4ca558"
+      "contentHash": "1435c1"
     },
     {
       "status": "Active",
@@ -71,6 +71,20 @@
     {
       "status": "Active",
       "layer": "agent",
+      "owner": "project",
+      "read_when": [
+        "codex_work"
+      ],
+      "update_when": [
+        "codex_reference_changes",
+        "project_rule_changes"
+      ],
+      "path": "docs/agent/project-rules/routing-rules.md",
+      "contentHash": "7292e0"
+    },
+    {
+      "status": "Active",
+      "layer": "agent",
       "owner": "ai-ops",
       "read_when": [
         "before_task"
@@ -92,7 +106,7 @@
         "document_policy_changes"
       ],
       "path": "docs/agent/rules/doc-update-rules.md",
-      "contentHash": "f15926"
+      "contentHash": "ebad1a"
     },
     {
       "status": "Active",
@@ -190,8 +204,8 @@
         "document_status_changes"
       ],
       "path": "docs/docs-status.md",
-      "contentHash": "5843d2"
+      "contentHash": "42dca3"
     }
   ],
-  "generatedAt": "2026-05-21T11:58:16.050Z"
+  "generatedAt": "2026-05-21T15:11:30.423Z"
 }

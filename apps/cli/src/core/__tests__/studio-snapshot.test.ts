@@ -226,6 +226,77 @@ describe('studio snapshot core', () => {
     }
   });
 
+  it('adds frontmatter audit metadata for invalid project-owned agent rules', () => {
+    const { dir, userHome, codexHome, cleanup } = setup();
+    const customPath = 'docs/agent/project-rules/wrong-owner.md';
+
+    try {
+      installProjectLayer({ basePath: dir, tools: resolveProjectLayerTools(['codex']) });
+      mkdirSync(join(dir, 'docs/agent/project-rules'), { recursive: true });
+      writeFileSync(
+        join(dir, customPath),
+        `---
+status: Active
+layer: agent
+owner: ai-ops
+read_when:
+  - codex_work
+update_when:
+  - project_rule_changes
+---
+# Wrong Owner
+`,
+        'utf-8',
+      );
+
+      const snapshot = buildSnapshotForTest({ dir, userHome, codexHome });
+      const issue = findIssue(snapshot.project.audit.issues, {
+        code: 'invalid-custom-project-rule',
+        affectedPath: customPath,
+      });
+
+      expect(issue.source).toBe('frontmatter');
+      expect(issue.suggestedActionLabel).toBe('Review frontmatter');
+    } finally {
+      cleanup();
+    }
+  });
+
+  it('adds manifest audit metadata for project-owned agent rule discovery drift', () => {
+    const { dir, userHome, codexHome, cleanup } = setup();
+    const customPath = 'docs/agent/project-rules/routing-rules.md';
+
+    try {
+      installProjectLayer({ basePath: dir, tools: resolveProjectLayerTools(['codex']) });
+      mkdirSync(join(dir, 'docs/agent/project-rules'), { recursive: true });
+      writeFileSync(
+        join(dir, customPath),
+        `---
+status: Active
+layer: agent
+owner: project
+read_when:
+  - codex_work
+update_when:
+  - project_rule_changes
+---
+# Routing Rules
+`,
+        'utf-8',
+      );
+
+      const snapshot = buildSnapshotForTest({ dir, userHome, codexHome });
+      const issue = findIssue(snapshot.project.audit.issues, {
+        code: 'custom-project-rules-drift',
+      });
+
+      expect(issue.source).toBe('manifest');
+      expect(issue.suggestedActionLabel).toBe('Review manifest record');
+    } finally {
+      cleanup();
+    }
+  });
+
   it('normalizes unknown audit issue codes without crashing', () => {
     expect(
       normalizeStudioProjectIssue({

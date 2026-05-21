@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import {
@@ -82,6 +82,7 @@ describe('project operating layer lifecycle', () => {
       expect(existsSync(join(dir, 'AGENTS.md'))).toBe(true);
       expect(existsSync(join(dir, 'GEMINI.md'))).toBe(false);
       expect(existsSync(join(dir, 'CLAUDE.md'))).toBe(false);
+      expect(existsSync(join(dir, 'docs/references/codex'))).toBe(false);
       expect(existsSync(join(dir, '.ai-ops/manifest.json'))).toBe(true);
       expect(existsSync(join(dir, '.ai-ops/context-layer.json'))).toBe(true);
       expect(result.manifest.kind).toBe('project-operating-layer');
@@ -102,6 +103,10 @@ describe('project operating layer lifecycle', () => {
       );
       expect(readProjectFile(dir, 'docs/agent/rules/00-agent-baseline.md')).toContain(
         'production TypeScript 파일이 600줄을 넘으면',
+      );
+      expect(readProjectFile(dir, 'AGENTS.md')).toContain('docs/agent/project-rules/*.md');
+      expect(readProjectFile(dir, 'docs/agent/rules/doc-update-rules.md')).toContain(
+        '중복, 충돌 가능성, 적용 우선순위/조건',
       );
       expect(readProjectFile(dir, 'docs/agent/checks/impact-checklist.md')).toContain(
         'touched production file이 250줄을 넘는가?',
@@ -159,6 +164,121 @@ describe('project operating layer lifecycle', () => {
       expect(result.preservedProjectFiles).toContain('docs/business/business-rules.md');
       expect(result.preservedProjectFiles).toContain('docs/business/terminology.md');
       expect(auditProjectLayer(dir).issues).toHaveLength(0);
+    } finally {
+      cleanup();
+    }
+  });
+
+  it('discovers project-owned agent rules and preserves them on update', () => {
+    const { dir, cleanup } = setup();
+    const customPath = 'docs/agent/project-rules/routing-rules.md';
+    const customContent = `---
+status: Active
+layer: agent
+owner: project
+read_when:
+  - codex_work
+update_when:
+  - project_rule_changes
+---
+# Routing Rules
+
+- Codex 관련 변경은 로컬 codex 검증을 우선한다.
+`;
+
+    try {
+      const installed = installProjectLayer({ basePath: dir, tools: resolveProjectLayerTools(['codex']) });
+      mkdirSync(dirname(join(dir, customPath)), { recursive: true });
+      writeFileSync(join(dir, customPath), customContent, 'utf-8');
+
+      const driftReport = diffProjectLayer(dir);
+      expect(driftReport.issues.some((item) => item.code === 'custom-project-rules-drift')).toBe(true);
+      expect(driftReport.issues.some((item) => item.code === 'context-missing-document')).toBe(true);
+
+      const updated = updateProjectLayer({ basePath: dir, manifest: installed.manifest });
+      const customRecord = updated.manifest.project_files.find((file) => file.path === customPath);
+
+      expect(customRecord).toMatchObject({
+        path: customPath,
+        created: false,
+      });
+      expect(readProjectFile(dir, customPath)).toContain('로컬 codex 검증을 우선한다.');
+      expect(readProjectFile(dir, 'docs/docs-status.md')).toContain(
+        '| docs/agent/project-rules/routing-rules.md | Active | project |',
+      );
+      expect(readProjectLayerContextIndex(dir)?.documents.map((document) => document.path)).toContain(customPath);
+      expect(auditProjectLayer(dir).issues).toHaveLength(0);
+
+      writeFileSync(join(dir, customPath), customContent.replace('우선한다.', '최우선으로 한다.'), 'utf-8');
+      const updatedAgain = updateProjectLayer({ basePath: dir, manifest: updated.manifest });
+
+      expect(readProjectFile(dir, customPath)).toContain('최우선으로 한다.');
+      expect(updatedAgain.manifest.project_files.find((file) => file.path === customPath)?.created).toBe(false);
+      expect(auditProjectLayer(dir).issues).toHaveLength(0);
+    } finally {
+      cleanup();
+    }
+  });
+
+  it('reports invalid project-owned agent rule frontmatter', () => {
+    const { dir, cleanup } = setup();
+    const customPath = 'docs/agent/project-rules/broken.md';
+
+    try {
+      installProjectLayer({ basePath: dir, tools: resolveProjectLayerTools(['codex']) });
+      mkdirSync(dirname(join(dir, customPath)), { recursive: true });
+      writeFileSync(
+        join(dir, customPath),
+        `---
+status: Active
+layer: agent
+read_when:
+  - codex_work
+update_when:
+  - project_rule_changes
+---
+# Broken Rule
+`,
+        'utf-8',
+      );
+
+      expect(diffProjectLayer(dir).issues.some((item) => item.code === 'invalid-custom-project-rule')).toBe(true);
+      expect(auditProjectLayer(dir).issues.some((item) => item.code === 'invalid-custom-project-rule')).toBe(true);
+    } finally {
+      cleanup();
+    }
+  });
+
+  it.each([
+    ['owner', 'owner: ai-ops\nlayer: agent', 'owner는 project여야 합니다'],
+    ['layer', 'owner: project\nlayer: business', 'layer는 agent여야 합니다'],
+  ] as const)('reports project-owned agent rule contract mismatches for %s', (_caseName, contractFields, expectedMessage) => {
+    const { dir, cleanup } = setup();
+    const customPath = 'docs/agent/project-rules/mismatch.md';
+
+    try {
+      installProjectLayer({ basePath: dir, tools: resolveProjectLayerTools(['codex']) });
+      mkdirSync(dirname(join(dir, customPath)), { recursive: true });
+      writeFileSync(
+        join(dir, customPath),
+        `---
+status: Active
+${contractFields}
+read_when:
+  - codex_work
+update_when:
+  - project_rule_changes
+---
+# Mismatch Rule
+`,
+        'utf-8',
+      );
+
+      const report = diffProjectLayer(dir);
+      const issue = report.issues.find((item) => item.code === 'invalid-custom-project-rule');
+
+      expect(issue?.message).toContain(expectedMessage);
+      expect(auditProjectLayer(dir).issues.some((item) => item.code === 'invalid-custom-project-rule')).toBe(true);
     } finally {
       cleanup();
     }

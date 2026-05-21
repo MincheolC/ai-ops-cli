@@ -1,4 +1,8 @@
-import { PROJECT_LAYER_CONTEXT_INDEX_RELATIVE_PATH, PROJECT_LAYER_MANIFEST_RELATIVE_PATH } from "../project-layer/index.js";
+import {
+  PROJECT_LAYER_CONTEXT_INDEX_RELATIVE_PATH,
+  PROJECT_LAYER_MANIFEST_RELATIVE_PATH,
+  resolveProjectLayerFilePath,
+} from "../project-layer/index.js";
 import type { ProjectLayerContextIndex, ProjectLayerManifest, StudioProjectDocument, StudioProjectIssue, StudioProjectIssueSource } from "@/core/schemas/index.js";
 import type { ProjectLayerIssue } from "../project-layer/index.js";
 import { DOCS_STATUS_RELATIVE_PATH, uniqueStrings } from "./snapshot-shared.js";
@@ -22,6 +26,8 @@ const AUDIT_ISSUE_SOURCES_BY_CODE = {
   'missing-managed-section': 'managed-section',
   'source-hash-drift': 'source-hash',
   'managed-source-hash-drift': 'source-hash',
+  'invalid-custom-project-rule': 'frontmatter',
+  'custom-project-rules-drift': 'manifest',
 } as const satisfies Record<string, StudioProjectIssueSource>;
 
 const AUDIT_ISSUE_ACTION_LABELS_BY_SOURCE = {
@@ -86,6 +92,11 @@ const extractTrailingIssuePath = (message: string): string | null => {
   return firstToken === undefined ? null : parsePathLikeToken(firstToken);
 };
 
+const extractLeadingIssuePath = (message: string): string | null => {
+  const [firstToken] = message.trim().split(/\s+/);
+  return firstToken === undefined ? null : parsePathLikeToken(firstToken);
+};
+
 const resolveIssueSource = (issue: ProjectLayerIssue): StudioProjectIssueSource =>
   AUDIT_ISSUE_SOURCES_BY_CODE[issue.code] ?? 'unknown';
 
@@ -108,6 +119,10 @@ const resolveIssueAffectedPath = (params: {
 
   if (params.issue.code === 'source-hash-drift') {
     return null;
+  }
+
+  if (params.issue.code === 'invalid-custom-project-rule') {
+    return extractLeadingIssuePath(params.issue.message);
   }
 
   const knownPath = findKnownPathInMessage(params.issue.message, params.knownPaths);

@@ -7,6 +7,7 @@ import { parseProjectLayerDocument } from "./document.logic.js";
 import { resolveProjectLayerFilePath } from "./path.util.js";
 import { collectDocumentPathsFromManifest, readProjectLayerContextIndex, readProjectLayerManifest } from "./state-io.js";
 import { compareDocsStatusEntry, parseDocsStatusEntries } from "./docs-status.logic.js";
+import { syncCustomProjectRuleFiles } from "./custom-project-rules.js";
 import type {
   DocsStatusEntry,
   ProjectLayerDocumentReadResult,
@@ -42,6 +43,16 @@ const buildContextIndexMap = (contextIndex: ProjectLayerContextIndex | null): Ma
 
 const compareArray = (left: readonly string[], right: readonly string[]): boolean =>
   left.length === right.length && left.every((value, index) => value === right[index]);
+
+const compareProjectFileRecords = (
+  left: readonly ProjectLayerManifest['project_files'][number][],
+  right: readonly ProjectLayerManifest['project_files'][number][],
+): boolean =>
+  left.length === right.length &&
+  left.every((file, index) => {
+    const other = right[index];
+    return other !== undefined && file.path === other.path && file.templateHash === other.templateHash && file.created === other.created;
+  });
 
 export const compareContextDocument = (params: {
   expected: ProjectLayerDocumentReadResult;
@@ -97,6 +108,14 @@ export const diffProjectLayer = (basePath: string): ProjectLayerReport => {
   const currentSourceHash = computeProjectLayerSourceHash(specs);
   let contextIndex: ProjectLayerContextIndex | null = null;
   const issues: ProjectLayerIssue[] = [];
+  let syncedManifest = manifest;
+
+  try {
+    syncedManifest = syncCustomProjectRuleFiles({ basePath, manifest });
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : 'unknown error';
+    issues.push(issue('error', 'invalid-custom-project-rule', reason));
+  }
 
   try {
     contextIndex = readProjectLayerContextIndex(basePath);
@@ -119,6 +138,16 @@ export const diffProjectLayer = (basePath: string): ProjectLayerReport => {
 
   if (contextIndex === null) {
     issues.push(issue('error', 'missing-context-index', `${PROJECT_LAYER_CONTEXT_INDEX_RELATIVE_PATH}가 없습니다.`));
+  }
+
+  if (!compareProjectFileRecords(manifest.project_files, syncedManifest.project_files)) {
+    issues.push(
+      issue(
+        'warning',
+        'custom-project-rules-drift',
+        '`docs/agent/project-rules/**/*.md` discovery 결과가 manifest와 다릅니다. `ai-ops update`로 동기화하세요.',
+      ),
+    );
   }
 
   for (const expectedPath of expectedManagedPaths) {
@@ -148,13 +177,13 @@ export const diffProjectLayer = (basePath: string): ProjectLayerReport => {
     }
   }
 
-  for (const file of manifest.project_files) {
+  for (const file of syncedManifest.project_files) {
     if (!existsSync(resolveProjectLayerFilePath(basePath, file.path))) {
       issues.push(issue('error', 'missing-file', `파일 없음: ${file.path}`));
     }
   }
 
-  for (const pack of manifest.packs) {
+  for (const pack of syncedManifest.packs) {
     for (const file of [...pack.documents, ...pack.files]) {
       if (!existsSync(resolveProjectLayerFilePath(basePath, file.path))) {
         issues.push(issue('error', 'missing-file', `파일 없음: ${file.path}`));
@@ -162,7 +191,7 @@ export const diffProjectLayer = (basePath: string): ProjectLayerReport => {
     }
   }
 
-  for (const path of collectDocumentPathsFromManifest(manifest)) {
+  for (const path of collectDocumentPathsFromManifest(syncedManifest)) {
     const document = readDocumentSafely(basePath, path);
     if ('code' in document) {
       issues.push(document);
@@ -193,7 +222,13 @@ export const auditProjectLayer = (basePath: string): ProjectLayerReport => {
   } catch {
     contextIndex = null;
   }
-  const documentPaths = collectDocumentPathsFromManifest(manifest);
+  let syncedManifest = manifest;
+  try {
+    syncedManifest = syncCustomProjectRuleFiles({ basePath, manifest });
+  } catch {
+    return diffReport;
+  }
+  const documentPaths = collectDocumentPathsFromManifest(syncedManifest);
   const documentPathSet = new Set(documentPaths);
   const contextPathSet = new Set(contextIndex?.documents.map((document) => document.path) ?? []);
   const issues = [...diffReport.issues];

@@ -74,19 +74,19 @@ receipts/config/*
 
 `AGENTS.md`, `GEMINI.md`, `CLAUDE.md`, `docs/agent/rules/*`, `docs/agent/checks/impact-checklist.md`, `docs/agent/workflow.md`는 ai-ops managed 문서입니다. 이 파일의 `<!-- ai-ops:start -->`부터 `<!-- ai-ops:end -->`까지는 CLI 템플릿 영역이고, `ai-ops update` 때 현재 CLI 템플릿으로 다시 적용됩니다. 사용자가 이 영역을 직접 수정하면 다음 update에서 유지되지 않습니다.
 
+`docs/agent/project-rules/*.md`는 project-owned 영역이며 `ai-ops update --force`가 내용을 덮어쓰지 않습니다.
+
 `.ai-ops/manifest.json`과 `.ai-ops/context-layer.json`도 직접 편집 대상이 아닙니다. 각각 설치 상태와 문서 index를 기록하는 CLI 상태 파일입니다.
 
 ### 사용자가 직접 수정해야 하는 파일은 무엇인가요?
 
-프로젝트 지식은 project-owned 문서에 적습니다. 기본 project-owned 문서는 `docs/agent/maps/codebase-map.md`, `docs/business/terminology.md`, `docs/business/business-rules.md`, `docs/docs-status.md`입니다. `docs/agent/maps/codebase-map.md`, `docs/business/terminology.md`, `docs/business/business-rules.md`는 처음에는 Reserved 템플릿이지만, 프로젝트가 실제 내용을 채운 뒤에는 update가 자동으로 덮어쓰지 않습니다.
+프로젝트 지식은 project-owned 문서에 적습니다. 기본 project-owned 문서는 `docs/agent/maps/codebase-map.md`, `docs/business/terminology.md`, `docs/business/business-rules.md`, `docs/docs-status.md`입니다. 프로젝트 고유 agent 행동 규칙은 `docs/agent/project-rules/*.md`에 둡니다. `docs/agent/maps/codebase-map.md`, `docs/business/terminology.md`, `docs/business/business-rules.md`는 처음에는 Reserved 템플릿이지만, 프로젝트가 실제 내용을 채운 뒤에는 update가 자동으로 덮어쓰지 않습니다.
 
 `docs/docs-status.md`는 project-owned 문서이지만 자유 메모장이 아니라 context-layer registry입니다. 문서 status/frontmatter를 바꿀 때 함께 맞추는 파일이며, update 과정에서 manifest와 실제 문서 frontmatter 기준으로 테이블이 정리될 수 있습니다.
 
 ### 프로젝트 고유 agent rule은 어디에 적나요?
 
-현재 기본 layer에는 프로젝트 구조와 비즈니스 규칙을 담는 project-owned 문서가 있지만, 프로젝트별 agent 행동 규칙만을 위한 별도 Active 문서는 아직 first-class 템플릿으로 열려 있지 않습니다. 그래서 `AGENTS.md`의 managed 영역이나 tool adapter에 직접 규칙을 추가하는 방식은 update-safe한 계약이 아닙니다.
-
-프로젝트별 agent rule을 안정적으로 지원하려면 `docs/agent/rules/project-rules.md` 같은 project-owned Active 문서를 추가하고, manifest/context-layer/docs-status가 함께 추적하도록 제품 계약을 확장하는 것이 다음 개선 후보입니다.
+`docs/agent/project-rules/*.md`를 사용합니다. 이 디렉터리의 Markdown은 유효한 operating-layer frontmatter가 있으면 project-owned context 문서로 발견됩니다. `ai-ops update`, `diff`, `audit`는 이를 `.ai-ops/manifest.json`, `.ai-ops/context-layer.json`, `docs/docs-status.md`에 반영하고 forced update에서도 내용을 보존합니다.
 
 ## 목표 CLI 표면
 
