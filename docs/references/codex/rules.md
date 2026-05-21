@@ -1,53 +1,138 @@
 ---
-source: https://developers.openai.com/codex/guides/agents-md
-last_fetched: 2026-02-26
+source: https://developers.openai.com/codex/rules
+last_fetched: 2026-05-21
 ---
 
-# Codex AGENTS.md Agent Instruction Manual
+# Rules
 
-## 1. Core Architecture & Hierarchy
+Use rules to control which commands Codex can run outside the sandbox.
 
-- **Execution Pipeline:** Codex builds the instruction chain once per run/session prior to execution.
-- **Path Traversal Priority (Top-Down Execution):**
+Rules are experimental and may change.
 
-1. `Global Scope` (Codex Home)
-2. `Project Scope` (Project Git Root $\rightarrow$ Current Working Directory)
+## Create a rules file
 
-- **Merge & Override Protocol:** Files are concatenated from the Root down to the CWD, separated by blank lines. Instructions closer to the CWD appear later in the prompt, inherently overriding earlier/higher-level guidance.
-- **Intra-Directory Resolution Precedence (Highest to Lowest):**
-  _(Codex includes a maximum of ONE file per directory, evaluating in this exact order)_
+1. Create a `.rules` file under a `rules/` folder next to an active config layer (for example, `~/.codex/rules/default.rules`).
+2. Add a rule. This example prompts before allowing `gh pr view` to run outside the sandbox.
 
-1. `AGENTS.override.md`
-2. `AGENTS.md`
-3. `[project_doc_fallback_filenames]` (Matched fallbacks defined in config)
+   ```python
+   # Prompt before running commands with the prefix `gh pr view` outside the sandbox.
+   prefix_rule(
+       # The prefix to match.
+       pattern = ["gh", "pr", "view"],
 
-## 2. Config & Path Specs
+       # The action to take when Codex requests to run a matching command.
+       decision = "prompt",
 
-| Scope         | Directory / Path                  | Capability / Purpose                           | Override Rules                                                        |
-| ------------- | --------------------------------- | ---------------------------------------------- | --------------------------------------------------------------------- | ----------------------------------------- |
-| Global        | `~/.codex/` or `$CODEX_HOME`      | Persistent user-wide baseline defaults         | Lowest priority. Overridden by any project-level configurations.      |
-| Project Root  | Project Root (Typically Git Root) | Repository-wide expectations                   | Overrides Global. Overridden by Nested Subdirectories.                |
-| Subdirectory  | Nested directories down to CWD    | Team or domain-specific specialized rules      | Highest priority. Replaces broader rules higher in the tree.          |
-| Configuration | `~/.codex/config.toml`            | Overrides default discovery bounds & filenames | Manages `project_doc_fallback_filenames` and `project_doc_max_bytes`. |
-| Logs          | `~/.codex/log/codex-tui.log`      | `session-*.jsonl`                              | Audit trail for active instruction sources                            | Read-only verification of loaded context. |
+       # Optional rationale for why this rule exists.
+       justification = "Viewing PRs is allowed with approval",
 
-## 3. Syntax & Commands (Hard Constraints)
+       # `match` and `not_match` are optional "inline unit tests" where you can
+       # provide examples of commands that should (or should not) match this rule.
+       match = [
+           "gh pr view 7888",
+           "gh pr view --repo openai/codex",
+           "gh pr view 7888 --json title,body,comments",
+       ],
+       not_match = [
+           # Does not match because the `pattern` must be an exact prefix.
+           "gh pr --repo openai/codex view 7888",
+       ],
+   )
+   ```
 
-- **Mandatory Commands:**
-- Verify full instruction chain: `codex --ask-for-approval never "Summarize the current instructions."`
-- Verify targeted subdirectory chain: `codex --cd <dir> --ask-for-approval never "Show which instruction files are active."`
-- Execute with custom profile path: `CODEX_HOME=<custom_path> codex exec "<prompt>"`
+3. Restart Codex.
 
-- **Special Syntax Rules:**
-- **Environment Variables:**
-- `CODEX_HOME`: Overrides the default `~/.codex` global directory path.
+Codex scans `rules/` under every active config layer at startup, including [Team Config](https://developers.openai.com/codex/enterprise/admin-setup#team-config) locations and the user layer at `~/.codex/rules/`. Project-local rules under `<repo>/.codex/rules/` load only when the project `.codex/` layer is trusted.
 
-- **TOML Configuration (`config.toml`):**
-- `project_doc_fallback_filenames` (Array of Strings): Custom filenames treated as instruction files (e.g., `["TEAM_GUIDE.md", ".agents.md"]`).
-- `project_doc_max_bytes` (Integer): The maximum byte limit for the concatenated payload. Default is `32768` (32 KiB).
+When you add a command to the allow list in the TUI, Codex writes to the user layer at `~/.codex/rules/default.rules` so future runs can skip the prompt.
 
-- **Caveats & Constraints (Critical rules to prevent Fatal Errors):**
-- **Max Bytes Truncation:** Codex strictly halts the ingestion of further instruction files once the concatenated byte size reaches `project_doc_max_bytes`. Large setups must be chunked or the limit explicitly raised.
-- **Empty File Ignorance:** Codex completely ignores files with 0 bytes. They will not trigger an override or inclusion.
-- **Path Termination Hard Stop:** The discovery pipeline abruptly stops searching once it reaches the Current Working Directory (CWD). Files in deeper nested directories below the CWD are completely invisible to the session.
-- **Single File Per Directory Ceiling:** Only the highest-precedence file (`.override.md` > `.md` > `fallback`) inside a single directory is ingested; all other matching instruction files in that same directory are silently ignored.
+When Smart approvals are enabled (the default), Codex may propose a
+`prefix_rule` for you during escalation requests. Review the suggested prefix
+carefully before accepting it.
+
+Admins can also enforce restrictive `prefix_rule` entries from
+[`requirements.toml`](https://developers.openai.com/codex/enterprise/managed-configuration#admin-enforced-requirements-requirementstoml).
+
+## Understand rule fields
+
+`prefix_rule()` supports these fields:
+
+- `pattern` **(required)**: A non-empty list that defines the command prefix to match. Each element is either:
+  - A literal string (for example, `"pr"`).
+  - A union of literals (for example, `["view", "list"]`) to match alternatives at that argument position.
+- `decision` **(defaults to `"allow"`)**: The action to take when the rule matches. Codex applies the most restrictive decision when more than one rule matches (`forbidden` > `prompt` > `allow`).
+  - `allow`: Run the command outside the sandbox without prompting.
+  - `prompt`: Prompt before each matching invocation.
+  - `forbidden`: Block the request without prompting.
+- `justification` **(optional)**: A non-empty, human-readable reason for the rule. Codex may surface it in approval prompts or rejection messages. When you use `forbidden`, include a recommended alternative in the justification when appropriate (for example, `"Use \`rg\` instead of \`grep\`."`).
+- `match` and `not_match` **(defaults to `[]`)**: Examples that Codex validates when it loads your rules. Use these to catch mistakes before a rule takes effect.
+
+When Codex considers a command to run, it compares the command's argument list to `pattern`. Internally, Codex treats the command as a list of arguments (like what `execvp(3)` receives).
+
+## Shell wrappers and compound commands
+
+Some tools wrap several shell commands into a single invocation, for example:
+
+```text
+["bash", "-lc", "git add . && rm -rf /"]
+```
+
+Because this kind of command can hide multiple actions inside one string, Codex treats `bash -lc`, `bash -c`, and their `zsh` / `sh` equivalents specially.
+
+### When Codex can safely split the script
+
+If the shell script is a linear chain of commands made only of:
+
+- plain words (no variable expansion, no `VAR=...`, `$FOO`, `*`, etc.)
+- joined by safe operators (`&&`, `||`, `;`, or `|`)
+
+then Codex parses it (using tree-sitter) and splits it into individual commands before applying your rules.
+
+The script above is treated as two separate commands:
+
+- `["git", "add", "."]`
+- `["rm", "-rf", "/"]`
+
+Codex then evaluates each command against your rules, and the most restrictive result wins.
+
+Even if you allow `pattern=["git", "add"]`, Codex won't auto allow `git add . && rm -rf /`, because the `rm -rf /` portion is evaluated separately and prevents the whole invocation from being auto allowed.
+
+This prevents dangerous commands from being smuggled in alongside safe ones.
+
+### When Codex does not split the script
+
+If the script uses more advanced shell features, such as:
+
+- redirection (`>`, `>>`, `<`)
+- substitutions (`$(...)`, `...`)
+- environment variables (`FOO=bar`)
+- wildcard patterns (`*`, `?`)
+- control flow (`if`, `for`, `&&` with assignments, etc.)
+
+then Codex doesn't try to interpret or split it.
+
+In those cases, the entire invocation is treated as:
+
+```text
+["bash", "-lc", "<full script>"]
+```
+
+and your rules are applied to that **single** invocation.
+
+With this handling, you get the security of per-command evaluation when it's safe to do so, and conservative behavior when it isn't.
+
+## Test a rule file
+
+Use `codex execpolicy check` to test how your rules apply to a command:
+
+```shell
+codex execpolicy check --pretty \
+  --rules ~/.codex/rules/default.rules \
+  -- gh pr view 7888 --json title,body,comments
+```
+
+The command emits JSON showing the strictest decision and any matching rules, including any `justification` values from matched rules. Use more than one `--rules` flag to combine files, and add `--pretty` to format the output.
+
+## Understand the rules language
+
+The `.rules` file format uses `Starlark` (see the [language spec](https://github.com/bazelbuild/starlark/blob/master/spec.md)). Its syntax is like Python, but it's designed to be safe to run: the rules engine can run it without side effects (for example, touching the filesystem).
