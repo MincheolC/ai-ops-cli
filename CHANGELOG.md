@@ -5,6 +5,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-05-21
+
 ### Fixed
 
 - `fix(context-promotion)`: `context-promotion-review`가 `HEAD` 커밋만 보고 `no-promotion`으로 수렴하지 않도록 post-commit worktree 상태, 리뷰 루프 학습, 사용자 교정, changeset hygiene 후보를 함께 검토하도록 보강
