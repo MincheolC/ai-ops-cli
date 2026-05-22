@@ -10,6 +10,7 @@ const ROOT_README_PATH = new URL('../../../../README.md', import.meta.url).pathn
 const ROOT_README_KO_PATH = new URL('../../../../README.ko.md', import.meta.url).pathname;
 const CLI_README_PATH = new URL('../../README.md', import.meta.url).pathname;
 const CLI_README_KO_PATH = new URL('../../README.ko.md', import.meta.url).pathname;
+const STUDIO_PLATFORM_PACKAGE_JSON_PATH = new URL('../../../studio-darwin-arm64/package.json', import.meta.url).pathname;
 
 // dist/ 빌드가 없어도 compiler API 통합 테스트는 실행 가능
 // subprocess 테스트는 dist 존재 시에만 실행
@@ -58,6 +59,40 @@ describe('documentation contracts', () => {
       expect(raw).toContain('.git');
       expect(raw).toContain('orchestrator');
     }
+  });
+});
+
+describe('studio package contracts', () => {
+  it('declares the macOS arm64 Studio package as an optional CLI dependency', () => {
+    const packageJson = JSON.parse(readFileSync(PACKAGE_JSON_PATH, 'utf-8')) as {
+      optionalDependencies?: Record<string, string>;
+      version: string;
+    };
+
+    expect(packageJson.optionalDependencies).toMatchObject({
+      'ai-ops-studio-darwin-arm64': packageJson.version,
+    });
+  });
+
+  it('packages the Studio macOS arm64 binary from a platform-specific workspace', () => {
+    const packageJson = JSON.parse(readFileSync(STUDIO_PLATFORM_PACKAGE_JSON_PATH, 'utf-8')) as {
+      name: string;
+      version: string;
+      os: string[];
+      cpu: string[];
+      files: string[];
+      bin: Record<string, string>;
+    };
+
+    expect(packageJson).toMatchObject({
+      name: 'ai-ops-studio-darwin-arm64',
+      os: ['darwin'],
+      cpu: ['arm64'],
+      files: expect.arrayContaining(['bin']),
+      bin: {
+        'ai-ops-studio': './bin/ai-ops-studio',
+      },
+    });
   });
 });
 

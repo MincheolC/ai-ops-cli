@@ -6,7 +6,21 @@
 
 ## Launch
 
-Run from the repository root:
+With the globally installed CLI, run from the target project root:
+
+```bash
+ai-ops studio .
+```
+
+Or pass an explicit project root:
+
+```bash
+ai-ops studio /path/to/project
+```
+
+The global launcher currently supports macOS arm64 through the optional `ai-ops-studio-darwin-arm64` platform package.
+
+For source checkout development, run from the repository root:
 
 ```bash
 npm run studio:dev
@@ -25,6 +39,7 @@ AI_OPS_STUDIO_PROJECT_ROOT=/path/to/project npm run studio:dev
 ```bash
 npm run studio:test
 npm run studio:build
+npm run studio:package:darwin-arm64
 ```
 
 Useful lower-level checks:
@@ -33,6 +48,7 @@ Useful lower-level checks:
 npm run test --workspace=apps/studio
 npm run build --workspace=apps/studio
 npm run tauri:check --workspace=apps/studio
+npm run studio:package:darwin-arm64
 node apps/cli/dist/bin/index.js studio snapshot --json
 ```
 
@@ -55,9 +71,7 @@ node apps/cli/dist/bin/index.js studio snapshot --json
 - Repo-wide explorer.
 - Document editing.
 - Runtime install, update, or uninstall.
-- Packaged app release.
 - Always-on local web server.
-- `ai-ops studio` launcher command.
 
 ## Smoke Scenarios
 

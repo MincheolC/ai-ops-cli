@@ -242,7 +242,13 @@ npm test
 
 `apps/studio`는 `ai-ops Studio`의 desktop Dev MVP입니다. `.ai-ops/context-layer.json`에 기록된 operating-layer graph만 읽는 project-bound read-only control plane이며, project operating document preview, audit diagnostics, runtime integration/component status, app-local appearance preference를 보여줍니다. repo-wide explorer나 mutation control은 v1 범위에 포함하지 않습니다.
 
-현재 repo를 대상으로 실행:
+글로벌 설치된 CLI로 현재 프로젝트를 대상으로 Studio 실행:
+
+```bash
+ai-ops studio .
+```
+
+글로벌 launcher는 현재 macOS arm64를 `ai-ops-studio-darwin-arm64` optional platform package로 지원합니다. Source checkout 개발은 계속 Tauri dev shell을 사용합니다:
 
 ```bash
 npm run studio:dev
@@ -259,6 +265,7 @@ Studio workspace build/test:
 ```bash
 npm run studio:test
 npm run studio:build
+npm run studio:package:darwin-arm64
 ```
 
 범위, 경계, smoke scenario는 [apps/studio/README.ko.md](./apps/studio/README.ko.md)를 봅니다.
@@ -276,6 +283,7 @@ npm run dev
 npm run check
 
 # Studio desktop shell
+ai-ops studio .
 npm run studio:dev
 npm run studio:build
 npm run studio:test

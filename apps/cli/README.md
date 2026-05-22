@@ -102,13 +102,22 @@ Commands:
   skill      Manage skill components
   subagent   Manage subagent components
   pack       Manage optional project operating layer packs
-  studio    Generate read-only Studio snapshot contracts
+  studio    Launch ai-ops Studio or generate read-only Studio helpers
   integration Manage user/global runtime integrations
   context-promotion Manage context promotion review receipts
   codex-hook Manage Codex hook components
 ```
 
 `--tool` remains because Codex, Claude Code, and Gemini CLI use different discovery locations and adapter files.
+
+Studio desktop launcher:
+
+```bash
+ai-ops studio .
+ai-ops studio /path/to/project
+```
+
+The launcher currently supports macOS arm64 through the optional `ai-ops-studio-darwin-arm64` platform package. It passes the target project root to the desktop app and does not mutate project/runtime files.
 
 Studio read-only snapshot command:
 

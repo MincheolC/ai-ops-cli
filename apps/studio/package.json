@@ -8,6 +8,7 @@
     "build": "tsc --noEmit -p tsconfig.json && vite build",
     "preview": "vite preview --host 127.0.0.1",
     "tauri:dev": "tauri dev",
+    "tauri:release": "tauri build --no-bundle",
     "tauri:check": "node scripts/tauri-check.mjs",
     "test": "vitest run"
   },

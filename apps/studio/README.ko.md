@@ -6,7 +6,21 @@
 
 ## 실행
 
-repo root에서 실행:
+글로벌 설치된 CLI로 대상 project root에서 실행:
+
+```bash
+ai-ops studio .
+```
+
+또는 project root를 명시합니다:
+
+```bash
+ai-ops studio /path/to/project
+```
+
+글로벌 launcher는 현재 macOS arm64를 `ai-ops-studio-darwin-arm64` optional platform package로 지원합니다.
+
+Source checkout 개발은 repo root에서 실행합니다:
 
 ```bash
 npm run studio:dev
@@ -25,6 +39,7 @@ AI_OPS_STUDIO_PROJECT_ROOT=/path/to/project npm run studio:dev
 ```bash
 npm run studio:test
 npm run studio:build
+npm run studio:package:darwin-arm64
 ```
 
 하위 검증 명령:
@@ -33,6 +48,7 @@ npm run studio:build
 npm run test --workspace=apps/studio
 npm run build --workspace=apps/studio
 npm run tauri:check --workspace=apps/studio
+npm run studio:package:darwin-arm64
 node apps/cli/dist/bin/index.js studio snapshot --json
 ```
 
@@ -55,9 +71,7 @@ node apps/cli/dist/bin/index.js studio snapshot --json
 - Repo-wide explorer.
 - Document editing.
 - Runtime install, update, uninstall.
-- Packaged app release.
 - Always-on local web server.
-- `ai-ops studio` launcher command.
 
 ## Smoke Scenarios
 

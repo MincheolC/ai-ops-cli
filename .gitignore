@@ -11,6 +11,7 @@ apps/studio/src-tauri/gen/schemas/
 apps/studio/src-tauri/icons/**
 !apps/studio/src-tauri/icons/
 !apps/studio/src-tauri/icons/icon.png
+apps/studio-darwin-arm64/bin/ai-ops-studio
 
 # testing
 coverage/

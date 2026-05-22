@@ -242,7 +242,13 @@ npm test
 
 `apps/studio` is the desktop Dev MVP for `ai-ops Studio`: a project-bound, read-only control plane for the operating-layer graph in `.ai-ops/context-layer.json`. It previews project operating documents, audit diagnostics, runtime integration/component status, and app-local appearance preferences without adding a repo-wide explorer or mutation controls.
 
-Launch against the current repository:
+With the globally installed CLI, launch Studio against the current project:
+
+```bash
+ai-ops studio .
+```
+
+The global launcher currently supports macOS arm64 through the optional `ai-ops-studio-darwin-arm64` platform package. Source checkout development still uses the Tauri dev shell:
 
 ```bash
 npm run studio:dev
@@ -259,6 +265,7 @@ Build and test the Studio workspace:
 ```bash
 npm run studio:test
 npm run studio:build
+npm run studio:package:darwin-arm64
 ```
 
 See [apps/studio/README.md](./apps/studio/README.md) for scope, boundaries, and smoke scenarios.
@@ -276,6 +283,7 @@ npm run dev
 npm run check
 
 # Studio desktop shell
+ai-ops studio .
 npm run studio:dev
 npm run studio:build
 npm run studio:test

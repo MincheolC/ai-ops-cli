@@ -14,6 +14,7 @@
     "check": "npm run lint && npm run test",
     "studio:dev": "npm run build --workspace=apps/cli && AI_OPS_STUDIO_PROJECT_ROOT=\"${AI_OPS_STUDIO_PROJECT_ROOT:-$PWD}\" npm run tauri:dev --workspace=apps/studio",
     "studio:build": "npm run build --workspace=apps/cli && npm run build --workspace=apps/studio && npm run tauri:check --workspace=apps/studio",
+    "studio:package:darwin-arm64": "npm run build --workspace=apps/cli && npm run tauri:release --workspace=apps/studio && node scripts/prepare-studio-platform-package.mjs",
     "studio:test": "npm run test --workspace=apps/studio",
     "publish:patch": "./scripts/publish.sh patch",
     "publish:minor": "./scripts/publish.sh minor",

@@ -1,9 +1,14 @@
 import { join } from 'node:path';
 import { resolveBasePath } from '../../shared/command-paths.js';
+import { launchStudio } from './launcher.js';
 import { buildStudioSnapshot } from './snapshot.js';
 
 type StudioSnapshotCommandOptions = {
   json?: boolean;
+};
+
+type StudioLaunchCommandOptions = {
+  project: string;
 };
 
 const resolveOptionalUserBasePath = (): string | null => process.env.AI_OPS_HOME ?? process.env.HOME ?? null;
@@ -41,4 +46,14 @@ export const studioSnapshotCommand = async (opts: StudioSnapshotCommandOptions):
   } catch (error) {
     reportStudioSnapshotError(error);
   }
+};
+
+export const studioLaunchCommand = ({ project }: StudioLaunchCommandOptions): void => {
+  const result = launchStudio({ project });
+
+  if (!result.ok) {
+    process.stderr.write(`[studio] ${result.message}\n`);
+  }
+
+  process.exitCode = result.exitCode;
 };
