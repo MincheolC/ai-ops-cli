@@ -5,6 +5,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.5.4] - 2026-05-22
+
 ### Fixed
 
 - `fix(codex-permissions)`: `safe-local` now avoids the legacy `**/*.env = "none"` fallback unless no portable exact env-file candidate validates, and its runtime smoke uses permission-feature config resolution instead of the shallower model catalog command.
