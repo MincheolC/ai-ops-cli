@@ -36,7 +36,7 @@ export const createCodexRuntimePermissionProfileValidator = (): CodexPermissionP
     mkdirSync(codexHomePath, { recursive: true });
     writeFileSync(resolveCodexConfigPath(codexHomePath), candidate.validationConfig, 'utf-8');
 
-    const result = spawnSync('codex', ['debug', 'models'], {
+    const result = spawnSync('codex', ['--enable', 'exec_permission_approvals', 'debug', 'prompt-input'], {
       encoding: 'utf-8',
       env: { ...process.env, HOME: homePath, CODEX_HOME: codexHomePath },
       stdio: ['ignore', 'ignore', 'pipe'],

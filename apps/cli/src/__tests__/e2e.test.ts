@@ -24,10 +24,15 @@ const hasCodexPermissionEnvRule = (raw: string): boolean => {
   const hasDocsSyntax =
     raw.includes('[permissions.ai-ops-safe-local.filesystem.":workspace_roots"]') &&
     raw.includes('"**/*.env" = "deny"');
-  const hasCompatibilitySyntax =
+  const hasExactCompatibilitySyntax =
+    raw.includes('[permissions.ai-ops-safe-local.filesystem.":project_roots"]') &&
+    raw.includes('".env" = "none"') &&
+    raw.includes('".env.local" = "none"') &&
+    !raw.includes('"**/*.env" = "none"');
+  const hasLegacyCompatibilitySyntax =
     raw.includes('[permissions.ai-ops-safe-local.filesystem.":project_roots"]') &&
     raw.includes('"**/*.env" = "none"');
-  return hasDocsSyntax || hasCompatibilitySyntax;
+  return hasDocsSyntax || hasExactCompatibilitySyntax || hasLegacyCompatibilitySyntax;
 };
 
 const readSpawnErrorCode = (error: unknown): string | null => {
@@ -315,13 +320,17 @@ describe.skipIf(!distExists)('codex permissions subprocess', () => {
       expect(existsSync(join(codexHome, 'rules/default.rules'))).toBe(false);
       expect(existsSync(join(codexHome, 'hooks.json'))).toBe(false);
 
-      const codexValidationResult = spawnSync('codex', ['debug', 'models'], {
-        cwd: dir,
-        encoding: 'utf-8',
-        env,
-        stdio: ['ignore', 'ignore', 'pipe'],
-        timeout: 5000,
-      });
+      const codexValidationResult = spawnSync(
+        'codex',
+        ['--enable', 'exec_permission_approvals', 'debug', 'prompt-input'],
+        {
+          cwd: dir,
+          encoding: 'utf-8',
+          env,
+          stdio: ['ignore', 'ignore', 'pipe'],
+          timeout: 5000,
+        },
+      );
       if (codexValidationResult.error) {
         expect(readSpawnErrorCode(codexValidationResult.error)).toBe('ENOENT');
       } else {

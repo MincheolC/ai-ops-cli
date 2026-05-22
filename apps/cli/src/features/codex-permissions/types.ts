@@ -43,16 +43,22 @@ export type HookCleanupResult = {
 
 export const CODEX_PERMISSION_PROFILE_SYNTAX = {
   DOCS_WORKSPACE_ROOTS_DENY: 'docs-workspace-roots-deny',
-  CODEX_0_130_PROJECT_ROOTS_NONE: 'codex-0.130-project-roots-none',
+  CODEX_0_130_PROJECT_ROOTS_EXACT_ENV_NONE: 'codex-0.130-project-roots-exact-env-none',
+  CODEX_0_130_PROJECT_ROOTS_GLOB_ENV_NONE: 'codex-0.130-project-roots-glob-env-none',
 } as const;
 
 export type CodexPermissionProfileSyntaxId =
   (typeof CODEX_PERMISSION_PROFILE_SYNTAX)[keyof typeof CODEX_PERMISSION_PROFILE_SYNTAX];
 
+export type CodexPermissionProfileFilesystemRule = {
+  path: string;
+  access: 'deny' | 'none' | 'read' | 'write';
+};
+
 export type CodexPermissionProfileSyntax = {
   id: CodexPermissionProfileSyntaxId;
   workspaceRootToken: ':workspace_roots' | ':project_roots';
-  envGlobAccess: 'deny' | 'none';
+  workspaceRules: readonly CodexPermissionProfileFilesystemRule[];
 };
 
 export type CodexPermissionProfileCandidate = {
@@ -101,9 +107,9 @@ export const CONFIG_CONFLICT_EXISTING_PROFILE =
 export const CONFIG_CONFLICT_NO_VALID_PROFILE =
   'no Codex-compatible permission profile syntax validated; safe-local v2 will not write an invalid Codex config';
 export const CONFIG_WARNING_VALIDATOR_UNAVAILABLE =
-  'Codex runtime validation unavailable; safe-local used the Codex 0.130 compatibility profile syntax';
+  'Codex runtime validation unavailable; safe-local used the portable compatibility profile syntax';
 export const CONFIG_WARNING_COMPAT_PROFILE_SELECTED =
-  'Codex runtime rejected the docs permission syntax; safe-local used the Codex 0.130 compatibility profile syntax';
+  'Codex runtime rejected the docs permission syntax; safe-local used a portable compatibility profile syntax';
 
 // ----- filesystem paths -----
 

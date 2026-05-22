@@ -114,7 +114,9 @@ const docsSyntaxOptions = {
 };
 
 const fallbackSyntaxOptions = {
-  validateProfileCandidate: createSyntaxValidator(CODEX_PERMISSION_PROFILE_SYNTAX.CODEX_0_130_PROJECT_ROOTS_NONE),
+  validateProfileCandidate: createSyntaxValidator(
+    CODEX_PERMISSION_PROFILE_SYNTAX.CODEX_0_130_PROJECT_ROOTS_EXACT_ENV_NONE,
+  ),
 };
 
 describe('Codex safe permissions profile config', () => {
@@ -139,7 +141,9 @@ describe('Codex safe permissions profile config', () => {
       expect(config).toContain('".git" = "read"');
       expect(config).toContain('".codex" = "read"');
       expect(config).toContain('".codex/plans" = "write"');
-      expect(config).toContain('"**/*.env" = "none"');
+      expect(config).toContain('".env" = "none"');
+      expect(config).toContain('".env.local" = "none"');
+      expect(config).not.toContain('"**/*.env" = "none"');
       expect(config).not.toContain('"**/*.env" = "deny"');
       expect(config).toContain('enabled = false');
       expect(config).not.toContain('sandbox_mode');
@@ -193,7 +197,9 @@ describe('Codex safe permissions profile config', () => {
 
       expect(result.config.warning).toBe(CONFIG_WARNING_VALIDATOR_UNAVAILABLE);
       expect(config).toContain('[permissions.ai-ops-safe-local.filesystem.":project_roots"]');
-      expect(config).toContain('"**/*.env" = "none"');
+      expect(config).toContain('".env" = "none"');
+      expect(config).toContain('".env.local" = "none"');
+      expect(config).not.toContain('"**/*.env" = "none"');
       expect(config).not.toContain('"**/*.env" = "deny"');
     } finally {
       paths.cleanup();

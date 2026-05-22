@@ -35,20 +35,40 @@ import {
 
 // ----- config.toml management -----
 
+const SAFE_LOCAL_BASE_WORKSPACE_RULES = [
+  { path: '.', access: 'write' },
+  { path: '.git', access: 'read' },
+  { path: '.codex', access: 'read' },
+  { path: '.codex/plans', access: 'write' },
+] as const;
+
+const SAFE_LOCAL_EXACT_ENV_NONE_RULES = [
+  { path: '.env', access: 'none' },
+  { path: '.env.local', access: 'none' },
+  { path: '.env.development', access: 'none' },
+  { path: '.env.test', access: 'none' },
+  { path: '.env.production', access: 'none' },
+] as const;
+
+const SAFE_LOCAL_FALLBACK_PROFILE_SYNTAX: CodexPermissionProfileSyntax = {
+  id: CODEX_PERMISSION_PROFILE_SYNTAX.CODEX_0_130_PROJECT_ROOTS_EXACT_ENV_NONE,
+  workspaceRootToken: ':project_roots',
+  workspaceRules: [...SAFE_LOCAL_BASE_WORKSPACE_RULES, ...SAFE_LOCAL_EXACT_ENV_NONE_RULES],
+};
+
 const SAFE_LOCAL_PROFILE_SYNTAX_CANDIDATES: readonly CodexPermissionProfileSyntax[] = [
   {
     id: CODEX_PERMISSION_PROFILE_SYNTAX.DOCS_WORKSPACE_ROOTS_DENY,
     workspaceRootToken: ':workspace_roots',
-    envGlobAccess: 'deny',
+    workspaceRules: [...SAFE_LOCAL_BASE_WORKSPACE_RULES, { path: '**/*.env', access: 'deny' }],
   },
+  SAFE_LOCAL_FALLBACK_PROFILE_SYNTAX,
   {
-    id: CODEX_PERMISSION_PROFILE_SYNTAX.CODEX_0_130_PROJECT_ROOTS_NONE,
+    id: CODEX_PERMISSION_PROFILE_SYNTAX.CODEX_0_130_PROJECT_ROOTS_GLOB_ENV_NONE,
     workspaceRootToken: ':project_roots',
-    envGlobAccess: 'none',
+    workspaceRules: [...SAFE_LOCAL_BASE_WORKSPACE_RULES, { path: '**/*.env', access: 'none' }],
   },
 ] as const;
-
-const SAFE_LOCAL_FALLBACK_PROFILE_SYNTAX = SAFE_LOCAL_PROFILE_SYNTAX_CANDIDATES[1];
 
 export const unavailableCodexPermissionProfileValidator: CodexPermissionProfileValidator = () => ({
   available: false,
@@ -74,11 +94,7 @@ const buildPermissionProfileBlock = (
     `${quoteTomlString(join(paths.userBasePath, '.ai-ops', 'context-promotion'))} = "write"`,
     '',
     `[permissions.${SAFE_LOCAL_CODEX_PERMISSION_NAME}.filesystem.${quoteTomlString(syntax.workspaceRootToken)}]`,
-    '"." = "write"',
-    '".git" = "read"',
-    '".codex" = "read"',
-    '".codex/plans" = "write"',
-    `"**/*.env" = ${quoteTomlString(syntax.envGlobAccess)}`,
+    ...syntax.workspaceRules.map((rule) => `${quoteTomlString(rule.path)} = ${quoteTomlString(rule.access)}`),
     '',
     `[permissions.${SAFE_LOCAL_CODEX_PERMISSION_NAME}.network]`,
     'enabled = false',
