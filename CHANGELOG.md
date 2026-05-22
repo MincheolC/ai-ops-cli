@@ -5,6 +5,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.5.5] - 2026-05-22
+
 ### Added
 
 - `feat(studio)`: `ai-ops studio [project]` now launches the macOS arm64 desktop Studio app through an optional `ai-ops-studio-darwin-arm64` platform package while preserving `ai-ops studio snapshot --json`.
