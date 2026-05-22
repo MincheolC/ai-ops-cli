@@ -73,6 +73,23 @@
       "layer": "agent",
       "owner": "project",
       "read_when": [
+        "studio_architecture",
+        "studio_launcher_work",
+        "release_packaging"
+      ],
+      "update_when": [
+        "studio_launcher_changes",
+        "studio_packaging_changes",
+        "studio_desktop_shell_changes"
+      ],
+      "path": "docs/agent/maps/studio-launcher-architecture.md",
+      "contentHash": "4bc8c8"
+    },
+    {
+      "status": "Active",
+      "layer": "agent",
+      "owner": "project",
+      "read_when": [
         "codex_work"
       ],
       "update_when": [
@@ -204,7 +221,7 @@
         "document_status_changes"
       ],
       "path": "docs/docs-status.md",
-      "contentHash": "42dca3"
+      "contentHash": "700a79"
     }
   ],
   "generatedAt": "2026-05-21T16:08:59.063Z"

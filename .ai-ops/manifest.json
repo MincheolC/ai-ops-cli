@@ -55,6 +55,11 @@
       "created": true
     },
     {
+      "path": "docs/agent/maps/studio-launcher-architecture.md",
+      "templateHash": "4bc8c8",
+      "created": false
+    },
+    {
       "path": "docs/agent/project-rules/routing-rules.md",
       "templateHash": "7292e0",
       "created": false
@@ -71,7 +76,7 @@
     },
     {
       "path": "docs/docs-status.md",
-      "templateHash": "42dca3",
+      "templateHash": "700a79",
       "created": true
     }
   ],
