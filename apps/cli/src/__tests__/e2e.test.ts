@@ -20,6 +20,24 @@ const setup = () => {
   return { dir, cleanup: () => rmSync(dir, { recursive: true, force: true }) };
 };
 
+const hasCodexPermissionEnvRule = (raw: string): boolean => {
+  const hasDocsSyntax =
+    raw.includes('[permissions.ai-ops-safe-local.filesystem.":workspace_roots"]') &&
+    raw.includes('"**/*.env" = "deny"');
+  const hasCompatibilitySyntax =
+    raw.includes('[permissions.ai-ops-safe-local.filesystem.":project_roots"]') &&
+    raw.includes('"**/*.env" = "none"');
+  return hasDocsSyntax || hasCompatibilitySyntax;
+};
+
+const readSpawnErrorCode = (error: unknown): string | null => {
+  if (!(error instanceof Error) || !('code' in error)) {
+    return null;
+  }
+  const code = error.code;
+  return typeof code === 'string' ? code : null;
+};
+
 describe('documentation contracts', () => {
   it('documents the run-scoped codex exec worker guidance', () => {
     for (const readmePath of [ROOT_README_PATH, ROOT_README_KO_PATH, CLI_README_PATH, CLI_README_KO_PATH]) {
@@ -29,7 +47,8 @@ describe('documentation contracts', () => {
       expect(raw).toContain('default_permissions=":read-only"');
       expect(raw).toContain('default_permissions="ai-worker-impl"');
       expect(raw).toContain('":project_roots"');
-      expect(raw).toContain('"**/*.env"="none"');
+      expect(raw).toContain('Codex-compatible');
+      expect(raw).toContain('installed Codex runtime');
       expect(raw).toContain('.codex/plans');
       expect(raw).toContain('.git');
       expect(raw).toContain('orchestrator');
@@ -288,14 +307,27 @@ describe.skipIf(!distExists)('codex permissions subprocess', () => {
       expect(configRaw).toContain('[permissions.ai-ops-safe-local]');
       expect(configRaw).toContain(`"${join(home, '.personal-project-contexts')}" = "write"`);
       expect(configRaw).toContain(`"${join(userHome, '.ai-ops/context-promotion')}" = "write"`);
-      expect(configRaw).toContain('[permissions.ai-ops-safe-local.filesystem.":project_roots"]');
       expect(configRaw).toContain('glob_scan_max_depth = 3');
       expect(configRaw).toContain('".codex/plans" = "write"');
       expect(configRaw).toContain('".git" = "read"');
-      expect(configRaw).toContain('"**/*.env" = "none"');
+      expect(hasCodexPermissionEnvRule(configRaw)).toBe(true);
       expect(configRaw).not.toContain('sandbox_mode');
       expect(existsSync(join(codexHome, 'rules/default.rules'))).toBe(false);
       expect(existsSync(join(codexHome, 'hooks.json'))).toBe(false);
+
+      const codexValidationResult = spawnSync('codex', ['debug', 'models'], {
+        cwd: dir,
+        encoding: 'utf-8',
+        env,
+        stdio: ['ignore', 'ignore', 'pipe'],
+        timeout: 5000,
+      });
+      if (codexValidationResult.error) {
+        expect(readSpawnErrorCode(codexValidationResult.error)).toBe('ENOENT');
+      } else {
+        expect(codexValidationResult.stderr).not.toContain('failed to load configuration');
+        expect(codexValidationResult.status).toBe(0);
+      }
 
       const uninstallResult = spawnSync(process.execPath, [BIN_PATH, 'codex-permissions', 'uninstall', 'safe-local'], {
         cwd: dir,

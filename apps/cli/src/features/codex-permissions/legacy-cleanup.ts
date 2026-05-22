@@ -11,6 +11,7 @@ export const cleanupLegacyRules = (content: string): ConfigEditResult => {
     installed: true,
     changed: nextContent !== content,
     conflict: null,
+    warning: null,
   };
 };
 
@@ -19,6 +20,7 @@ export const inspectLegacyRules = (content: string): ConfigEditResult => ({
   installed: !hasBlock(content, LEGACY_RULES_BLOCK_START, LEGACY_RULES_BLOCK_END),
   changed: false,
   conflict: null,
+  warning: null,
 });
 
 // ----- hooks.json legacy cleanup -----

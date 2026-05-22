@@ -3,12 +3,17 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { describe, expect, it } from 'vitest';
 import {
+  CODEX_PERMISSION_PROFILE_SYNTAX,
+  CONFIG_CONFLICT_NO_VALID_PROFILE,
+  CONFIG_WARNING_COMPAT_PROFILE_SELECTED,
+  CONFIG_WARNING_VALIDATOR_UNAVAILABLE,
   inspectCodexSafePermissions,
   installCodexSafePermissions,
   resolveCodexConfigPath,
   resolveCodexHooksPathForPermissions,
   resolveCodexRulesPath,
   SAFE_LOCAL_CODEX_PERMISSION_NAME,
+  type CodexPermissionProfileValidator,
   uninstallCodexSafePermissions,
 } from '../../features/codex-permissions/core.js';
 
@@ -88,15 +93,40 @@ const writeLegacySafeLocalFiles = (paths: ReturnType<typeof setup>): void => {
   );
 };
 
+const createSyntaxValidator =
+  (...validSyntaxIds: readonly string[]): CodexPermissionProfileValidator =>
+  (candidate) => {
+    const valid = validSyntaxIds.includes(candidate.syntax.id);
+    return {
+      available: true,
+      valid,
+      message: valid ? null : `${candidate.syntax.id} rejected`,
+    };
+  };
+
+const unavailableValidator: CodexPermissionProfileValidator = () => ({
+  available: false,
+  message: 'codex command is unavailable',
+});
+
+const docsSyntaxOptions = {
+  validateProfileCandidate: createSyntaxValidator(CODEX_PERMISSION_PROFILE_SYNTAX.DOCS_WORKSPACE_ROOTS_DENY),
+};
+
+const fallbackSyntaxOptions = {
+  validateProfileCandidate: createSyntaxValidator(CODEX_PERMISSION_PROFILE_SYNTAX.CODEX_0_130_PROJECT_ROOTS_NONE),
+};
+
 describe('Codex safe permissions profile config', () => {
   it('installs a safe-local permission profile into missing Codex files idempotently', () => {
     const paths = setup();
     try {
-      const result = installCodexSafePermissions(paths);
-      const second = installCodexSafePermissions(paths);
+      const result = installCodexSafePermissions(paths, fallbackSyntaxOptions);
+      const second = installCodexSafePermissions(paths, fallbackSyntaxOptions);
       const config = readFileSync(resolveCodexConfigPath(paths.codexHomePath), 'utf-8');
 
       expect(result.config.changed).toBe(true);
+      expect(result.config.warning).toBe(CONFIG_WARNING_COMPAT_PROFILE_SELECTED);
       expect(second.config.changed).toBe(false);
       expect(config).toContain(`default_permissions = "${SAFE_LOCAL_CODEX_PERMISSION_NAME}"`);
       expect(config).toContain(`[permissions.${SAFE_LOCAL_CODEX_PERMISSION_NAME}]`);
@@ -110,10 +140,61 @@ describe('Codex safe permissions profile config', () => {
       expect(config).toContain('".codex" = "read"');
       expect(config).toContain('".codex/plans" = "write"');
       expect(config).toContain('"**/*.env" = "none"');
+      expect(config).not.toContain('"**/*.env" = "deny"');
       expect(config).toContain('enabled = false');
       expect(config).not.toContain('sandbox_mode');
       expect(existsSync(resolveCodexRulesPath(paths.codexHomePath))).toBe(false);
       expect(existsSync(resolveCodexHooksPathForPermissions(paths.codexHomePath))).toBe(false);
+    } finally {
+      paths.cleanup();
+    }
+  });
+
+  it('uses the docs permission syntax when the local Codex runtime validates it', () => {
+    const paths = setup();
+    try {
+      const result = installCodexSafePermissions(paths, docsSyntaxOptions);
+      const config = readFileSync(resolveCodexConfigPath(paths.codexHomePath), 'utf-8');
+
+      expect(result.config.conflict).toBe(null);
+      expect(result.config.warning).toBe(null);
+      expect(config).toContain('[permissions.ai-ops-safe-local.filesystem.":workspace_roots"]');
+      expect(config).toContain('"**/*.env" = "deny"');
+      expect(config).not.toContain('[permissions.ai-ops-safe-local.filesystem.":project_roots"]');
+      expect(config).not.toContain('"**/*.env" = "none"');
+    } finally {
+      paths.cleanup();
+    }
+  });
+
+  it('fails closed without writing config when no permission syntax validates', () => {
+    const paths = setup();
+    try {
+      const result = installCodexSafePermissions(paths, {
+        validateProfileCandidate: createSyntaxValidator(),
+      });
+
+      expect(result.config.installed).toBe(false);
+      expect(result.config.changed).toBe(false);
+      expect(result.config.conflict).toContain(CONFIG_CONFLICT_NO_VALID_PROFILE);
+      expect(existsSync(resolveCodexConfigPath(paths.codexHomePath))).toBe(false);
+    } finally {
+      paths.cleanup();
+    }
+  });
+
+  it('uses the compatibility syntax with a warning when Codex validation is unavailable', () => {
+    const paths = setup();
+    try {
+      const result = installCodexSafePermissions(paths, {
+        validateProfileCandidate: unavailableValidator,
+      });
+      const config = readFileSync(resolveCodexConfigPath(paths.codexHomePath), 'utf-8');
+
+      expect(result.config.warning).toBe(CONFIG_WARNING_VALIDATOR_UNAVAILABLE);
+      expect(config).toContain('[permissions.ai-ops-safe-local.filesystem.":project_roots"]');
+      expect(config).toContain('"**/*.env" = "none"');
+      expect(config).not.toContain('"**/*.env" = "deny"');
     } finally {
       paths.cleanup();
     }
@@ -136,7 +217,7 @@ describe('Codex safe permissions profile config', () => {
         'utf-8',
       );
 
-      const result = installCodexSafePermissions(paths);
+      const result = installCodexSafePermissions(paths, fallbackSyntaxOptions);
       const config = readFileSync(resolveCodexConfigPath(paths.codexHomePath), 'utf-8');
 
       expect(result.config.conflict).toBe(null);
@@ -163,7 +244,9 @@ describe('Codex safe permissions profile config', () => {
     try {
       mkdirSync(sandboxMode.codexHomePath, { recursive: true });
       writeFileSync(resolveCodexConfigPath(sandboxMode.codexHomePath), 'sandbox_mode = "workspace-write"\n', 'utf-8');
-      expect(installCodexSafePermissions(sandboxMode).config.conflict).toContain('sandbox_mode');
+      expect(installCodexSafePermissions(sandboxMode, fallbackSyntaxOptions).config.conflict).toContain(
+        'sandbox_mode',
+      );
 
       mkdirSync(sandboxWorkspace.codexHomePath, { recursive: true });
       writeFileSync(
@@ -171,7 +254,9 @@ describe('Codex safe permissions profile config', () => {
         ['[sandbox_workspace_write]', 'writable_roots = ["/tmp/example"]', ''].join('\n'),
         'utf-8',
       );
-      expect(installCodexSafePermissions(sandboxWorkspace).config.conflict).toContain('sandbox_mode');
+      expect(installCodexSafePermissions(sandboxWorkspace, fallbackSyntaxOptions).config.conflict).toContain(
+        'sandbox_mode',
+      );
 
       mkdirSync(otherProfile.codexHomePath, { recursive: true });
       writeFileSync(
@@ -179,7 +264,9 @@ describe('Codex safe permissions profile config', () => {
         'default_permissions = "project-edit"\n',
         'utf-8',
       );
-      expect(installCodexSafePermissions(otherProfile).config.conflict).toContain('default_permissions');
+      expect(installCodexSafePermissions(otherProfile, fallbackSyntaxOptions).config.conflict).toContain(
+        'default_permissions',
+      );
 
       mkdirSync(matchingUserProfile.codexHomePath, { recursive: true });
       writeFileSync(
@@ -193,7 +280,7 @@ describe('Codex safe permissions profile config', () => {
         ].join('\n'),
         'utf-8',
       );
-      const matchingProfileResult = installCodexSafePermissions(matchingUserProfile);
+      const matchingProfileResult = installCodexSafePermissions(matchingUserProfile, fallbackSyntaxOptions);
       expect(matchingProfileResult.config.conflict).toContain('permissions.ai-ops-safe-local');
       expect(readFileSync(resolveCodexConfigPath(matchingUserProfile.codexHomePath), 'utf-8')).not.toContain(
         'ai-ops:safe-permissions:profile',
@@ -210,7 +297,7 @@ describe('Codex safe permissions profile config', () => {
     const paths = setup();
     try {
       writeLegacySafeLocalFiles(paths);
-      const result = installCodexSafePermissions(paths);
+      const result = installCodexSafePermissions(paths, fallbackSyntaxOptions);
       const config = readFileSync(resolveCodexConfigPath(paths.codexHomePath), 'utf-8');
       const rules = readFileSync(resolveCodexRulesPath(paths.codexHomePath), 'utf-8');
       const hooks = readFileSync(resolveCodexHooksPathForPermissions(paths.codexHomePath), 'utf-8');
@@ -235,7 +322,7 @@ describe('Codex safe permissions profile config', () => {
   it('uninstalls only ai-ops managed profile and legacy cleanup blocks', () => {
     const paths = setup();
     try {
-      installCodexSafePermissions(paths);
+      installCodexSafePermissions(paths, fallbackSyntaxOptions);
       const result = uninstallCodexSafePermissions(paths);
       const config = readFileSync(resolveCodexConfigPath(paths.codexHomePath), 'utf-8');
 
@@ -257,7 +344,7 @@ describe('Codex safe permissions profile config', () => {
         'utf-8',
       );
 
-      installCodexSafePermissions(paths);
+      installCodexSafePermissions(paths, fallbackSyntaxOptions);
       let config = readFileSync(resolveCodexConfigPath(paths.codexHomePath), 'utf-8');
       expect(config.match(/default_permissions/g)?.length).toBe(1);
       expect(config).toContain(`[permissions.${SAFE_LOCAL_CODEX_PERMISSION_NAME}]`);
@@ -273,9 +360,9 @@ describe('Codex safe permissions profile config', () => {
   it('reports status without mutating files', () => {
     const paths = setup();
     try {
-      installCodexSafePermissions(paths);
+      installCodexSafePermissions(paths, fallbackSyntaxOptions);
       const before = readFileSync(resolveCodexConfigPath(paths.codexHomePath), 'utf-8');
-      const status = inspectCodexSafePermissions(paths);
+      const status = inspectCodexSafePermissions(paths, fallbackSyntaxOptions);
       const after = readFileSync(resolveCodexConfigPath(paths.codexHomePath), 'utf-8');
 
       expect(status.config.installed).toBe(true);

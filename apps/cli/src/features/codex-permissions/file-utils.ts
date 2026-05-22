@@ -155,9 +155,11 @@ export const buildFileStatus = (params: {
   installed: boolean;
   changed: boolean;
   conflict: string | null;
+  warning?: string | null;
 }): CodexSafePermissionFileStatus => ({
   path: params.path,
   installed: params.installed,
   changed: params.changed,
   conflict: params.conflict,
+  warning: params.warning ?? null,
 });

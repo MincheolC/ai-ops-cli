@@ -5,6 +5,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- `fix(codex-permissions)`: `safe-local` now validates its generated permission profile with the installed Codex runtime, selects the first compatible env-file deny syntax, falls back with a warning only when runtime validation is unavailable, and fails closed instead of writing invalid `config.toml`.
+
 ## [1.5.1] - 2026-05-22
 
 ### Added
@@ -23,7 +27,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
-- `fix(codex-permissions)`: `safe-local` generated Codex 0.130.0-compatible permission profile TOML using `:project_roots` and `none` so `~/.codex/config.toml` loads without `FilesystemPermissionToml` errors
+- `fix(codex-permissions)`: `safe-local` generated Codex 0.130.0-compatible permission profile TOML using the `:project_roots` table shape.
 
 ## [1.4.1] - 2026-05-21
 

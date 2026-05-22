@@ -15,7 +15,9 @@ v2 목표는 세 가지다.
 - `config.toml` 관리를 permission profile 중심으로 변경한다.
   - `default_permissions = "ai-ops-safe-local"`과 `[permissions.ai-ops-safe-local]` managed block을 user-level `~/.codex/config.toml`에 upsert한다.
   - profile은 `:minimal = "read"`, `~/.personal-project-contexts = "write"`, `${AI_OPS_HOME ?? HOME}/.ai-ops/context-promotion = "write"`를 부여한다.
-  - `[permissions.ai-ops-safe-local.filesystem.":project_roots"]`는 `"." = "write"`, `".git" = "read"`, `".codex" = "read"`, `".codex/plans" = "write"`, `"**/*.env" = "none"`으로 둔다.
+  - project-root filesystem rule은 local Codex parser validation을 통과한 첫 syntax candidate를 사용한다. Preferred docs candidate는 `[permissions.ai-ops-safe-local.filesystem.":workspace_roots"]` + `"**/*.env" = "deny"`이고, Codex 0.130 compatibility candidate는 `[permissions.ai-ops-safe-local.filesystem.":project_roots"]` + `"**/*.env" = "none"`이다.
+  - 모든 candidate는 `"." = "write"`, `".git" = "read"`, `".codex" = "read"`, `".codex/plans" = "write"`를 유지한다.
+  - Codex validation을 실행할 수 없으면 warning과 함께 compatibility candidate를 쓰고, Codex가 있지만 어떤 candidate도 통과하지 못하면 `config.toml`을 쓰지 않고 fail-closed한다.
   - `[permissions.ai-ops-safe-local.network] enabled = false`로 시작한다.
   - user-owned `sandbox_mode`/`sandbox_workspace_write`가 있으면 profile이 무시되므로 conflict로 fail-closed한다.
   - 기존 ai-ops v1 managed `sandbox_mode`/`writable_roots` block만 있으면 제거하고 v2 profile block으로 교체한다.
@@ -33,13 +35,15 @@ v2 목표는 세 가지다.
 - README/README.ko와 CLI README 쌍에 worker 가이드를 추가한다.
   - worker는 `codex exec --ignore-user-config --ignore-rules --cd "$WORKTREE"`를 기본으로 사용한다.
   - planner/review Codex는 `default_permissions=":read-only"`와 `approval_policy="never"`를 사용한다.
-  - implementation/fix Codex는 run-scoped `ai-worker-impl` profile을 `-c`로 주입하고, worktree write + `.git` read + `.codex/plans` write + env deny + network disabled를 명시한다.
+  - implementation/fix Codex는 run-scoped `ai-worker-impl` profile을 `-c`로 주입하고, worktree write + `.git` read + `.codex/plans` write + network disabled를 명시한다.
+  - env-file carveout은 installed Codex runtime으로 exact TOML syntax를 검증해야 하며, `safe-local` managed profile은 이 검증을 자동 수행한다고 문서화한다.
   - Codex 실행 후 orchestrator가 HEAD/ref/changed-file scope를 검사하고, commit/push/PR 생성은 Codex 밖에서 수행해야 한다고 문서화한다.
 
 ## Test Plan
 
 - Unit tests
   - absent config에 v2 profile block이 생성되고 재실행이 idempotent인지 검증
+  - injected validator로 docs candidate 성공, docs 실패 후 compatibility candidate 성공, 전체 candidate 실패, validator unavailable 경로를 검증
   - user-owned `sandbox_mode`, `sandbox_workspace_write`, 다른 `default_permissions`는 conflict로 파일을 쓰지 않는지 검증
   - v1 managed config/rules/hook cleanup 후 v2 profile로 전환되는지 검증
   - uninstall이 v2 profile block과 legacy hook/rules만 제거하고 사용자 설정은 보존하는지 검증
@@ -47,6 +51,7 @@ v2 목표는 세 가지다.
 - E2E tests
   - temp `HOME`, `AI_OPS_HOME`, `CODEX_HOME`에서 `install`, 재실행, `status`, `uninstall` 검증
   - install 결과에 `sandbox_mode`와 `PermissionRequest` hook이 없고 `default_permissions = "ai-ops-safe-local"`이 있는지 검증
+  - install 결과가 docs syntax 또는 compatibility syntax 중 하나의 Codex-compatible env-file rule을 사용하고, local `codex`가 있으면 `codex debug models`로 temp config parser smoke를 수행
   - README worker guide에 `--ignore-user-config`, `--ignore-rules`, `approval_policy="never"`, `.codex/plans`, `.git = read`, orchestrator commit/push/PR 원칙이 포함되는지 검증
 
 - Validation

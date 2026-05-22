@@ -167,7 +167,7 @@ ai-ops codex-permissions status safe-local
 ai-ops codex-permissions uninstall safe-local
 ```
 
-`safe-local` manages a user-level Codex permission profile named `ai-ops-safe-local` in `~/.codex/config.toml`. It grants write access to `~/.personal-project-contexts`, `${AI_OPS_HOME:-$HOME}/.ai-ops/context-promotion`, and `.codex/plans` under active project roots while keeping `.git` read-only and blocking `**/*.env` reads. It does not install `PermissionRequest` hooks or command allow rules.
+`safe-local` manages a user-level Codex permission profile named `ai-ops-safe-local` in `~/.codex/config.toml`. It grants write access to `~/.personal-project-contexts`, `${AI_OPS_HOME:-$HOME}/.ai-ops/context-promotion`, and `.codex/plans` under active project roots while keeping `.git` read-only. It installs a Codex-compatible env-file deny rule by validating the generated profile against the installed Codex runtime and choosing the first accepted syntax. If Codex validation is unavailable, it uses a compatibility syntax with a warning; if Codex is available but no candidate validates, it fails closed without writing `config.toml`. It does not install `PermissionRequest` hooks or command allow rules.
 
 For an ai-coding worker, keep Codex subprocesses run-scoped and let the orchestrator own commits, pushes, and PR creation:
 
@@ -183,9 +183,10 @@ codex exec --ignore-user-config --ignore-rules --cd "$WORKTREE" \
   -c 'permissions.ai-worker-impl.filesystem.":project_roots"."."="write"' \
   -c 'permissions.ai-worker-impl.filesystem.":project_roots".".git"="read"' \
   -c 'permissions.ai-worker-impl.filesystem.":project_roots".".codex/plans"="write"' \
-  -c 'permissions.ai-worker-impl.filesystem.":project_roots"."**/*.env"="none"' \
   -c 'permissions.ai-worker-impl.network.enabled=false'
 ```
+
+When adding env-file carveouts to run-scoped worker profiles, validate the exact TOML syntax against the installed Codex runtime; `safe-local` performs that validation automatically for its managed profile.
 
 After each Codex run, the orchestrator should verify HEAD, branch refs, and changed-file scope. The orchestrator, not Codex, should run validation commands, create commits, push branches, and call `gh pr create --draft`.
 

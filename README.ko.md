@@ -137,7 +137,7 @@ ai-ops codex-permissions status safe-local
 ai-ops codex-permissions uninstall safe-local
 ```
 
-`safe-local`은 `~/.codex/config.toml`에 `ai-ops-safe-local` user-level Codex permission profile을 upsert합니다. `~/.personal-project-contexts`, `${AI_OPS_HOME:-$HOME}/.ai-ops/context-promotion`, active project root 아래 `.codex/plans`에는 write를 허용하고, `.git`은 read-only로 두며 `**/*.env` read는 차단합니다. `PermissionRequest` hook이나 command allow rule은 설치하지 않습니다.
+`safe-local`은 `~/.codex/config.toml`에 `ai-ops-safe-local` user-level Codex permission profile을 upsert합니다. `~/.personal-project-contexts`, `${AI_OPS_HOME:-$HOME}/.ai-ops/context-promotion`, active project root 아래 `.codex/plans`에는 write를 허용하고 `.git`은 read-only로 둡니다. Env 파일 차단은 하나의 TOML syntax를 전역 정답으로 가정하지 않고, generated profile을 installed Codex runtime으로 검증한 뒤 처음 통과한 Codex-compatible env-file deny rule을 설치합니다. Codex validation을 실행할 수 없으면 warning과 함께 compatibility syntax를 쓰고, Codex가 있지만 어떤 candidate도 통과하지 못하면 `config.toml`을 쓰지 않고 fail closed합니다. `PermissionRequest` hook이나 command allow rule은 설치하지 않습니다.
 
 ai-coding worker에서는 Codex subprocess를 run-scoped로 실행하고, commit/push/PR 생성은 orchestrator가 담당하게 합니다.
 
@@ -153,9 +153,10 @@ codex exec --ignore-user-config --ignore-rules --cd "$WORKTREE" \
   -c 'permissions.ai-worker-impl.filesystem.":project_roots"."."="write"' \
   -c 'permissions.ai-worker-impl.filesystem.":project_roots".".git"="read"' \
   -c 'permissions.ai-worker-impl.filesystem.":project_roots".".codex/plans"="write"' \
-  -c 'permissions.ai-worker-impl.filesystem.":project_roots"."**/*.env"="none"' \
   -c 'permissions.ai-worker-impl.network.enabled=false'
 ```
+
+Run-scoped worker profile에 env-file carveout을 추가할 때도 exact TOML syntax를 installed Codex runtime으로 검증해야 합니다. `safe-local`은 managed profile에 대해 이 검증을 자동으로 수행합니다.
 
 각 Codex 실행 후 orchestrator가 HEAD, branch ref, changed-file scope를 검증해야 합니다. Validation command 실행, commit 생성, branch push, `gh pr create --draft` 호출은 Codex가 아니라 orchestrator가 수행합니다.
 

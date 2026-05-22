@@ -1,9 +1,18 @@
 import { join } from 'node:path';
-import type { CodexSafePermissionPaths, ConfigEditResult } from './types.js';
+import type {
+  CodexPermissionProfileSyntax,
+  CodexPermissionProfileValidator,
+  CodexSafePermissionPaths,
+  ConfigEditResult,
+} from './types.js';
 import {
+  CODEX_PERMISSION_PROFILE_SYNTAX,
   CONFIG_CONFLICT_DEFAULT_PERMISSIONS,
   CONFIG_CONFLICT_EXISTING_PROFILE,
+  CONFIG_CONFLICT_NO_VALID_PROFILE,
   CONFIG_CONFLICT_SANDBOX,
+  CONFIG_WARNING_COMPAT_PROFILE_SELECTED,
+  CONFIG_WARNING_VALIDATOR_UNAVAILABLE,
   LEGACY_CONFIG_BLOCK_END,
   LEGACY_CONFIG_BLOCK_START,
   LEGACY_WRITABLE_ROOTS_BLOCK_END,
@@ -26,7 +35,31 @@ import {
 
 // ----- config.toml management -----
 
-const buildPermissionProfileBlock = (paths: CodexSafePermissionPaths, includeDefaultPermissions: boolean): string =>
+const SAFE_LOCAL_PROFILE_SYNTAX_CANDIDATES: readonly CodexPermissionProfileSyntax[] = [
+  {
+    id: CODEX_PERMISSION_PROFILE_SYNTAX.DOCS_WORKSPACE_ROOTS_DENY,
+    workspaceRootToken: ':workspace_roots',
+    envGlobAccess: 'deny',
+  },
+  {
+    id: CODEX_PERMISSION_PROFILE_SYNTAX.CODEX_0_130_PROJECT_ROOTS_NONE,
+    workspaceRootToken: ':project_roots',
+    envGlobAccess: 'none',
+  },
+] as const;
+
+const SAFE_LOCAL_FALLBACK_PROFILE_SYNTAX = SAFE_LOCAL_PROFILE_SYNTAX_CANDIDATES[1];
+
+export const unavailableCodexPermissionProfileValidator: CodexPermissionProfileValidator = () => ({
+  available: false,
+  message: 'codex command is unavailable',
+});
+
+const buildPermissionProfileBlock = (
+  paths: CodexSafePermissionPaths,
+  includeDefaultPermissions: boolean,
+  syntax: CodexPermissionProfileSyntax,
+): string =>
   [
     PROFILE_BLOCK_START,
     ...(includeDefaultPermissions
@@ -40,12 +73,12 @@ const buildPermissionProfileBlock = (paths: CodexSafePermissionPaths, includeDef
     `${quoteTomlString(paths.personalContextRoot)} = "write"`,
     `${quoteTomlString(join(paths.userBasePath, '.ai-ops', 'context-promotion'))} = "write"`,
     '',
-    `[permissions.${SAFE_LOCAL_CODEX_PERMISSION_NAME}.filesystem.":project_roots"]`,
+    `[permissions.${SAFE_LOCAL_CODEX_PERMISSION_NAME}.filesystem.${quoteTomlString(syntax.workspaceRootToken)}]`,
     '"." = "write"',
     '".git" = "read"',
     '".codex" = "read"',
     '".codex/plans" = "write"',
-    '"**/*.env" = "none"',
+    `"**/*.env" = ${quoteTomlString(syntax.envGlobAccess)}`,
     '',
     `[permissions.${SAFE_LOCAL_CODEX_PERMISSION_NAME}.network]`,
     'enabled = false',
@@ -98,7 +131,52 @@ const removeLegacyManagedSandboxWorkspaceWriteTable = (content: string): string 
 const cleanupLegacySandboxConfig = (content: string): string =>
   removeLegacyManagedSandboxWorkspaceWriteTable(stripLegacySandboxModeBlock(content));
 
-export const editConfigForInstall = (content: string, paths: CodexSafePermissionPaths): ConfigEditResult => {
+const buildValidationConfig = (paths: CodexSafePermissionPaths, syntax: CodexPermissionProfileSyntax): string =>
+  buildPermissionProfileBlock(paths, true, syntax);
+
+const selectPermissionProfileSyntax = (
+  paths: CodexSafePermissionPaths,
+  validateProfileCandidate: CodexPermissionProfileValidator,
+): { syntax: CodexPermissionProfileSyntax; warning: string | null; conflict: string | null } => {
+  const failures: string[] = [];
+  for (const syntax of SAFE_LOCAL_PROFILE_SYNTAX_CANDIDATES) {
+    const validation = validateProfileCandidate({
+      syntax,
+      validationConfig: buildValidationConfig(paths, syntax),
+    });
+    if (!validation.available) {
+      return {
+        syntax: SAFE_LOCAL_FALLBACK_PROFILE_SYNTAX,
+        warning: CONFIG_WARNING_VALIDATOR_UNAVAILABLE,
+        conflict: null,
+      };
+    }
+    if (validation.valid) {
+      return {
+        syntax,
+        warning:
+          syntax.id === CODEX_PERMISSION_PROFILE_SYNTAX.DOCS_WORKSPACE_ROOTS_DENY
+            ? null
+            : CONFIG_WARNING_COMPAT_PROFILE_SELECTED,
+        conflict: null,
+      };
+    }
+    failures.push(`${syntax.id}: ${validation.message ?? 'invalid'}`);
+  }
+
+  const suffix = failures.length > 0 ? ` (${failures.join('; ')})` : '';
+  return {
+    syntax: SAFE_LOCAL_FALLBACK_PROFILE_SYNTAX,
+    warning: null,
+    conflict: `${CONFIG_CONFLICT_NO_VALID_PROFILE}${suffix}`,
+  };
+};
+
+export const editConfigForInstall = (
+  content: string,
+  paths: CodexSafePermissionPaths,
+  validateProfileCandidate: CodexPermissionProfileValidator = unavailableCodexPermissionProfileValidator,
+): ConfigEditResult => {
   const withoutCurrentProfileBlock = stripBlock(content, PROFILE_BLOCK_START, PROFILE_BLOCK_END);
   const withoutLegacy = cleanupLegacySandboxConfig(withoutCurrentProfileBlock);
   const activeDefaultPermissions = readTopLevelStringAssignment(withoutLegacy, 'default_permissions');
@@ -112,6 +190,7 @@ export const editConfigForInstall = (content: string, paths: CodexSafePermission
       installed: false,
       changed: false,
       conflict: CONFIG_CONFLICT_SANDBOX,
+      warning: null,
     };
   }
 
@@ -121,6 +200,7 @@ export const editConfigForInstall = (content: string, paths: CodexSafePermission
       installed: false,
       changed: false,
       conflict: CONFIG_CONFLICT_DEFAULT_PERMISSIONS,
+      warning: null,
     };
   }
 
@@ -130,11 +210,23 @@ export const editConfigForInstall = (content: string, paths: CodexSafePermission
       installed: false,
       changed: false,
       conflict: CONFIG_CONFLICT_EXISTING_PROFILE,
+      warning: null,
+    };
+  }
+
+  const selectedSyntax = selectPermissionProfileSyntax(paths, validateProfileCandidate);
+  if (selectedSyntax.conflict) {
+    return {
+      content,
+      installed: false,
+      changed: false,
+      conflict: selectedSyntax.conflict,
+      warning: null,
     };
   }
 
   const shouldWriteDefaultPermissions = activeDefaultPermissions !== SAFE_LOCAL_CODEX_PERMISSION_NAME;
-  const profileBlock = buildPermissionProfileBlock(paths, shouldWriteDefaultPermissions);
+  const profileBlock = buildPermissionProfileBlock(paths, shouldWriteDefaultPermissions, selectedSyntax.syntax);
   const nextContent = shouldWriteDefaultPermissions
     ? insertBlockBeforeFirstTable(withoutLegacy, profileBlock)
     : replaceOrAppendBlock(withoutLegacy, PROFILE_BLOCK_START, PROFILE_BLOCK_END, profileBlock);
@@ -144,6 +236,7 @@ export const editConfigForInstall = (content: string, paths: CodexSafePermission
     installed: true,
     changed: nextContent !== content,
     conflict: null,
+    warning: selectedSyntax.warning,
   };
 };
 
@@ -156,11 +249,16 @@ export const editConfigForUninstall = (content: string): ConfigEditResult => {
     installed: false,
     changed: nextContent !== content,
     conflict: null,
+    warning: null,
   };
 };
 
-export const inspectConfig = (content: string, paths: CodexSafePermissionPaths): ConfigEditResult => {
-  const edited = editConfigForInstall(content, paths);
+export const inspectConfig = (
+  content: string,
+  paths: CodexSafePermissionPaths,
+  validateProfileCandidate: CodexPermissionProfileValidator = unavailableCodexPermissionProfileValidator,
+): ConfigEditResult => {
+  const edited = editConfigForInstall(content, paths, validateProfileCandidate);
   if (edited.conflict) {
     return edited;
   }
@@ -169,5 +267,6 @@ export const inspectConfig = (content: string, paths: CodexSafePermissionPaths):
     installed: !edited.changed,
     changed: false,
     conflict: null,
+    warning: edited.warning,
   };
 };

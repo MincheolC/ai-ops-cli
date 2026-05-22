@@ -49,6 +49,7 @@ const formatFileStatus = (label: string, status: CodexSafePermissionFileStatus):
     `path: ${status.path}`,
     `changed: ${status.changed ? 'yes' : 'no'}`,
     `conflict: ${status.conflict ?? 'none'}`,
+    ...(status.warning ? [`warning: ${status.warning}`] : []),
   ].join('\n');
 
 const formatStatus = (status: CodexSafePermissionStatus): string =>
