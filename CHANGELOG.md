@@ -5,6 +5,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.5.2] - 2026-05-22
+
 ### Fixed
 
 - `fix(codex-permissions)`: `safe-local` now validates its generated permission profile with the installed Codex runtime, selects the first compatible env-file deny syntax, falls back with a warning only when runtime validation is unavailable, and fails closed instead of writing invalid `config.toml`.
