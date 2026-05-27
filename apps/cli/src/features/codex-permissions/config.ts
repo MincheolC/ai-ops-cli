@@ -150,6 +150,14 @@ const cleanupLegacySandboxConfig = (content: string): string =>
 const buildValidationConfig = (paths: CodexSafePermissionPaths, syntax: CodexPermissionProfileSyntax): string =>
   buildPermissionProfileBlock(paths, true, syntax);
 
+const normalizeConfigForManagedComparison = (content: string): string => {
+  const trimmed = content.replace(/[ \t\r\n]+$/, '');
+  return trimmed.length > 0 ? `${trimmed}\n` : '';
+};
+
+const configMatchesManagedContent = (currentContent: string, nextContent: string): boolean =>
+  normalizeConfigForManagedComparison(currentContent) === normalizeConfigForManagedComparison(nextContent);
+
 const selectPermissionProfileSyntax = (
   paths: CodexSafePermissionPaths,
   validateProfileCandidate: CodexPermissionProfileValidator,
@@ -250,7 +258,7 @@ export const editConfigForInstall = (
   return {
     content: nextContent,
     installed: true,
-    changed: nextContent !== content,
+    changed: !configMatchesManagedContent(content, nextContent),
     conflict: null,
     warning: selectedSyntax.warning,
   };

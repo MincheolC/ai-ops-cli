@@ -379,4 +379,43 @@ describe('Codex safe permissions profile config', () => {
       paths.cleanup();
     }
   });
+
+  it('treats trailing EOF blank lines as installed without rewriting config', () => {
+    const paths = setup();
+    try {
+      installCodexSafePermissions(paths, fallbackSyntaxOptions);
+      const configPath = resolveCodexConfigPath(paths.codexHomePath);
+      const before = readFileSync(configPath, 'utf-8');
+      writeFileSync(configPath, `${before}\n`, 'utf-8');
+      const withExtraBlankLine = readFileSync(configPath, 'utf-8');
+
+      const status = inspectCodexSafePermissions(paths, fallbackSyntaxOptions);
+      const reinstall = installCodexSafePermissions(paths, fallbackSyntaxOptions);
+      const after = readFileSync(configPath, 'utf-8');
+
+      expect(status.config.installed).toBe(true);
+      expect(reinstall.config.changed).toBe(false);
+      expect(after).toBe(withExtraBlankLine);
+    } finally {
+      paths.cleanup();
+    }
+  });
+
+  it('reports not installed when the managed profile content differs', () => {
+    const paths = setup();
+    try {
+      installCodexSafePermissions(paths, fallbackSyntaxOptions);
+      const configPath = resolveCodexConfigPath(paths.codexHomePath);
+      const config = readFileSync(configPath, 'utf-8');
+      expect(config).toContain('".git" = "read"');
+      writeFileSync(configPath, config.replace('".git" = "read"', '".git" = "write"'), 'utf-8');
+
+      const status = inspectCodexSafePermissions(paths, fallbackSyntaxOptions);
+
+      expect(status.config.installed).toBe(false);
+      expect(status.config.conflict).toBe(null);
+    } finally {
+      paths.cleanup();
+    }
+  });
 });

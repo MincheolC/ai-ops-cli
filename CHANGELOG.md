@@ -5,6 +5,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- `fix(codex-permissions)`: `safe-local` status no longer reports an installed managed profile as missing when the only config difference is trailing EOF blank lines.
+
 ## [1.5.5] - 2026-05-22
 
 ### Added
