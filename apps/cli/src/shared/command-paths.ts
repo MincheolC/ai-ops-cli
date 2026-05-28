@@ -29,3 +29,11 @@ export const resolveUserBasePath = (): string => {
   }
   return userBasePath;
 };
+
+export const resolvePersonalContextRoot = (): string => {
+  const home = process.env.HOME;
+  if (!home) {
+    throw new Error('HOME is required for pc integration commands');
+  }
+  return `${home}/.personal-project-contexts`;
+};

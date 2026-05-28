@@ -154,6 +154,8 @@ workstream이 이 skill의 핵심 작업 단위다.
 - 작업 workspace/repo/service 안에는 이 skill의 context 파일을 만들거나 수정하지 않는다.
 - `$pc:help`와 `$pc:todo`는 read-only다. 어떤 파일도 수정하지 않는다.
 - `$pc:init`, `$pc:add`, `$pc:do`, `$pc:done`은 `~/.personal-project-contexts/`만 수정한다.
+- `$pc:done` handoff 반영을 위해 임시 JS 파일, inline `node --input-type=module -e ...`, ad-hoc markdown replace script를 만들지 않는다.
+- `$pc:done`은 `ai-ops pc done draft`로 JSON draft를 만들고, AI가 draft를 채운 뒤, `ai-ops pc done apply --draft <draft-path>`로 반영한다.
 - context store를 수정한 뒤에는 해당 context repo에서만 commit한다.
 - 기존 context 파일의 사용자 기록을 삭제하지 않는다. 상태 변경은 append 또는 좁은 섹션 갱신으로 처리한다.
 - 작업 repo의 변경을 stage/commit/revert하지 않는다.
@@ -169,6 +171,8 @@ workstream이 이 skill의 핵심 작업 단위다.
 - `$pc:add <항목>`: 새 workstream을 등록하고 큰 계획 문서는 초기 본문으로 압축
 - `$pc:do <항목>`: 등록된 workstream을 진행중으로 설정하거나 오늘 작업 대상으로 갱신
 - `$pc:done`: 진행중 workstream의 진행/완료/handoff를 저장
+
+CLI help가 필요하면 `ai-ops pc --help`와 `ai-ops pc done --help`를 먼저 확인한다.
 
 ### `$pc:init [--reset] [path...]`
 
@@ -236,22 +240,24 @@ context가 없으면 파일을 만들지 말고 `$pc:init .` 또는 `$pc:init ./
 ### `$pc:done`
 
 1. 현재 경로와 매칭되는 workspace와 active workstream을 찾는다. 없으면 쓰지 않고 `$pc:do <항목>`으로 진행중 workstream을 먼저 선택하라고 안내한다.
-2. 사용자가 완료한 일/남은 일/다음 첫 행동을 인자로 직접 제공했으면 그 내용을 우선 source of truth로 사용한다.
-3. 사용자가 `$pc:done`만 호출했으면 git 기반 entry에서 commit evidence를 수집한다.
-4. workstream에 entry별 마지막 확인 commit hash가 있으면 그 commit 이후부터 현재 `HEAD`까지의 commit log/diff summary를 본다.
-5. 마지막 확인 commit hash가 없으면 오늘 00:00 이후의 commit log를 본다.
-6. commit evidence를 본 뒤 각 git 기반 entry의 현재 `HEAD`를 workstream의 마지막 확인 commit hash로 기록한다.
-7. current entry가 git 기반이면 `git status --short`도 함께 확인해 아직 commit되지 않은 변경을 handoff에 남긴다.
-8. active workstream `범위`에 여러 git 기반 entry가 있으면 각 entry별 commit range, status/diff 확인을 시도한다.
-9. `folder-service` entry는 git commit을 요구하지 않고, 사용자 대화와 확인 가능한 파일 목록 중심으로 변경 요약을 남긴다.
-10. 참조 문서가 있으면 해당 phase/scope/제외 범위를 확인하고, 완료된 항목과 남은 항목을 evidence 기준으로 재분류한다.
-11. 다음 첫 행동을 정하기 전에 `Next Action Quality Rules`를 적용한다. 오래된 `남은 일`을 그대로 쓰지 말고, 이미 완료된 일/제외된 일/현재 repo에 없는 테스트 체계를 걸러낸다.
-12. active workstream에 오늘 완료한 일, entry별 변경 요약, commit range, 남은 일, 다음 첫 행동, 다음 행동 근거를 기록한다.
-13. workstream이 끝났으면 상태를 `Done`으로 바꾸고 `workspace-state.md`의 active workstream을 비운다. 아직 남았으면 `Active` 또는 `Paused`로 유지한다.
-14. `backlog.md` index의 status와 요약을 함께 갱신한다.
-15. `~/.personal-project-contexts/daily/YYYY-MM-DD.md`에 workspace 기준 기록을 추가하거나 갱신한다.
-16. 장기 맥락이 실제로 바뀐 경우에만 `workspace-state.md` 또는 해당 `repos/<entry-id>.md`를 갱신한다.
-17. context repo에서 commit한다.
+2. `ai-ops pc status`로 현재 cwd 기준 workspace/workstream/current entry readiness와 마지막 확인 commit을 확인한다.
+3. `ai-ops pc done draft --cwd <현재 제품 repo 또는 경로>`를 실행한다. hook에서 이어진 경우 `ai-ops pc done draft --from-hook --cwd <project-git-root>`를 사용한다.
+4. 생성된 draft JSON을 연다. draft는 `~/.personal-project-contexts/workspaces/<workspace-id>/.ai-ops/drafts/pc-done-<timestamp>.json` 아래에 생긴다.
+5. 제품 repo의 commit log, diff summary, 테스트 결과, 사용자 대화, 참조 문서 phase/scope/제외 범위를 확인한다.
+6. draft의 AI 작성 필드만 채운다.
+   - `completed`: 완료한 일
+   - `verification`: 테스트/빌드/확인
+   - `remaining`: 아직 남은 일
+   - `nextAction`: 다음 세션에서 바로 할 첫 행동
+   - `nextActionEvidence`: 왜 이 행동이 stale하지 않은지에 대한 근거
+   - `blockers`: 막힌 점 또는 확인 필요 사항
+   - `durableContextDelta`: 장기 맥락이 실제로 바뀐 경우에만 작성. 없으면 `null` 유지
+7. 다음 첫 행동을 정하기 전에 `Next Action Quality Rules`를 적용한다. 오래된 `남은 일`을 그대로 쓰지 말고, 이미 완료된 일/제외된 일/현재 repo에 없는 테스트 체계를 걸러낸다.
+8. 직접 context markdown 파일을 편집하지 않는다. 큰 `replaceOnce` script나 임시 JS를 만들지 않는다.
+9. `ai-ops pc done apply --draft <draft-path>`를 실행한다.
+10. apply는 draft schema, draft path, 현재 pc status, workspace/workstream/current entry, product `HEAD`를 검증하고, 허용된 context 파일만 갱신한다.
+11. apply는 context repo에서만 stage/commit한다. product repo는 건드리지 않는다.
+12. apply가 실패하면 메시지의 mismatch 이유를 보고 draft를 재생성하거나 현재 context 상태를 먼저 정리한다.
 
 응답에는 context commit 요약, 오늘 완료한 일, entry별 확인 요약, 남은 일, 다음 첫 행동과 그 근거를 포함한다.
 

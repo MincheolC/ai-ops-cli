@@ -23,6 +23,8 @@ export type IntegrationDefinition = IntegrationCatalogEntry & {
   hookDefinition: CodexHookDefinition;
 };
 
+export { resolvePersonalContextRoot } from '../../shared/command-paths.js';
+
 const CODEX_HOOK_DEFINITIONS = [CONTEXT_PROMOTION_CODEX_HOOK, PC_CODEX_HOOK] as const;
 
 export const resolveCodexHomePath = (): string => {
@@ -35,14 +37,6 @@ export const resolveCodexHomePath = (): string => {
     throw new Error('CODEX_HOME or HOME is required for Codex hook commands');
   }
   return `${home}/.codex`;
-};
-
-export const resolvePersonalContextRoot = (): string => {
-  const home = process.env.HOME;
-  if (!home) {
-    throw new Error('HOME is required for pc integration commands');
-  }
-  return `${home}/.personal-project-contexts`;
 };
 
 const resolveCodexHookDefinition = (hookId: IntegrationId): CodexHookDefinition => {

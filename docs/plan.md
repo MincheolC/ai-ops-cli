@@ -92,7 +92,7 @@ Integration catalog source는 `apps/cli/data/integrations/integration-registry.j
 현재 integration:
 
 - `context-promotion`: `context-promotion-review` Codex skill, Codex `PostToolUse` hook, user-local receipt를 묶어 git commit 이후 운영 지식 승격 검토를 돕는다.
-- `pc`: `pc` Codex skill과 Codex `PostToolUse` hook runner를 묶어 성공적인 `git commit` 직후 `$pc:done` handoff 누락을 방지한다. hook은 `~/.personal-project-contexts/`에 matching workspace, active workstream, current repo scope가 준비된 경우에만 prompt를 낸다.
+- `pc`: `pc` Codex skill과 Codex `PostToolUse` hook runner를 묶어 성공적인 `git commit` 직후 `$pc:done` handoff 누락을 방지한다. hook은 `~/.personal-project-contexts/`에 matching workspace, active workstream, current repo scope가 준비된 경우에만 prompt를 내며, handoff 반영은 `ai-ops pc done draft` -> AI draft 작성 -> `ai-ops pc done apply` 순서로 처리한다.
 
 Integration 설치 소유권은 user/global runtime home의 `.ai-ops/integrations-manifest.json`에 기록한다. Uninstall은 integration이 소유한 component만 제거하고 기존 수동 설치는 보존한다.
 
@@ -256,6 +256,18 @@ ai-ops integration uninstall pc
 ```
 
 현재 v1은 `context-promotion`과 `pc`를 지원한다. Integration manifest는 user/global runtime home의 `.ai-ops/integrations-manifest.json`이며 project operating layer uninstall 대상이 아니다.
+
+### `ai-ops pc ...`
+
+`pc` integration의 handoff workflow를 CLI로 실행한다.
+
+```bash
+ai-ops pc status
+ai-ops pc done draft --cwd /path/to/product-repo
+ai-ops pc done apply --draft /path/to/draft.json
+```
+
+CLI는 LLM을 호출하지 않는다. Codex가 draft JSON의 AI 작성 필드를 채우고, `apply`가 schema/path/status/HEAD를 검증한 뒤 `~/.personal-project-contexts/`의 허용 context 파일만 갱신하고 context repo에서만 commit한다.
 
 ## Deprecated old model
 

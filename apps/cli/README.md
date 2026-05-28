@@ -135,11 +135,14 @@ ai-ops integration install context-promotion
 ai-ops integration install pc
 ai-ops integration status pc
 ai-ops integration uninstall pc
+ai-ops pc status
+ai-ops pc done draft --cwd /path/to/product-repo
+ai-ops pc done apply --draft /path/to/draft.json
 ```
 
 `context-promotion` bundles the `context-promotion-review` Codex skill, a Codex `PostToolUse` hook, and user-local receipt workflow.
 
-`pc` bundles the `pc` Codex skill and a Codex `PostToolUse` hook runner. It prompts Codex to run `$pc:done` after a successful `git commit` only when `~/.personal-project-contexts/` already has a matching workspace, active workstream, and current repo scope.
+`pc` bundles the `pc` Codex skill and a Codex `PostToolUse` hook runner. It prompts Codex to run `$pc:done` after a successful `git commit` only when `~/.personal-project-contexts/` already has a matching workspace, active workstream, and current repo scope. Handoff writes use `ai-ops pc done draft` -> AI fills JSON -> `ai-ops pc done apply`, so the CLI owns context file updates and the context repo commit.
 
 Integration ownership is tracked in `.ai-ops/integrations-manifest.json` under the user/global runtime home. Uninstall removes only owned components and preserves pre-existing manual installs.
 

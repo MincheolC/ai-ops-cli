@@ -123,11 +123,14 @@ ai-ops integration install context-promotion
 ai-ops integration install pc
 ai-ops integration status pc
 ai-ops integration uninstall pc
+ai-ops pc status
+ai-ops pc done draft --cwd /path/to/product-repo
+ai-ops pc done apply --draft /path/to/draft.json
 ```
 
 `context-promotion`은 `context-promotion-review` Codex skill, Codex `PostToolUse` hook, user-local receipt workflow를 설치해 `git commit` 이후 재사용 가능한 운영 지식 승격 검토를 돕습니다.
 
-`pc`는 `pc` Codex skill과 Codex `PostToolUse` hook runner를 설치합니다. 성공적인 `git commit` 이후 `~/.personal-project-contexts/`에 matching workspace, active workstream, current repo scope가 준비된 경우에만 Codex가 `$pc:done`으로 이어가게 합니다. 준비되지 않은 repository에는 pc context를 새로 만들지 않습니다.
+`pc`는 `pc` Codex skill과 Codex `PostToolUse` hook runner를 설치합니다. 성공적인 `git commit` 이후 `~/.personal-project-contexts/`에 matching workspace, active workstream, current repo scope가 준비된 경우에만 Codex가 `$pc:done`으로 이어가게 합니다. 준비되지 않은 repository에는 pc context를 새로 만들지 않습니다. Handoff 반영은 `ai-ops pc done draft` -> AI가 JSON 작성 -> `ai-ops pc done apply` 순서로 진행해, context 파일 갱신과 context repo commit은 CLI가 맡습니다.
 
 Codex safe permissions는 `pc`와 `context-promotion-review`가 쓰는 좁은 user-local 작업에서 반복 approval prompt를 줄입니다.
 

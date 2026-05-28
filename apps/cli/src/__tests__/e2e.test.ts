@@ -730,3 +730,193 @@ describe.skipIf(!distExists)('integration subprocess', () => {
     }
   });
 });
+
+describe.skipIf(!distExists)('pc subprocess', () => {
+  const setupGitRepo = (): { dir: string; cleanup: () => void } => {
+    const { dir, cleanup } = setup();
+    execFileSync('git', ['init'], { cwd: dir, stdio: 'ignore' });
+    execFileSync('git', ['config', 'user.email', 'test@example.com'], { cwd: dir });
+    execFileSync('git', ['config', 'user.name', 'Test User'], { cwd: dir });
+    writeFileSync(join(dir, 'tracked.txt'), 'initial\n', 'utf-8');
+    execFileSync('git', ['add', '.'], { cwd: dir });
+    execFileSync('git', ['commit', '-m', 'init'], { cwd: dir, stdio: 'ignore' });
+    return { dir, cleanup };
+  };
+
+  const writePcContext = (params: { contextRoot: string; workspaceRoot: string }): void => {
+    const workspaceDir = join(params.contextRoot, 'workspaces/demo-workspace');
+    mkdirSync(join(workspaceDir, 'repos'), { recursive: true });
+    mkdirSync(join(workspaceDir, 'workstreams'), { recursive: true });
+    mkdirSync(join(params.contextRoot, 'daily'), { recursive: true });
+    writeFileSync(
+      join(workspaceDir, 'workspace-state.md'),
+      [
+        '# Demo Workspace',
+        '',
+        '## 식별',
+        '',
+        '- 워크스페이스 ID: demo-workspace',
+        `- 워크스페이스 루트: ${params.workspaceRoot}`,
+        '- 마지막 갱신일: 2026-05-27',
+        '',
+        '## 활성 Workstream',
+        '',
+        '- ID: demo-work',
+        '- 제목: Demo work',
+        '',
+        '## 마지막 Handoff',
+        '',
+        '- 날짜: 2026-05-27',
+        '- 요약: 이전 handoff',
+        '- 다음 첫 행동: 이전 행동',
+        '',
+        '## 장기 결정',
+        '',
+      ].join('\n'),
+      'utf-8',
+    );
+    writeFileSync(
+      join(workspaceDir, 'repos/demo-repo.md'),
+      [
+        '# Demo Repo',
+        '',
+        '## 식별',
+        '',
+        '- 엔트리 ID: demo-repo',
+        `- 경로: ${params.workspaceRoot}`,
+        '',
+        '## 버전 관리',
+        '',
+        '- 버전 관리: git',
+        `- Git 루트: ${params.workspaceRoot}`,
+        '',
+      ].join('\n'),
+      'utf-8',
+    );
+    writeFileSync(
+      join(workspaceDir, 'workstreams/demo-work.md'),
+      [
+        '# Demo Work',
+        '',
+        '## 식별',
+        '',
+        '- ID: demo-work',
+        '- 상태: Active',
+        '- 마지막 갱신일: 2026-05-27',
+        '',
+        '## 범위',
+        '',
+        '- 워크스페이스: demo-workspace',
+        '- 엔트리:',
+        '  - demo-repo',
+        '',
+        '## 다음 첫 행동',
+        '',
+        '이전 행동',
+        '',
+        '## 마지막 확인 Commit',
+        '',
+        '- `demo-repo`: none',
+        '',
+        '## Handoff',
+        '',
+      ].join('\n'),
+      'utf-8',
+    );
+    writeFileSync(
+      join(workspaceDir, 'backlog.md'),
+      [
+        '# Workstream Index',
+        '',
+        '## 진행중',
+        '',
+        '- [ ] `demo-work` Demo work',
+        '  - 상태: Active',
+        '  - 범위: demo-repo',
+        '  - 파일: workstreams/demo-work.md',
+        '  - 다음 첫 행동: 이전 행동',
+        '',
+      ].join('\n'),
+      'utf-8',
+    );
+  };
+
+  it('runs pc done draft -> filled JSON -> apply through the built CLI', () => {
+    const product = setupGitRepo();
+    const userHome = mkdtempSync(join(tmpdir(), 'pc-home-'));
+    const contextRoot = join(userHome, '.personal-project-contexts');
+    const env = { ...process.env, HOME: userHome, AI_OPS_HOME: userHome };
+    try {
+      mkdirSync(contextRoot, { recursive: true });
+      execFileSync('git', ['init'], { cwd: contextRoot, stdio: 'ignore' });
+      execFileSync('git', ['config', 'user.email', 'test@example.com'], { cwd: contextRoot });
+      execFileSync('git', ['config', 'user.name', 'Test User'], { cwd: contextRoot });
+      writePcContext({ contextRoot, workspaceRoot: product.dir });
+      execFileSync('git', ['add', '.'], { cwd: contextRoot });
+      execFileSync('git', ['commit', '-m', 'init context'], { cwd: contextRoot, stdio: 'ignore' });
+
+      const statusResult = spawnSync(process.execPath, [BIN_PATH, 'pc', 'status'], {
+        cwd: product.dir,
+        encoding: 'utf-8',
+        env,
+      });
+      expect(statusResult.status).toBe(0);
+      expect(statusResult.stdout).toContain('pc context ready: yes');
+
+      const draftResult = spawnSync(process.execPath, [BIN_PATH, 'pc', 'done', 'draft', '--cwd', product.dir], {
+        cwd: product.dir,
+        encoding: 'utf-8',
+        env,
+      });
+      expect(draftResult.status).toBe(0);
+      const draftPath = /draft created:\s+(\S+pc-done-\S+\.json)/u.exec(draftResult.stdout)?.[1];
+      expect(draftPath).toBeTruthy();
+      const parsedDraft = JSON.parse(readFileSync(draftPath ?? '', 'utf-8')) as Record<string, unknown>;
+      writeFileSync(
+        draftPath ?? '',
+        JSON.stringify(
+          {
+            ...parsedDraft,
+            completed: ['CLI draft/apply e2e 확인'],
+            verification: ['ai-ops pc status'],
+            remaining: ['실사용 hook smoke'],
+            nextAction: '실제 hook에서 draft/apply를 한 번 더 확인한다.',
+            nextActionEvidence: 'pc status가 ready이고 product HEAD가 draft와 일치한다.',
+            blockers: [],
+            durableContextDelta: null,
+          },
+          null,
+          2,
+        ) + '\n',
+        'utf-8',
+      );
+
+      const applyResult = spawnSync(process.execPath, [BIN_PATH, 'pc', 'done', 'apply', '--draft', draftPath ?? ''], {
+        cwd: product.dir,
+        encoding: 'utf-8',
+        env,
+      });
+      expect(applyResult.status).toBe(0);
+      expect(applyResult.stdout).toContain('context commit created');
+      expect(readFileSync(join(contextRoot, 'workspaces/demo-workspace/workstreams/demo-work.md'), 'utf-8')).toContain(
+        'CLI draft/apply e2e 확인',
+      );
+      expect(execFileSync('git', ['status', '--short'], { cwd: product.dir, encoding: 'utf-8' }).trim()).toBe('');
+
+      const contextHead = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: contextRoot, encoding: 'utf-8' }).trim();
+      const secondApply = spawnSync(process.execPath, [BIN_PATH, 'pc', 'done', 'apply', '--draft', draftPath ?? ''], {
+        cwd: product.dir,
+        encoding: 'utf-8',
+        env,
+      });
+      expect(secondApply.status).toBe(0);
+      expect(secondApply.stdout).toContain('변경 없음');
+      expect(execFileSync('git', ['rev-parse', 'HEAD'], { cwd: contextRoot, encoding: 'utf-8' }).trim()).toBe(
+        contextHead,
+      );
+    } finally {
+      rmSync(userHome, { recursive: true, force: true });
+      product.cleanup();
+    }
+  });
+});

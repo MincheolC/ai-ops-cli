@@ -150,6 +150,8 @@ describe('pc integration preflight', () => {
       expect(output?.decision).toBe('block');
       expect(output?.reason).toContain('$pc:done');
       expect(output?.reason).toContain('Do not create or initialize a new pc context');
+      expect(output?.reason).toContain('ai-ops pc done draft --from-hook --cwd');
+      expect(output?.reason).toContain('Do not create temporary JS scripts');
       expect(output?.reason).toContain('already records this HEAD as the last confirmed commit');
       expect(output?.reason).toContain(contextRoot);
       expect(output?.reason).toContain('active workstream: integration-work');
@@ -164,6 +166,38 @@ describe('pc integration preflight', () => {
             tool_name: 'Bash',
             tool_input: { command: 'git commit -m work' },
             tool_response: 'nothing to commit, working tree clean\n',
+          },
+        }),
+      ).toBeNull();
+    } finally {
+      rmSync(contextRoot, { recursive: true, force: true });
+      cleanup();
+    }
+  });
+
+  it('skips commits made inside the personal project context repo', () => {
+    const { dir, cleanup } = setupGitRepo();
+    const contextRoot = mkdtempSync(join(tmpdir(), 'pc-context-'));
+    try {
+      execFileSync('git', ['init'], { cwd: contextRoot, stdio: 'ignore' });
+      execFileSync('git', ['config', 'user.email', 'test@example.com'], { cwd: contextRoot });
+      execFileSync('git', ['config', 'user.name', 'Test User'], { cwd: contextRoot });
+      writePcContext({ contextRoot, workspaceRoot: dir });
+      execFileSync('git', ['add', '.'], { cwd: contextRoot });
+      execFileSync('git', ['commit', '-m', 'init context'], { cwd: contextRoot, stdio: 'ignore' });
+      writeFileSync(join(contextRoot, 'note.md'), 'changed\n', 'utf-8');
+      execFileSync('git', ['add', 'note.md'], { cwd: contextRoot });
+      execFileSync('git', ['commit', '-m', 'context update'], { cwd: contextRoot, stdio: 'ignore' });
+
+      expect(
+        evaluatePcPostToolUseHook({
+          contextRoot,
+          hookInput: {
+            hook_event_name: 'PostToolUse',
+            cwd: contextRoot,
+            tool_name: 'Bash',
+            tool_input: { command: 'git commit -m "context update"' },
+            tool_response: '[main 1234567] context update\n 1 file changed, 1 insertion(+)\n',
           },
         }),
       ).toBeNull();

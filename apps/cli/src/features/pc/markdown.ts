@@ -1,14 +1,46 @@
-import { readFileSync } from "node:fs";
-import { resolve, sep } from "node:path";
+import { existsSync, readFileSync, realpathSync } from "node:fs";
+import { basename, dirname, resolve, sep } from "node:path";
 
 // ----- path and markdown helpers -----
 
 export const normalizePath = (path: string): string => resolve(path.replace(/^~(?=$|\/)/, process.env.HOME ?? '~'));
 
+const realPathOrNull = (path: string): string | null => {
+  try {
+    return realpathSync(path);
+  } catch {
+    return null;
+  }
+};
+
+const realPathForContainment = (path: string): string | null => {
+  const normalized = normalizePath(path);
+  if (existsSync(normalized)) {
+    return realPathOrNull(normalized);
+  }
+
+  let current = normalized;
+  const missingSegments: string[] = [];
+  while (!existsSync(current)) {
+    const parent = dirname(current);
+    if (parent === current) {
+      return null;
+    }
+    missingSegments.unshift(basename(current));
+    current = parent;
+  }
+
+  const realCurrent = realPathOrNull(current);
+  return realCurrent ? resolve(realCurrent, ...missingSegments) : null;
+};
+
+const pathContainsNormalized = (parentPath: string, childPath: string): boolean =>
+  childPath === parentPath || childPath.startsWith(`${parentPath}${sep}`);
+
 export const pathContains = (parentPath: string, childPath: string): boolean => {
-  const parent = normalizePath(parentPath);
-  const child = normalizePath(childPath);
-  return child === parent || child.startsWith(`${parent}${sep}`);
+  const realParent = realPathForContainment(parentPath);
+  const realChild = realPathForContainment(childPath);
+  return realParent !== null && realChild !== null && pathContainsNormalized(realParent, realChild);
 };
 
 export const normalizeFieldValue = (value: string | null): string | null => {

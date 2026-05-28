@@ -5,6 +5,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- `feat(pc)`: add `ai-ops pc status` and `$pc:done` draft/apply commands so Codex can fill a structured handoff draft while `ai-ops` deterministically updates and commits only the personal context repo.
+
 ### Fixed
 
 - `fix(codex-permissions)`: `safe-local` status no longer reports an installed managed profile as missing when the only config difference is trailing EOF blank lines.

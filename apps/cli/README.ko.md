@@ -135,11 +135,14 @@ ai-ops integration install context-promotion
 ai-ops integration install pc
 ai-ops integration status pc
 ai-ops integration uninstall pc
+ai-ops pc status
+ai-ops pc done draft --cwd /path/to/product-repo
+ai-ops pc done apply --draft /path/to/draft.json
 ```
 
 `context-promotion`은 `context-promotion-review` Codex skill, Codex `PostToolUse` hook, user-local receipt workflow를 묶습니다.
 
-`pc`는 `pc` Codex skill과 Codex `PostToolUse` hook runner를 묶습니다. 성공적인 `git commit` 이후 `~/.personal-project-contexts/`에 matching workspace, active workstream, current repo scope가 이미 준비된 경우에만 Codex가 `$pc:done`으로 이어가게 합니다.
+`pc`는 `pc` Codex skill과 Codex `PostToolUse` hook runner를 묶습니다. 성공적인 `git commit` 이후 `~/.personal-project-contexts/`에 matching workspace, active workstream, current repo scope가 이미 준비된 경우에만 Codex가 `$pc:done`으로 이어가게 합니다. Handoff 반영은 `ai-ops pc done draft` -> AI가 JSON 작성 -> `ai-ops pc done apply` 순서로 진행해, context 파일 갱신과 context repo commit은 CLI가 맡습니다.
 
 Integration 소유권은 user/global runtime home의 `.ai-ops/integrations-manifest.json`에 기록합니다. Uninstall은 owned component만 제거하고 기존 수동 설치는 보존합니다.
 
