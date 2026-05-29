@@ -1,0 +1,17 @@
+{
+  "sourceSlug": "spotify",
+  "id": "spotify",
+  "label": "Spotify",
+  "command": "npx getdesign@latest add spotify",
+  "generatedFiles": [
+    {
+      "path": "DESIGN.md",
+      "included": true,
+      "checksum": "sha256:72e964a6cf551d0603f9854f2f42ee08e97ad4d9e17e037f50f6233508288295"
+    }
+  ],
+  "importedFiles": [
+    "DESIGN.md"
+  ],
+  "excludedFiles": []
+}

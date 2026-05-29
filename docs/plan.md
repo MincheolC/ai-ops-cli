@@ -1,10 +1,10 @@
-# ai-ops agent operating layer master blueprint
+# ai-ops operating layer and integrations master blueprint
 
 ## 요약
 
-`ai-ops`는 프로젝트 안에 AI agent operating layer를 설치하고 유지하는 bash CLI다. 프로젝트에는 에이전트가 항상 읽어야 하는 운영 문서와 상태 인덱스만 둔다. skills와 subagents는 프로젝트에 복사하지 않고 사용자 환경의 global asset으로 설치한다.
+`ai-ops`는 프로젝트/에이전트 작업에 필요한 operating layer와 global runtime integration을 설치하고 관리하는 bash CLI다. 프로젝트에는 에이전트가 항상 읽어야 하는 운영 문서와 상태 인덱스를 두고, 재사용 가능한 runtime 기능은 사용자 환경의 integration으로 설치한다.
 
-이 문서는 다음 major breaking release의 기준 계약이다. 현재 repo 구현은 project operating layer, global skills, global subagents, optional packs 경계를 기준으로 동작하며, old rules + skills scaffolder 모델은 deprecated 문맥으로만 남긴다.
+이 문서는 다음 major breaking release의 기준 계약이다. 현재 repo 구현은 project operating layer, optional packs, 그리고 integration을 이루는 low-level component 명령(skill, subagent, Codex hook, user-local receipt)을 기준으로 동작한다. old rules + skills scaffolder 모델은 deprecated 문맥으로만 남긴다.
 
 ```text
 Project repo
@@ -17,20 +17,25 @@ Project repo
   .ai-ops/manifest.json
   .ai-ops/context-layer.json
 
-Global tool home
-  skills/*
-  subagents/*
+User/global runtime
+  integrations/*
+    components:
+      skills/*
+      subagents/*
+      hooks/*
+      receipts/config/*
 ```
 
 ## 제품 정의
 
-`ai-ops`의 책임은 프로젝트마다 흩어지는 에이전트 운영 지식을 한 계층으로 설치하고, drift를 감지하고, 안전하게 갱신하는 것이다.
+`ai-ops`의 책임은 프로젝트마다 흩어지는 에이전트 운영 지식과 runtime 연결을 한곳에서 설치하고, drift를 감지하고, 안전하게 갱신하는 것이다.
 
 - project scope: agent operating layer 문서와 `.ai-ops/*` 상태 파일
-- global scope: reference/task skills와 subagents
+- integration scope: agent runtime workflow를 제공하는 user/global 설치 단위
+- component scope: integration을 이루는 skill, subagent, Codex hook, hook runner, user-local receipt/config
 - adapter scope: `GEMINI.md`, `CLAUDE.md`처럼 도구가 요구하는 얇은 진입 파일
 
-이 경계를 통해 프로젝트별 지식은 repository에 남기고, 재사용 가능한 실행 능력은 사용자 환경에 둔다.
+이 경계를 통해 프로젝트별 지식은 repository에 남기고, 재사용 가능한 실행 능력과 hook 기반 workflow는 사용자 환경에 둔다.
 
 ## 설치 대상
 
@@ -43,12 +48,13 @@ Global tool home
 - `CLAUDE.md`
 - `docs/agent/rules/00-agent-baseline.md`
 - `docs/agent/workflow.md`
+- `docs/agent/terminology.md`
 - `docs/agent/rules/routing-rules.md`
 - `docs/agent/rules/doc-update-rules.md`
 - `docs/agent/rules/stop-rules.md`
 - `docs/agent/checks/impact-checklist.md`
-- `docs/agent/checks/review-checklist.md`
 - `docs/agent/maps/codebase-map.md`
+- `docs/business/terminology.md`
 - `docs/business/business-rules.md`
 - `docs/docs-status.md`
 - `.ai-ops/manifest.json`
@@ -58,7 +64,7 @@ Global tool home
 
 ### Optional packs
 
-`docs/specs/`는 optional pack 위치로 고정한다. spec lifecycle이 필요한 프로젝트만 설치한다.
+`docs/specs/`는 optional pack 위치로 고정한다. spec lifecycle이 필요한 프로젝트만 설치한다. 프로젝트 용어의 source of truth는 optional pack 내부가 아니라 base operating layer의 `docs/business/terminology.md`다.
 
 Deprecated old model:
 
@@ -66,15 +72,29 @@ Deprecated old model:
 - 기존 `ai-ops spec init`의 root `specs/` scaffolding은 `ai-ops pack install spec-lifecycle`로 대체한다.
 - `apps/cli/data/rules/*.yaml`와 `apps/cli/data/presets.yaml`은 새 모델의 설치 원천이 아니다. baseline rule은 `docs/agent/rules/00-agent-baseline.md`가 canonical source다.
 
-### Global assets
+### ai-ops integrations
 
-global 설치 대상:
+Integration은 사용자가 설치하고 싶은 agent runtime 기능 단위다. 하나의 integration은 다음 component를 묶을 수 있다.
 
 - reference skills
 - task skills
 - subagents
+- Codex hooks
+- hook runners
+- user-local receipts/config
 
-skills와 subagents는 프로젝트 운영 문서가 아니다. CLI는 각 도구의 global 또는 user-level discovery 규칙에 맞춰 설치한다.
+Component는 프로젝트 운영 문서가 아니다. CLI는 각 도구의 global 또는 user-level discovery 규칙에 맞춰 설치하고, project manifest에는 기록하지 않는다.
+
+Integration catalog source는 `apps/cli/data/integrations/integration-registry.json`이다. Catalog는 integration id, 설명, 그리고 component list를 선언한다. v1 component model은 `skill`, `codex-hook`, `receipt-config`를 명시하고, 실제 설치 소유권은 별도 user/global manifest에 기록한다.
+
+현재 구현은 `ai-ops integration ...` 상위 명령을 제공한다. `skill`, `subagent`, `codex-hook`, `context-promotion` 같은 low-level component 명령은 디버그와 개별 component 관리 용도로 유지한다.
+
+현재 integration:
+
+- `context-promotion`: `context-promotion-review` Codex skill, Codex `PostToolUse` hook, user-local receipt를 묶어 git commit 이후 운영 지식 승격 검토를 돕는다.
+- `pc`: `pc` Codex skill과 Codex `PostToolUse` hook runner를 묶어 성공적인 `git commit` 직후 `$pc:done` handoff 누락을 방지한다. hook은 `~/.personal-project-contexts/`에 matching workspace, active workstream, current repo scope가 준비된 경우에만 prompt를 내며, handoff 반영은 `ai-ops pc done draft` -> AI draft 작성 -> `ai-ops pc done apply` 순서로 처리한다.
+
+Integration 설치 소유권은 user/global runtime home의 `.ai-ops/integrations-manifest.json`에 기록한다. Uninstall은 integration이 소유한 component만 제거하고 기존 수동 설치는 보존한다.
 
 ## 문서 신뢰도 모델
 
@@ -94,21 +114,21 @@ update_when:
 
 기본 상태:
 
-| 상태       | 의미                                           | 기본 적용 문서                       |
-| ---------- | ---------------------------------------------- | ------------------------------------ |
-| `Active`   | 에이전트가 판단 근거로 사용할 수 있음          | workflow, rules, checks              |
-| `Reserved` | 자리만 만들었고 근거로 쓰면 안 됨             | codebase-map, business-rules, specs  |
-| `Draft`    | 작성 중이며 사용 전 검토가 필요함              | 프로젝트가 직접 작성 중인 확장 문서 |
-| `Archived` | 과거 기록이며 현재 운영 판단에 사용하지 않음   | deprecated 문서                      |
+| 상태       | 의미                                         | 기본 적용 문서                      |
+| ---------- | -------------------------------------------- | ----------------------------------- |
+| `Active`   | 에이전트가 판단 근거로 사용할 수 있음        | workflow, rules, impact checklist   |
+| `Reserved` | 자리만 만들었고 근거로 쓰면 안 됨            | codebase-map, business-rules, specs |
+| `Draft`    | 작성 중이며 사용 전 검토가 필요함            | 프로젝트가 직접 작성 중인 확장 문서 |
+| `Archived` | 과거 기록이며 현재 운영 판단에 사용하지 않음 | deprecated 문서                     |
 
 `Reserved` 문서는 비어 있거나 프로젝트별 보강 전 상태일 수 있다. 에이전트는 `Reserved` 문서를 현재 사실로 인용하지 않는다.
 
 ## 도구별 entrypoint 계약
 
-| 도구       | entrypoint | 역할 |
-| ---------- | ---------- | ---- |
-| Codex      | `AGENTS.md` | canonical operating layer entrypoint |
-| Gemini CLI | `GEMINI.md` | `AGENTS.md`를 기준으로 읽도록 안내하는 adapter |
+| 도구        | entrypoint  | 역할                                           |
+| ----------- | ----------- | ---------------------------------------------- |
+| Codex       | `AGENTS.md` | canonical operating layer entrypoint           |
+| Gemini CLI  | `GEMINI.md` | `AGENTS.md`를 기준으로 읽도록 안내하는 adapter |
 | Claude Code | `CLAUDE.md` | `AGENTS.md`를 기준으로 읽도록 안내하는 adapter |
 
 도구별 adapter에는 중복 운영 규칙을 넣지 않는다. adapter가 길어지는 경우 canonical 문서를 분리한 것이 아니라 중복을 만든 신호로 본다.
@@ -147,10 +167,11 @@ project operating layer 설치 상태를 기록한다.
 새 모델은 scope를 단순화한다.
 
 - project scope는 operating layer 문서만 관리한다.
-- global scope는 skills/subagents만 관리한다.
+- integration scope는 user/global runtime 기능만 관리한다.
+- skills, subagents, hooks, receipts/config는 integration component로 취급한다.
 - `skill` 명령은 project-local 설치 옵션을 제공하지 않는다.
 - `skill` 명령에서 `--project`, `--global`, `--scope` 공개 옵션은 제거한다.
-- `--tool`은 유지한다. 각 도구의 skill/subagent discovery 위치가 다르기 때문이다.
+- `--tool`은 유지한다. 각 도구의 component discovery 위치가 다르기 때문이다.
 
 Deprecated old model:
 
@@ -188,7 +209,7 @@ flowchart TD
   Index --> Done["완료"]
 ```
 
-Phase 1 MVP는 root project만 다룬다. monorepo workspace override는 후속 개선으로 둔다.
+현재 `ai-ops init`은 monorepo root를 하나의 project로 설치할 수 있다. package/workspace별 adapter나 override 파일을 생성/관리하는 기능은 아직 제공하지 않으며, workspace별 operating layer override는 후속 개선으로 둔다.
 
 ### `ai-ops diff`
 
@@ -204,15 +225,49 @@ frontmatter, `docs/docs-status.md`, manifest, context-layer index의 불일치�
 
 ### `ai-ops uninstall`
 
-project operating layer와 `.ai-ops/*` 상태 파일만 제거한다. global skills/subagents는 제거하지 않는다.
+project operating layer와 `.ai-ops/*` project state만 제거한다. user/global integrations와 그 component는 제거하지 않는다.
 
 ### `ai-ops skill ...`
 
-global skill lifecycle만 관리한다.
+integration component인 skill lifecycle만 관리한다. 현재 구현의 low-level 명령이며, 후속 `integration` 상위 UX가 도입되어도 디버그/개별 설치 용도로 남길 수 있다.
 
 ### `ai-ops subagent ...`
 
-global subagent lifecycle만 관리한다. Phase 3에서 도입한다.
+integration component인 subagent lifecycle만 관리한다. Phase 3에서 도입했다.
+
+### `ai-ops context-promotion ...`
+
+`context-promotion` integration이 사용하는 user-local promotion review receipt를 관리한다. receipt는 source of truth가 아니며 프로젝트 repo의 `.ai-ops/*`에는 기록하지 않는다.
+
+### `ai-ops codex-hook ...`
+
+Codex 전용 opt-in hook component를 설치, 조회, 제거한다. v1 hook은 npm global `ai-ops` command를 user-level `PostToolUse`에 저장하고, `git commit` 이후 `context-promotion-review` skill 사용을 안내한다. 설치 시 Codex skill도 user/global runtime 위치에 보장 설치한다. 작업 커밋은 막지 않고, 승격 수정은 사용자 검사 후 별도 커밋으로 다룬다.
+
+### `ai-ops integration ...`
+
+Integration 단위로 관련 component를 함께 설치, 조회, 제거한다.
+
+```bash
+ai-ops integration list
+ai-ops integration install context-promotion
+ai-ops integration install pc
+ai-ops integration status pc
+ai-ops integration uninstall pc
+```
+
+현재 v1은 `context-promotion`과 `pc`를 지원한다. Integration manifest는 user/global runtime home의 `.ai-ops/integrations-manifest.json`이며 project operating layer uninstall 대상이 아니다.
+
+### `ai-ops pc ...`
+
+`pc` integration의 handoff workflow를 CLI로 실행한다.
+
+```bash
+ai-ops pc status
+ai-ops pc done draft --cwd /path/to/product-repo
+ai-ops pc done apply --draft /path/to/draft.json
+```
+
+CLI는 LLM을 호출하지 않는다. Codex가 draft JSON의 AI 작성 필드를 채우고, `apply`가 schema/path/status/HEAD를 검증한 뒤 `~/.personal-project-contexts/`의 허용 context 파일만 갱신하고 context repo에서만 commit한다.
 
 ## Deprecated old model
 

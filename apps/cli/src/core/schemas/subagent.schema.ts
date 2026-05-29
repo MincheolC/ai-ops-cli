@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { SkillToolSchema } from './skill.schema.js';
 import { isSafeProjectLayerPath } from './project-layer.schema.js';
-import { buildSubagentRelativePath } from '../subagent-paths.js';
+import { buildSubagentRelativePath } from './subagent-paths.js';
 
 export const SubagentIdSchema = z.string().regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, 'id must be kebab-case');
 

@@ -2,13 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { installProjectLayer, resolveProjectLayerTools } from '@/core/index.js';
-import { auditCommand } from '../commands/audit.js';
-import { diffCommand } from '../commands/diff.js';
-import { initCommand } from '../commands/init.js';
-import { packInstallCommand, packUpdateCommand } from '../commands/pack.js';
-import { uninstallCommand } from '../commands/uninstall.js';
-import { updateCommand } from '../commands/update.js';
+import { installProjectLayer, resolveProjectLayerTools } from '../features/project-layer/index.js';
+import { auditCommand } from '../features/project-layer/audit-command.js';
+import { diffCommand } from '../features/project-layer/diff-command.js';
+import { initCommand } from '../features/project-layer/init-command.js';
+import { packInstallCommand, packUpdateCommand } from '../features/project-layer/pack-command.js';
+import { uninstallCommand } from '../features/project-layer/uninstall-command.js';
+import { updateCommand } from '../features/project-layer/update-command.js';
 
 const setup = (): { dir: string; cleanup: () => void } => {
   const dir = mkdtempSync(join(tmpdir(), 'project-layer-command-test-'));

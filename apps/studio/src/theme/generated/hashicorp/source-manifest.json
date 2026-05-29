@@ -1,0 +1,17 @@
+{
+  "sourceSlug": "hashicorp",
+  "id": "hashicorp",
+  "label": "HashiCorp",
+  "command": "npx getdesign@latest add hashicorp",
+  "generatedFiles": [
+    {
+      "path": "DESIGN.md",
+      "included": true,
+      "checksum": "sha256:d2df9be72d867e48d318fd18db04e60a78357c27e392ab921fc2ba7f46951442"
+    }
+  ],
+  "importedFiles": [
+    "DESIGN.md"
+  ],
+  "excludedFiles": []
+}

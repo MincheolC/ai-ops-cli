@@ -4,7 +4,7 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse } from 'yaml';
 import { z } from 'zod';
-import { parseMarkdownFrontmatter } from '../../frontmatter.js';
+import { parseMarkdownFrontmatter } from '../../../shared/markdown/frontmatter.js';
 import { SkillCatalogSchema } from '../skill-catalog.schema.js';
 import { SkillFrontmatterSchema } from '../skill.schema.js';
 
@@ -70,6 +70,43 @@ describe('skill data files', () => {
     expect(skillRaw).toContain('직접 commit하지 않는다');
     expect(skillRaw).toContain('직접 커밋 금지');
     expect(skillRaw).toContain('Reserved 승격 금지');
+    expect(openaiMetadata.policy.allow_implicit_invocation).toBe(false);
+  });
+
+  it('context-promotion-review는 승격 검토와 receipt 계약을 포함한다', () => {
+    const skillRaw = readFileSync(resolve(skillsDir, 'task-skills/context-promotion-review/SKILL.md'), 'utf-8');
+    const openaiMetadata = OpenAiSkillMetadataSchema.parse(
+      parse(readFileSync(resolve(skillsDir, 'task-skills/context-promotion-review/agents/openai.yaml'), 'utf-8')),
+    );
+
+    expect(skillRaw).toContain('기존 context layer를 cross-check');
+    expect(skillRaw).toContain('git status --short');
+    expect(skillRaw).toContain('git diff --name-only');
+    expect(skillRaw).toContain('git diff --cached --name-only');
+    expect(skillRaw).toContain('git ls-files --others --exclude-standard');
+    expect(skillRaw).toContain('git show --stat HEAD');
+    expect(skillRaw).toContain('git show --name-only HEAD');
+    expect(skillRaw).toContain('git show HEAD');
+    expect(skillRaw).toContain('현재 대화/리뷰 루프');
+    expect(skillRaw).toContain('사용자가 교정한 운영 판단');
+    expect(skillRaw).toContain('near-miss / discarded candidates');
+    expect(skillRaw).toContain('Active context layer에 같은 agent 행동 규칙');
+    expect(skillRaw).toContain('changeset pollution');
+    expect(skillRaw).toContain('staging scope');
+    expect(skillRaw).toContain('Project root');
+    expect(skillRaw).toContain('웹 검색 금지');
+    expect(skillRaw).toContain('다른 repo 탐색 금지');
+    expect(skillRaw).toContain('없으면 absent로 기록');
+    expect(skillRaw).toContain('사용자 승인 전 편집 금지');
+    expect(skillRaw).toContain('ai-ops context-promotion resolve');
+    expect(skillRaw).toContain('receipt 확인 필수');
+    expect(skillRaw).toContain('직접 commit 금지');
+    expect(skillRaw).toContain('사용자 검사 대기');
+    expect(skillRaw).toContain('core');
+    expect(skillRaw).toContain('project-local');
+    expect(skillRaw).toContain('global');
+    expect(skillRaw).toContain('already-covered');
+    expect(skillRaw).toContain('다섯 가지');
     expect(openaiMetadata.policy.allow_implicit_invocation).toBe(false);
   });
 });

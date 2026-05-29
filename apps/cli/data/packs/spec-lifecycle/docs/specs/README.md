@@ -25,4 +25,5 @@ docs/specs/
 
 - `baseline/` contains approved product, technical, and UI baseline documents.
 - `initial-build/` contains initial implementation work packets and related artifacts.
+- Project terminology is tracked in `docs/business/terminology.md`; this optional spec pack does not create a separate terminology source of truth.
 - Before using any document as decision-making evidence, update its frontmatter and its status in `docs/docs-status.md`.

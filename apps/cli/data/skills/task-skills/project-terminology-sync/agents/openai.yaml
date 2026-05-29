@@ -1,0 +1,6 @@
+interface:
+  display_name: "project-terminology-sync"
+  short_description: "Standardize project terms into docs/business/terminology.md."
+  default_prompt: "Use $project-terminology-sync to create or update docs/business/terminology.md, standardizing project-wide terms across business docs, specs, active .codex/plans, and work packets."
+policy:
+  allow_implicit_invocation: false

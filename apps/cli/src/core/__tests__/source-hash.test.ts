@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve, dirname } from 'node:path';
@@ -8,16 +8,10 @@ import {
   computeSourceHash,
   computeInstalledSkillHash,
   computeInstalledSubagentHash,
-  buildManifest,
-} from '../source-hash.js';
-import { ManifestSchema } from '../schemas/index.js';
+} from '../../shared/source-hash.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const dataDir = resolve(__dirname, '../../../data');
-
-afterEach(() => {
-  vi.useRealTimers();
-});
 
 describe('computeHash', () => {
   it('동일 입력 → 동일 출력 (determinism)', () => {
@@ -65,7 +59,6 @@ describe('computeSourceHash', () => {
                 kind: 'reference',
                 supported_tools: ['codex'],
                 groups: ['frontend-web'],
-                included_in_presets: ['frontend-web'],
                 source_path: 'reference-skills/demo-skill',
               },
             ],
@@ -86,7 +79,6 @@ describe('computeSourceHash', () => {
                 kind: 'reference',
                 supported_tools: ['codex', 'gemini'],
                 groups: ['frontend-web'],
-                included_in_presets: ['frontend-web'],
                 source_path: 'reference-skills/demo-skill',
               },
             ],
@@ -147,97 +139,5 @@ describe('computeInstalledSubagentHash', () => {
 
     expect(secondHash).not.toBe(firstHash);
     expect(thirdHash).not.toBe(firstHash);
-  });
-});
-
-describe('buildManifest', () => {
-  it('정상 생성, ManifestSchema 통과', () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date('2025-01-01T00:00:00Z'));
-
-    const manifest = buildManifest({
-      tools: ['claude-code'],
-      scope: 'project',
-      preset: 'frontend-web',
-      installedRules: ['typescript', 'react-typescript'],
-      sourceHash: 'abc123',
-    });
-
-    expect(() => ManifestSchema.parse(manifest)).not.toThrow();
-    expect(manifest.generatedAt).toBe('2025-01-01T00:00:00.000Z');
-  });
-
-  it('preset 생략 시 optional 처리', () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date('2025-01-01T00:00:00Z'));
-
-    const manifest = buildManifest({
-      tools: ['claude-code'],
-      scope: 'project',
-      installedRules: ['typescript'],
-      sourceHash: 'abc123',
-    });
-
-    expect(() => ManifestSchema.parse(manifest)).not.toThrow();
-    expect(manifest.preset).toBeUndefined();
-  });
-
-  it('workspaces 포함 시 ManifestSchema 통과', () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date('2025-01-01T00:00:00Z'));
-
-    const manifest = buildManifest({
-      tools: ['claude-code', 'codex'],
-      scope: 'project',
-      workspaces: {
-        'apps/web': { preset: 'frontend-web', rules: ['typescript', 'nextjs'] },
-        'services/api': { preset: 'backend-ts', rules: ['typescript', 'nestjs'] },
-      },
-      installedRules: ['typescript', 'nextjs', 'nestjs'],
-      sourceHash: 'abc123',
-    });
-
-    expect(() => ManifestSchema.parse(manifest)).not.toThrow();
-    expect(manifest.workspaces?.['apps/web']?.preset).toBe('frontend-web');
-  });
-
-  it('installedFiles 포함 시 installed_files 필드 저장', () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date('2025-01-01T00:00:00Z'));
-
-    const manifest = buildManifest({
-      tools: ['claude-code'],
-      scope: 'project',
-      installedRules: ['typescript'],
-      installedFiles: ['.claude/rules/typescript.md'],
-      installedSkills: [
-        {
-          id: 'graphql-contract',
-          kind: 'reference',
-          tools: ['codex'],
-          installed_paths: ['.agents/skills/graphql-contract'],
-          sourceHash: 'abc123',
-        },
-      ],
-      sourceHash: 'abc123',
-    });
-
-    expect(() => ManifestSchema.parse(manifest)).not.toThrow();
-    expect(manifest.installed_files).toEqual(['.claude/rules/typescript.md']);
-    expect(manifest.installed_skills).toHaveLength(1);
-  });
-
-  it('installedFiles 생략 시 installed_files undefined', () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date('2025-01-01T00:00:00Z'));
-
-    const manifest = buildManifest({
-      tools: ['claude-code'],
-      scope: 'project',
-      installedRules: ['typescript'],
-      sourceHash: 'abc123',
-    });
-
-    expect(manifest.installed_files).toBeUndefined();
   });
 });

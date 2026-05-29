@@ -1,8 +1,8 @@
 # 구현 플레이북
 
-이 문서는 [docs/plan.md](./plan.md)의 agent operating layer 계약을 실제 phase 실행 순서와 검증 기준으로 옮긴다.
+이 문서는 [docs/plan.md](./plan.md)의 operating layer와 integrations 계약을 실제 phase 실행 순서와 검증 기준으로 옮긴다.
 
-Phase 0은 문서 계약 고정 단계였다. 현재 repo 구현은 Phase 1-6 operating layer 모델을 기준으로 동작한다.
+Phase 0은 문서 계약 고정 단계였다. 현재 repo 구현은 Phase 1-6 operating layer 모델과 low-level integration component 명령을 기준으로 동작한다.
 
 ## 공통 실행 원칙
 
@@ -10,7 +10,8 @@ Phase 0은 문서 계약 고정 단계였다. 현재 repo 구현은 Phase 1-6 op
 - 실제 프로젝트의 old uninstall 후 new init은 모든 phase가 끝난 통합 검증에서만 수행한다.
 - breaking release 정책을 유지한다. old `.ai-ops-manifest.json` 자동 마이그레이션은 만들지 않는다.
 - project scope는 operating layer 문서만 다룬다.
-- global scope는 skills/subagents만 다룬다.
+- integration scope는 user/global runtime 기능만 다룬다.
+- skill, subagent, Codex hook, user-local receipt/config는 integration component로 다룬다.
 - 코드 변경 phase에서는 먼저 실패 테스트나 fixture를 추가하고 구현한다.
 
 ## Phase 0: 계약 고정
@@ -54,12 +55,13 @@ rg -n -- '--project|project scope skill|\.ai-ops-manifest\.json|root `specs/`|pr
 - `CLAUDE.md`
 - `docs/agent/rules/00-agent-baseline.md`
 - `docs/agent/workflow.md`
+- `docs/agent/terminology.md`
 - `docs/agent/rules/routing-rules.md`
 - `docs/agent/rules/doc-update-rules.md`
 - `docs/agent/rules/stop-rules.md`
 - `docs/agent/checks/impact-checklist.md`
-- `docs/agent/checks/review-checklist.md`
 - `docs/agent/maps/codebase-map.md`
+- `docs/business/terminology.md`
 - `docs/business/business-rules.md`
 - `docs/docs-status.md`
 - `.ai-ops/manifest.json`
@@ -72,7 +74,7 @@ rg -n -- '--project|project scope skill|\.ai-ops-manifest\.json|root `specs/`|pr
 - `Reserved` 문서는 판단 근거로 사용하지 말라는 문구를 포함한다.
 - `diff`는 manifest/context-layer/파일 drift를 감지한다.
 - `audit`은 frontmatter, docs-status, manifest, context-layer 불일치를 읽기 전용으로 보고한다.
-- `uninstall`은 project operating layer만 제거하고 global assets는 건드리지 않는다.
+- `uninstall`은 project operating layer만 제거하고 user/global integrations는 건드리지 않는다.
 
 검증:
 
@@ -88,11 +90,11 @@ node apps/cli/dist/bin/index.js uninstall --cwd "$tmpdir"
 
 명령 옵션은 구현 시 실제 CLI 표면에 맞게 조정한다.
 
-## Phase 2: Global Skill 모델 단순화
+## Phase 2: Skill Component 모델 단순화
 
 범위:
 
-- skills는 global 설치만 지원한다.
+- skills는 integration component이며 user/global 설치만 지원한다.
 - reference/task skill catalog는 유지한다.
 - project-installed skill 경로와 manifest 추적을 제거한다.
 - `skill list/install/diff/update/uninstall`은 user/global registry만 다룬다.
@@ -116,11 +118,11 @@ AI_OPS_HOME="$(mktemp -d)" node apps/cli/dist/bin/index.js skill install skill-l
 
 임시 프로젝트 디렉터리에는 `.agents/skills`, `.claude/skills`가 생기지 않아야 한다.
 
-## Phase 3: Global Subagent 모델 추가
+## Phase 3: Subagent Component 모델 추가
 
 범위:
 
-- subagent catalog를 추가한다.
+- subagent catalog를 integration component catalog로 추가한다.
 - `subagent list/install/diff/update/uninstall`을 추가한다.
 - 도구별 출력 경로와 파일 포맷 차이는 subagent renderer에서 처리한다.
 - skills registry와 subagents registry는 분리한다.
@@ -146,8 +148,9 @@ AI_OPS_HOME="$(mktemp -d)" node apps/cli/dist/bin/index.js subagent install secu
 - `spec-lifecycle` pack을 추가한다.
 - 설치 위치는 `docs/specs/`로 고정한다.
 - 기존 root `specs/` scaffolding은 제거하거나 deprecated old model로만 남긴다.
-- `spec-to-packet`의 `spec-product-*`, `spec-baseline-sync`, `spec-shared-glossary-sync`는 이 pack의 global skill 후보로 이관한다.
+- `spec-to-packet`의 `spec-product-*`, `spec-baseline-sync`, `project-terminology-sync`는 이 pack의 global skill 후보로 이관한다.
 - 실제 spec 절차 실행은 global skill 후보로 분리한다.
+- 프로젝트 용어 source of truth는 `docs/business/terminology.md`로 유지하고 optional spec pack 안에 별도 용어 SSOT를 만들지 않는다.
 
 완료 기준:
 
@@ -171,11 +174,11 @@ node "$repo/apps/cli/dist/bin/index.js" audit
 
 `pack install`은 project operating layer를 자동 설치하지 않으므로, 검증은 항상 `ai-ops init --tool codex` 후에 진행한다.
 
-## Phase 5: Doc Impact Reviewer
+## Phase 5: Doc Impact Reviewer Skill Component
 
 범위:
 
-- commit 직전 또는 변경 완료 시 쓸 global task skill `doc-impact-reviewer`를 추가한다.
+- commit 직전 또는 변경 완료 시 쓸 task skill component `doc-impact-reviewer`를 추가한다.
 - v1은 subagent나 git hook이 아니라 수동 호출 skill로 둔다.
 - diff를 보고 갱신 후보 문서를 `required / recommended / not needed`로 제안한다.
 - 사용자 확인 후 문서 업데이트를 수행한다.
@@ -205,6 +208,27 @@ npm run compile
 
 설치 smoke에서는 `AI_OPS_HOME/.agents/skills/doc-impact-reviewer/SKILL.md`와 `agents/openai.yaml`만 생기는지 확인한다. 실행 cwd에는 `.agents`, `.ai-ops`, `.codex`, `.claude`, `.gemini`가 새로 생기면 안 된다.
 
+### Phase 5 후속: Context Promotion Review Follow-Up
+
+범위:
+
+- `doc-impact-reviewer`와 별개로 `context-promotion-review` Codex 전용 task skill을 추가한다.
+- `ai-ops context-promotion status/resolve/prune`은 현재 `HEAD` 커밋에 대한 user-local receipt만 관리하고 프로젝트 repo에는 receipt를 쓰지 않는다.
+- `ai-ops codex-hook install context-promotion`은 Codex `PostToolUse` Bash hook을 opt-in으로 설치하고 `context-promotion-review` Codex skill도 user/global runtime 위치에 보장 설치한다.
+- hook은 `git commit` 이후 Codex에게 `context-promotion-review` 검토를 이어서 요청한다. 작업 커밋은 막지 않고, 승격 수정은 사용자 검사 후 별도 커밋으로 다룬다.
+- 기본 hook command는 npm global 설치를 전제로 `ai-ops context-promotion hook post-tool-use`를 저장한다. 비표준 PATH 환경은 `--command` override로 처리한다.
+- 이 후속 기능은 `context-promotion` integration의 component 기반이며, low-level 명령으로도 계속 사용할 수 있다.
+
+검증:
+
+```bash
+npm run check
+npm run build
+AI_OPS_HOME="$(mktemp -d)" node apps/cli/dist/bin/index.js skill install context-promotion-review --tool codex
+AI_OPS_HOME="$(mktemp -d)" CODEX_HOME="$(mktemp -d)" node apps/cli/dist/bin/index.js codex-hook install context-promotion
+npm run compile
+```
+
 ## Phase 6: 통합 검증과 dogfood
 
 범위:
@@ -218,7 +242,7 @@ npm run compile
 
 - old model 산출물이 새 project operating layer와 섞이지 않는다.
 - `diff/update/audit/uninstall`이 실제 repo에서 기대대로 동작한다.
-- global skills/subagents가 project repo에 복사되지 않는다.
+- integration component가 project repo에 복사되지 않는다.
 - optional `docs/specs/` pack이 필요한 프로젝트에만 설치된다.
 
 Self-dogfood 절차:
@@ -234,6 +258,8 @@ node apps/cli/dist/bin/index.js uninstall --yes
 node apps/cli/dist/bin/index.js init --tool codex --tool gemini --tool claude-code
 node apps/cli/dist/bin/index.js audit
 ```
+
+내부 lifecycle 검증에서는 계획 의도와 실제 diff, 테스트가 잡지 못하는 런타임 회귀 위험, create-only/managed section 보존 정책, manifest/context-layer/실제 파일 상태 일치, 변경 범위에 직접적인 검증 명령을 함께 확인한다.
 
 이 repo의 최종 project layer:
 
@@ -254,7 +280,7 @@ node apps/cli/dist/bin/index.js pack list
 
 이 repo는 `.codex/plans/*` 중심으로 phase plan을 관리하므로 `spec-lifecycle` pack을 설치하지 않는다. `pack list`에서 `spec-lifecycle - not installed` 상태를 확인한다.
 
-Global asset smoke:
+Integration component smoke:
 
 ```bash
 home="$(mktemp -d)"
@@ -273,7 +299,7 @@ AI_OPS_HOME="$home" node apps/cli/dist/bin/index.js subagent install security-re
 - `.ai-ops/subagents-manifest.json`
 - `.claude/rules`
 
-`.codex/plans`는 이 repo의 기존 운영 파일이므로 global asset 침범 여부 판단 대상에서 제외한다.
+`.codex/plans`는 이 repo의 기존 운영 파일이므로 integration component 침범 여부 판단 대상에서 제외한다.
 
 외부 대표 프로젝트 적용 체크리스트:
 
@@ -282,9 +308,77 @@ AI_OPS_HOME="$home" node apps/cli/dist/bin/index.js subagent install security-re
 - 새 CLI로 `init --tool codex` 또는 해당 프로젝트가 실제 사용하는 tool set을 지정해 설치한다.
 - `diff`, `audit`, `update --force`, `diff`를 실행한다.
 - 해당 프로젝트가 spec lifecycle을 실제로 쓰는 경우에만 `pack install spec-lifecycle`을 실행한다.
-- temp `AI_OPS_HOME` 또는 실제 사용자 home 중 하나를 명시해 skill/subagent 설치 위치가 repo 밖인지 확인한다.
+- temp `AI_OPS_HOME` 또는 실제 사용자 home 중 하나를 명시해 integration component 설치 위치가 repo 밖인지 확인한다.
 - 적용 후 root `AGENTS.md`가 canonical entrypoint이고 tool adapter가 중복 운영 규칙을 담지 않는지 확인한다.
 - `git status --short`로 project-owned 문서 변경과 ai-ops managed 변경을 분리해 리뷰한다.
+
+## Phase 7: Integrations 문서 계약 정리
+
+범위:
+
+- 제품 정의를 “프로젝트/에이전트 작업에 필요한 operating layer와 global runtime integration을 설치하고 관리하는 도구”로 갱신한다.
+- README 계열, master blueprint, playbook의 old global-asset wording을 `ai-ops integrations` 중심 설명으로 재정렬한다.
+- `skill`, `subagent`, `codex-hook`, `context-promotion`은 당시 구현된 low-level component 명령으로 설명한다.
+- `context-promotion`은 당시 존재한 integration-like 사례로, `pc`는 planned integration candidate로 문서화한다.
+- `ai-ops integration ...`은 당시 목표 UX로만 적고 구현된 CLI surface로 적지 않는다.
+- root operating layer 문서와 `apps/cli/data/context-layer` 템플릿을 함께 갱신한다.
+
+완료 기준:
+
+- 문서가 project operating layer와 user/global integration scope를 구분한다.
+- `project scope`는 operating-layer 문서와 `.ai-ops/*` project state만 의미한다.
+- integration component는 project layer uninstall 대상이 아님을 명시한다.
+- 당시 CLI 표면은 `skill`, `subagent`, `codex-hook`, `context-promotion`, `pack` 그대로 설명한다.
+- 런타임 코드, schema, registry, hook runner 동작은 바꾸지 않는다.
+
+검증:
+
+```bash
+old_scope='global scope는 skills/'"subagents만"
+old_assets='global '"assets"
+old_env='skills/'"subagents into the user's global tool environment"
+rg -n "$old_scope|$old_assets|$old_env" README.md README.ko.md apps/cli/README.md apps/cli/README.ko.md docs apps/cli/data/context-layer
+npm run check
+npm run build
+node apps/cli/dist/bin/index.js update --force
+node apps/cli/dist/bin/index.js diff
+node apps/cli/dist/bin/index.js audit
+```
+
+검색 결과가 남으면 deprecated 설명이거나 low-level component 설명인지 확인한다.
+
+## Phase 8: Integration Framework and pc Integration
+
+범위:
+
+- `ai-ops integration list/install/status/uninstall` 상위 명령을 추가한다.
+- `apps/cli/data/integrations/integration-registry.json`를 integration catalog source로 추가하고 schema/loader test를 둔다.
+- Catalog는 각 integration의 `skill`, `codex-hook`, `receipt-config` component를 선언한다.
+- Integration manifest는 user/global runtime home의 `.ai-ops/integrations-manifest.json`에 둔다.
+- `context-promotion` integration은 기존 `context-promotion-review` skill, Codex `PostToolUse` hook, user-local receipt workflow를 묶는다.
+- `pc` integration은 `pc` Codex skill과 Codex `PostToolUse` hook runner를 묶는다.
+- `pc` hook은 성공적인 `git commit` 이후, `~/.personal-project-contexts/`에 matching workspace, active workstream, current repo scope가 모두 준비된 경우에만 Codex에게 `$pc:done` continuation prompt를 준다.
+- 준비되지 않은 repository에서는 hook이 새 context/workstream을 만들지 않고 조용히 skip한다.
+- Uninstall은 integration install이 소유한 component만 제거하고, 기존 수동 설치로 판단되는 skill/hook은 보존한다.
+- 기존 low-level `skill`, `subagent`, `codex-hook`, `context-promotion` 명령은 유지한다.
+
+완료 기준:
+
+- `ai-ops integration install pc`가 `pc` skill, Codex hook, integration manifest를 user/global runtime home에 설치한다.
+- `ai-ops integration install context-promotion`이 기존 context-promotion component를 integration 단위로 설치한다.
+- Catalog/manifest schema가 skill, codex-hook, receipt/config component 표현을 검증한다.
+- `ai-ops integration status pc`가 skill/hook 설치 상태와 현재 cwd 기준 pc context readiness를 보여준다.
+- `ai-ops integration uninstall pc`가 owned component만 제거한다.
+- Project operating layer manifest와 uninstall 흐름은 user/global integration component를 건드리지 않는다.
+
+검증:
+
+```bash
+npm run build
+npm run check
+AI_OPS_HOME="$(mktemp -d)" HOME="$(mktemp -d)" CODEX_HOME="$(mktemp -d)" node apps/cli/dist/bin/index.js integration install pc
+AI_OPS_HOME="$(mktemp -d)" HOME="$(mktemp -d)" CODEX_HOME="$(mktemp -d)" node apps/cli/dist/bin/index.js integration install context-promotion
+```
 
 ## 운영 규칙
 

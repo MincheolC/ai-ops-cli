@@ -13,7 +13,7 @@
         "operating_layer_changes"
       ],
       "path": "AGENTS.md",
-      "contentHash": "b98f8c"
+      "contentHash": "1435c1"
     },
     {
       "status": "Active",
@@ -46,27 +46,14 @@
       "layer": "agent",
       "owner": "ai-ops",
       "read_when": [
+        "change_impact_analysis",
         "before_finish"
       ],
       "update_when": [
-        "checklist_changes"
+        "impact_policy_changes"
       ],
       "path": "docs/agent/checks/impact-checklist.md",
-      "contentHash": "7ddaf5"
-    },
-    {
-      "status": "Active",
-      "layer": "agent",
-      "owner": "ai-ops",
-      "read_when": [
-        "review",
-        "before_finish"
-      ],
-      "update_when": [
-        "checklist_changes"
-      ],
-      "path": "docs/agent/checks/review-checklist.md",
-      "contentHash": "5a03cd"
+      "contentHash": "8dc65c"
     },
     {
       "status": "Reserved",
@@ -84,6 +71,37 @@
     {
       "status": "Active",
       "layer": "agent",
+      "owner": "project",
+      "read_when": [
+        "studio_architecture",
+        "studio_launcher_work",
+        "release_packaging"
+      ],
+      "update_when": [
+        "studio_launcher_changes",
+        "studio_packaging_changes",
+        "studio_desktop_shell_changes"
+      ],
+      "path": "docs/agent/maps/studio-launcher-architecture.md",
+      "contentHash": "4bc8c8"
+    },
+    {
+      "status": "Active",
+      "layer": "agent",
+      "owner": "project",
+      "read_when": [
+        "codex_work"
+      ],
+      "update_when": [
+        "codex_reference_changes",
+        "project_rule_changes"
+      ],
+      "path": "docs/agent/project-rules/routing-rules.md",
+      "contentHash": "7292e0"
+    },
+    {
+      "status": "Active",
+      "layer": "agent",
       "owner": "ai-ops",
       "read_when": [
         "before_task"
@@ -92,7 +110,7 @@
         "baseline_rule_changes"
       ],
       "path": "docs/agent/rules/00-agent-baseline.md",
-      "contentHash": "43c5d1"
+      "contentHash": "5ba94c"
     },
     {
       "status": "Active",
@@ -105,7 +123,7 @@
         "document_policy_changes"
       ],
       "path": "docs/agent/rules/doc-update-rules.md",
-      "contentHash": "f15926"
+      "contentHash": "ebad1a"
     },
     {
       "status": "Active",
@@ -118,7 +136,7 @@
         "routing_changes"
       ],
       "path": "docs/agent/rules/routing-rules.md",
-      "contentHash": "36303b"
+      "contentHash": "f2684b"
     },
     {
       "status": "Active",
@@ -139,13 +157,28 @@
       "layer": "agent",
       "owner": "ai-ops",
       "read_when": [
+        "before_task",
+        "terminology_check"
+      ],
+      "update_when": [
+        "operating_layer_changes",
+        "terminology_changes"
+      ],
+      "path": "docs/agent/terminology.md",
+      "contentHash": "7a33d0"
+    },
+    {
+      "status": "Active",
+      "layer": "agent",
+      "owner": "ai-ops",
+      "read_when": [
         "before_task"
       ],
       "update_when": [
         "workflow_changes"
       ],
       "path": "docs/agent/workflow.md",
-      "contentHash": "015200"
+      "contentHash": "5fe6fc"
     },
     {
       "status": "Reserved",
@@ -161,6 +194,23 @@
       "contentHash": "9eddc3"
     },
     {
+      "status": "Reserved",
+      "layer": "business",
+      "owner": "project",
+      "read_when": [
+        "terminology_check",
+        "business_rule_check",
+        "spec_lifecycle"
+      ],
+      "update_when": [
+        "terminology_changes",
+        "business_rule_changes",
+        "spec_lifecycle_changes"
+      ],
+      "path": "docs/business/terminology.md",
+      "contentHash": "64117b"
+    },
+    {
       "status": "Active",
       "layer": "status",
       "owner": "project",
@@ -171,8 +221,8 @@
         "document_status_changes"
       ],
       "path": "docs/docs-status.md",
-      "contentHash": "6105c0"
+      "contentHash": "700a79"
     }
   ],
-  "generatedAt": "2026-05-18T03:10:52.831Z"
+  "generatedAt": "2026-05-29T07:29:39.393Z"
 }

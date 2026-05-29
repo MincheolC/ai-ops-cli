@@ -1,0 +1,17 @@
+{
+  "sourceSlug": "vercel",
+  "id": "vercel",
+  "label": "Vercel",
+  "command": "npx getdesign@latest add vercel",
+  "generatedFiles": [
+    {
+      "path": "DESIGN.md",
+      "included": true,
+      "checksum": "sha256:da961e645895b8fd8d4b5e173a3fd9feaafe6471265851848846a478099f3ab7"
+    }
+  ],
+  "importedFiles": [
+    "DESIGN.md"
+  ],
+  "excludedFiles": []
+}

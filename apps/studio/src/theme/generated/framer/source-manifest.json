@@ -1,0 +1,17 @@
+{
+  "sourceSlug": "framer",
+  "id": "framer",
+  "label": "Framer",
+  "command": "npx getdesign@latest add framer",
+  "generatedFiles": [
+    {
+      "path": "DESIGN.md",
+      "included": true,
+      "checksum": "sha256:a5d47dddacf5a04577cec0be6fe0fc53b7402254c7686874af3e59bcc7588cb4"
+    }
+  ],
+  "importedFiles": [
+    "DESIGN.md"
+  ],
+  "excludedFiles": []
+}

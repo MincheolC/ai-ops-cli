@@ -1,0 +1,17 @@
+{
+  "sourceSlug": "x.ai",
+  "id": "x-ai",
+  "label": "x.ai",
+  "command": "npx getdesign@latest add x.ai",
+  "generatedFiles": [
+    {
+      "path": "DESIGN.md",
+      "included": true,
+      "checksum": "sha256:437c9b83cf1b90702b31e94d7fd5b08e86173ed6b56039bf630ff693f3076698"
+    }
+  ],
+  "importedFiles": [
+    "DESIGN.md"
+  ],
+  "excludedFiles": []
+}

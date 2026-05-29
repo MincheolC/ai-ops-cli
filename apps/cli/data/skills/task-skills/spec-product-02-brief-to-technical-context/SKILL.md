@@ -20,10 +20,10 @@ Use this skill after `./docs/specs/baseline/00_brief.md` is approved and before 
 - Do not force awkward phonetic transliterations such as `소스 오브 트루스`, `타겟 플랫폼`, or `워크 패킷`.
 - If an English technical term needs explanation, keep the English term and add a short Korean gloss on first mention, for example `source of truth(가장 신뢰하는 기준)`.
 
-## Glossary Rule
+## Terminology Rule
 
-- Check `./docs/specs/baseline/01_glossary.md` only if it exists and the document introduces stack names, architectural terms, or labels that should align with existing terminology.
-- After writing the target document, run `spec-shared-glossary-sync` only if new technical terms, product-facing labels, or collisions were introduced.
+- Check `./docs/business/terminology.md` if it exists and the document introduces stack names, architectural terms, or labels that should align with existing terminology.
+- After writing the target document, run `project-terminology-sync` only if new technical terms, product-facing labels, or collisions were introduced.
 
 ## Default Stack Preferences
 

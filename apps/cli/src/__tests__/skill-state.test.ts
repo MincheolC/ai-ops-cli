@@ -6,8 +6,8 @@ import {
   upsertInstalledSkill,
   removeInstalledSkill,
   findInstalledSkill,
-} from '../lib/skill-state.js';
-import type { InstalledSkill } from '@/core/index.js';
+} from '../features/skills/state.js';
+import type { InstalledSkill } from '../core/schemas/index.js';
 
 const installedSkill: InstalledSkill = {
   id: 'skill-load-check',

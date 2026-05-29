@@ -10,7 +10,7 @@ Use this skill after a post-MVP change has been implemented and verified, and th
 
 ## Output Location
 
-- Update only affected files under `./docs/specs/baseline/`.
+- Update only affected files under `./docs/specs/baseline/` and `./docs/business/terminology.md` when project terminology changed.
 - Move the completed plan from `./.codex/plans/<plan>.md` to `./.codex/plans/archived/YYYY-MM/<plan>.md`.
 - Append a compact entry to `./.codex/CHANGE_LOG.md`.
 
@@ -31,7 +31,7 @@ Read the relevant available inputs before updating baseline:
 2. implemented code changes, PR diff, commit diff, or implementation notes
 3. verification results and known skipped tests
 4. optional issue or PR link
-5. existing `./docs/specs/baseline/01_glossary.md`
+5. existing `./docs/business/terminology.md`
 6. existing `./docs/specs/baseline/05_technical-context.md`
 7. existing `./docs/specs/baseline/10_product-spec.md`
 8. existing `./docs/specs/baseline/20_ui-spec.md`
@@ -64,7 +64,7 @@ Baseline sync is implementation-confirming work.
 
 1. Identify the plan being closed and the implementation evidence.
 2. Compare shipped behavior against current baseline docs.
-3. Decide which baseline docs are affected among `01,05,10,20,22,24`.
+3. Decide whether project terminology or baseline docs among `05,10,20,22,24` are affected.
 4. Update only affected baseline docs while preserving still-valid prior decisions.
 5. Append one changelog entry summarizing what changed, why, evidence, baseline impact, and follow-up.
 6. Move the plan into `.codex/plans/archived/YYYY-MM/`.
@@ -74,7 +74,7 @@ Use [references/template.md](references/template.md) for the changelog entry sha
 
 ## Baseline Update Rules
 
-- `./docs/specs/baseline/01_glossary.md`: update only when the implementation introduced or normalized meaningful shared terms.
+- `./docs/business/terminology.md`: update only when the implementation introduced or normalized meaningful shared terms.
 - `./docs/specs/baseline/05_technical-context.md`: update only when architecture, stack, boundaries, integrations, or deployment assumptions changed materially.
 - `./docs/specs/baseline/10_product-spec.md`: update for implemented user-flow, feature, entity, rule, edge-case, or success-criteria changes.
 - `./docs/specs/baseline/20_ui-spec.md`: update for implemented screens, states, interactions, or UI constraints.

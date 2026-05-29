@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import {
@@ -13,7 +13,7 @@ import {
   resolveProjectLayerTools,
   uninstallProjectLayer,
   updateProjectLayer,
-} from '../project-layer.js';
+} from '../../features/project-layer/index.js';
 import type { ProjectLayerManifest } from '../schemas/index.js';
 
 const setup = (): { dir: string; cleanup: () => void } => {
@@ -41,6 +41,7 @@ describe('project operating layer templates', () => {
     expect(reservedSpecs.map((spec) => spec.path)).toEqual([
       'docs/agent/maps/codebase-map.md',
       'docs/business/business-rules.md',
+      'docs/business/terminology.md',
     ]);
     expect(reservedSpecs.every((spec) => spec.content.includes('판단 근거로 사용하지 마세요'))).toBe(true);
   });
@@ -81,6 +82,7 @@ describe('project operating layer lifecycle', () => {
       expect(existsSync(join(dir, 'AGENTS.md'))).toBe(true);
       expect(existsSync(join(dir, 'GEMINI.md'))).toBe(false);
       expect(existsSync(join(dir, 'CLAUDE.md'))).toBe(false);
+      expect(existsSync(join(dir, 'docs/references/codex'))).toBe(false);
       expect(existsSync(join(dir, '.ai-ops/manifest.json'))).toBe(true);
       expect(existsSync(join(dir, '.ai-ops/context-layer.json'))).toBe(true);
       expect(result.manifest.kind).toBe('project-operating-layer');
@@ -88,11 +90,35 @@ describe('project operating layer lifecycle', () => {
       expect(result.manifest.managed_files.map((file) => file.path)).toContain(
         'docs/agent/rules/00-agent-baseline.md',
       );
+      expect(result.manifest.managed_files.map((file) => file.path)).toContain('docs/agent/terminology.md');
+      expect(result.manifest.project_files.map((file) => file.path)).toContain('docs/business/terminology.md');
       expect(readProjectFile(dir, 'docs/docs-status.md')).toContain(
         '| docs/agent/rules/00-agent-baseline.md | Active | ai-ops |',
       );
+      expect(readProjectFile(dir, 'docs/docs-status.md')).toContain(
+        '| docs/business/terminology.md | Reserved | project |',
+      );
+      expect(readProjectFile(dir, 'docs/agent/rules/00-agent-baseline.md')).toContain(
+        '## 유지보수/리팩토링 기준',
+      );
+      expect(readProjectFile(dir, 'docs/agent/rules/00-agent-baseline.md')).toContain(
+        'production TypeScript 파일이 600줄을 넘으면',
+      );
+      expect(readProjectFile(dir, 'AGENTS.md')).toContain('docs/agent/project-rules/*.md');
+      expect(readProjectFile(dir, 'docs/agent/rules/doc-update-rules.md')).toContain(
+        '중복, 충돌 가능성, 적용 우선순위/조건',
+      );
+      expect(readProjectFile(dir, 'docs/agent/checks/impact-checklist.md')).toContain(
+        'touched production file이 250줄을 넘는가?',
+      );
+      expect(readProjectFile(dir, 'docs/agent/checks/impact-checklist.md')).toContain(
+        '같은 패턴이 세 번째 등장했는가?',
+      );
       expect(readProjectLayerContextIndex(dir)?.documents.map((document) => document.path)).toContain(
         'docs/agent/rules/00-agent-baseline.md',
+      );
+      expect(readProjectLayerContextIndex(dir)?.documents.map((document) => document.path)).toContain(
+        'docs/business/terminology.md',
       );
       expect(auditProjectLayer(dir).issues).toHaveLength(0);
     } finally {
@@ -122,14 +148,195 @@ describe('project operating layer lifecycle', () => {
     try {
       const installed = installProjectLayer({ basePath: dir, tools: resolveProjectLayerTools(['codex']) });
       const businessRulesPath = join(dir, 'docs/business/business-rules.md');
+      const terminologyPath = join(dir, 'docs/business/terminology.md');
       const customBusinessRules = readFileSync(businessRulesPath, 'utf-8').replace('- TBD', '- 결제 정책은 서버 응답을 우선한다.');
+      const customTerminology = readFileSync(terminologyPath, 'utf-8').replace(
+        '| TBD | TBD | TBD | TBD | TBD | TBD | TBD |',
+        '| 결제 | `payment` | 사용자 결제 행위 | product / ui | payment | 결재 | `10_product-spec.md` |',
+      );
       writeFileSync(businessRulesPath, customBusinessRules, 'utf-8');
+      writeFileSync(terminologyPath, customTerminology, 'utf-8');
 
       const result = updateProjectLayer({ basePath: dir, manifest: installed.manifest });
 
       expect(readProjectFile(dir, 'docs/business/business-rules.md')).toContain('결제 정책은 서버 응답을 우선한다.');
+      expect(readProjectFile(dir, 'docs/business/terminology.md')).toContain('사용자 결제 행위');
       expect(result.preservedProjectFiles).toContain('docs/business/business-rules.md');
+      expect(result.preservedProjectFiles).toContain('docs/business/terminology.md');
       expect(auditProjectLayer(dir).issues).toHaveLength(0);
+    } finally {
+      cleanup();
+    }
+  });
+
+  it('updates while preserving registered non-template project-owned documents', () => {
+    const { dir, cleanup } = setup();
+    const architecturePath = 'docs/agent/maps/studio-launcher-architecture.md';
+    const architectureContent = `---
+status: Active
+layer: agent
+owner: project
+read_when:
+  - studio_architecture
+update_when:
+  - studio_launcher_changes
+---
+# Studio Launcher Architecture
+
+Studio launcher build and runtime flow.
+`;
+
+    try {
+      const installed = installProjectLayer({ basePath: dir, tools: resolveProjectLayerTools(['codex']) });
+      mkdirSync(dirname(join(dir, architecturePath)), { recursive: true });
+      writeFileSync(join(dir, architecturePath), architectureContent, 'utf-8');
+
+      const previousManifest: ProjectLayerManifest = {
+        ...installed.manifest,
+        project_files: [
+          ...installed.manifest.project_files,
+          {
+            path: architecturePath,
+            templateHash: 'aaaaaa',
+            created: false,
+          },
+        ],
+      };
+
+      const updated = updateProjectLayer({ basePath: dir, manifest: previousManifest });
+      const architectureRecord = updated.manifest.project_files.find((file) => file.path === architecturePath);
+      const contextDocument = readProjectLayerContextIndex(dir)?.documents.find((document) => document.path === architecturePath);
+
+      expect(architectureRecord).toMatchObject({
+        path: architecturePath,
+        created: false,
+      });
+      expect(architectureRecord?.templateHash).not.toBe('aaaaaa');
+      expect(readProjectFile(dir, 'docs/docs-status.md')).toContain(
+        '| docs/agent/maps/studio-launcher-architecture.md | Active | project |',
+      );
+      expect(contextDocument).toMatchObject({
+        path: architecturePath,
+        status: 'Active',
+        owner: 'project',
+      });
+      expect(readProjectFile(dir, architecturePath)).toContain('Studio launcher build and runtime flow.');
+      expect(auditProjectLayer(dir).issues).toHaveLength(0);
+    } finally {
+      cleanup();
+    }
+  });
+
+  it('discovers project-owned agent rules and preserves them on update', () => {
+    const { dir, cleanup } = setup();
+    const customPath = 'docs/agent/project-rules/routing-rules.md';
+    const customContent = `---
+status: Active
+layer: agent
+owner: project
+read_when:
+  - codex_work
+update_when:
+  - project_rule_changes
+---
+# Routing Rules
+
+- Codex 관련 변경은 로컬 codex 검증을 우선한다.
+`;
+
+    try {
+      const installed = installProjectLayer({ basePath: dir, tools: resolveProjectLayerTools(['codex']) });
+      mkdirSync(dirname(join(dir, customPath)), { recursive: true });
+      writeFileSync(join(dir, customPath), customContent, 'utf-8');
+
+      const driftReport = diffProjectLayer(dir);
+      expect(driftReport.issues.some((item) => item.code === 'custom-project-rules-drift')).toBe(true);
+      expect(driftReport.issues.some((item) => item.code === 'context-missing-document')).toBe(true);
+
+      const updated = updateProjectLayer({ basePath: dir, manifest: installed.manifest });
+      const customRecord = updated.manifest.project_files.find((file) => file.path === customPath);
+
+      expect(customRecord).toMatchObject({
+        path: customPath,
+        created: false,
+      });
+      expect(readProjectFile(dir, customPath)).toContain('로컬 codex 검증을 우선한다.');
+      expect(readProjectFile(dir, 'docs/docs-status.md')).toContain(
+        '| docs/agent/project-rules/routing-rules.md | Active | project |',
+      );
+      expect(readProjectLayerContextIndex(dir)?.documents.map((document) => document.path)).toContain(customPath);
+      expect(auditProjectLayer(dir).issues).toHaveLength(0);
+
+      writeFileSync(join(dir, customPath), customContent.replace('우선한다.', '최우선으로 한다.'), 'utf-8');
+      const updatedAgain = updateProjectLayer({ basePath: dir, manifest: updated.manifest });
+
+      expect(readProjectFile(dir, customPath)).toContain('최우선으로 한다.');
+      expect(updatedAgain.manifest.project_files.find((file) => file.path === customPath)?.created).toBe(false);
+      expect(auditProjectLayer(dir).issues).toHaveLength(0);
+    } finally {
+      cleanup();
+    }
+  });
+
+  it('reports invalid project-owned agent rule frontmatter', () => {
+    const { dir, cleanup } = setup();
+    const customPath = 'docs/agent/project-rules/broken.md';
+
+    try {
+      installProjectLayer({ basePath: dir, tools: resolveProjectLayerTools(['codex']) });
+      mkdirSync(dirname(join(dir, customPath)), { recursive: true });
+      writeFileSync(
+        join(dir, customPath),
+        `---
+status: Active
+layer: agent
+read_when:
+  - codex_work
+update_when:
+  - project_rule_changes
+---
+# Broken Rule
+`,
+        'utf-8',
+      );
+
+      expect(diffProjectLayer(dir).issues.some((item) => item.code === 'invalid-custom-project-rule')).toBe(true);
+      expect(auditProjectLayer(dir).issues.some((item) => item.code === 'invalid-custom-project-rule')).toBe(true);
+    } finally {
+      cleanup();
+    }
+  });
+
+  it.each([
+    ['owner', 'owner: ai-ops\nlayer: agent', 'owner는 project여야 합니다'],
+    ['layer', 'owner: project\nlayer: business', 'layer는 agent여야 합니다'],
+  ] as const)('reports project-owned agent rule contract mismatches for %s', (_caseName, contractFields, expectedMessage) => {
+    const { dir, cleanup } = setup();
+    const customPath = 'docs/agent/project-rules/mismatch.md';
+
+    try {
+      installProjectLayer({ basePath: dir, tools: resolveProjectLayerTools(['codex']) });
+      mkdirSync(dirname(join(dir, customPath)), { recursive: true });
+      writeFileSync(
+        join(dir, customPath),
+        `---
+status: Active
+${contractFields}
+read_when:
+  - codex_work
+update_when:
+  - project_rule_changes
+---
+# Mismatch Rule
+`,
+        'utf-8',
+      );
+
+      const report = diffProjectLayer(dir);
+      const issue = report.issues.find((item) => item.code === 'invalid-custom-project-rule');
+
+      expect(issue?.message).toContain(expectedMessage);
+      expect(auditProjectLayer(dir).issues.some((item) => item.code === 'invalid-custom-project-rule')).toBe(true);
     } finally {
       cleanup();
     }
@@ -227,7 +434,16 @@ describe('project operating layer lifecycle', () => {
     try {
       const installed = installProjectLayer({ basePath: dir, tools: resolveProjectLayerTools(['codex']) });
       const businessRulesPath = join(dir, 'docs/business/business-rules.md');
+      const terminologyPath = join(dir, 'docs/business/terminology.md');
       writeFileSync(businessRulesPath, readFileSync(businessRulesPath, 'utf-8').replace('- TBD', '- 직접 보강한 규칙'), 'utf-8');
+      writeFileSync(
+        terminologyPath,
+        readFileSync(terminologyPath, 'utf-8').replace(
+          '| TBD | TBD | TBD | TBD | TBD | TBD | TBD |',
+          '| 루틴 | `routine` | 운동 계획 단위 | product | 프로그램 | 플랜 | `10_product-spec.md` |',
+        ),
+        'utf-8',
+      );
 
       const result = uninstallProjectLayer(dir, installed.manifest);
 
@@ -235,7 +451,9 @@ describe('project operating layer lifecycle', () => {
       expect(existsSync(join(dir, 'docs/docs-status.md'))).toBe(false);
       expect(existsSync(join(dir, 'docs/agent/maps/codebase-map.md'))).toBe(false);
       expect(existsSync(businessRulesPath)).toBe(true);
+      expect(existsSync(terminologyPath)).toBe(true);
       expect(result.preserved).toContain('docs/business/business-rules.md');
+      expect(result.preserved).toContain('docs/business/terminology.md');
       expect(existsSync(join(dir, '.ai-ops/manifest.json'))).toBe(false);
       expect(existsSync(join(dir, '.ai-ops/context-layer.json'))).toBe(false);
     } finally {
@@ -253,6 +471,7 @@ describe('project operating layer lifecycle', () => {
 
       expect(existsSync(join(dir, 'docs/docs-status.md'))).toBe(false);
       expect(existsSync(join(dir, 'docs/agent/maps/codebase-map.md'))).toBe(false);
+      expect(existsSync(join(dir, 'docs/business/terminology.md'))).toBe(false);
       expect(existsSync(join(dir, 'docs/business/business-rules.md'))).toBe(false);
     } finally {
       cleanup();

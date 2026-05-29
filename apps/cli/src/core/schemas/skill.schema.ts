@@ -40,10 +40,10 @@ export type Skill = {
   description: string;
   supported_tools: z.infer<typeof SkillToolSchema>[];
   groups: string[];
-  included_in_presets: string[];
   directory: string;
   files: SkillFile[];
 };
+export type ToolId = z.infer<typeof SkillToolSchema>;
 
 export const InstalledSkillSchema = z
   .object({

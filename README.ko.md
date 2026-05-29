@@ -2,16 +2,16 @@
 
 [English](./README.md)
 
-`ai-ops-cli`의 다음 major breaking model을 설계하고 구현한 모노레포입니다. 새 제품 정의는 “프로젝트에는 AI agent operating layer를 설치하고, 사용자 환경에는 agent skills/subagents를 설치한다”입니다.
+`ai-ops-cli`의 다음 major breaking model을 설계하고 구현한 모노레포입니다. 제품 정의는 “프로젝트/에이전트 작업에 필요한 operating layer와 global runtime integration을 설치하고 관리한다”입니다.
 
-현재 repo 구현은 이 operating layer 모델을 기준으로 동작합니다. old rules + skills scaffolder 모델은 deprecated 문맥으로만 남깁니다.
+현재 repo 구현은 project operating layer 모델과 bundled user/global runtime workflow를 다루는 `ai-ops integration ...` 명령을 제공합니다. skill, subagent, Codex hook, user-local receipt를 다루는 low-level component 명령은 디버그와 개별 관리 용도로 계속 사용할 수 있습니다. old rules + skills scaffolder 모델은 deprecated 문맥으로만 남깁니다.
 
 ## 목표 모델
 
 ```mermaid
 flowchart LR
   cli["ai-ops CLI"] --> project["Project repo<br/>agent operating layer"]
-  cli --> global["Global tool home<br/>skills / subagents"]
+  cli --> integrations["User/global runtime<br/>ai-ops integrations"]
 
   project --> entry["AGENTS.md<br/>canonical entrypoint"]
   project --> adapters["GEMINI.md / CLAUDE.md<br/>thin adapters"]
@@ -19,8 +19,10 @@ flowchart LR
   project --> state[".ai-ops/manifest.json<br/>.ai-ops/context-layer.json"]
   project --> packs["optional packs<br/>docs/specs/*"]
 
-  global --> skills["reference / task skills"]
-  global --> subagents["subagents"]
+  integrations --> skills["skills"]
+  integrations --> subagents["subagents"]
+  integrations --> hooks["Codex hooks / runners"]
+  integrations --> receipts["user-local receipts / config"]
 ```
 
 ## 저장소 구조
@@ -28,18 +30,23 @@ flowchart LR
 ```text
 .
 ├── apps/
-│   └── cli/
-│       ├── src/
-│       │   ├── bin/        # CLI entrypoint
-│       │   ├── commands/   # init/diff/audit/update/uninstall/skill/subagent/pack
-│       │   ├── core/       # schemas, loader, renderer, registry, project layer
-│       │   └── lib/        # global asset and legacy helper utilities
-│       ├── data/
-│       │   ├── context-layer/ # project operating layer templates
-│       │   ├── skills/        # global skill source/catalog data
-│       │   ├── packs/         # optional project pack source data
-│       │   └── subagents/     # global subagent source/catalog data
-│       └── README.md          # package-level operating layer contract
+│   ├── cli/
+│   │   ├── src/
+│   │   │   ├── bin/        # CLI entrypoint
+│   │   │   ├── commands/   # init/diff/audit/update/uninstall/skill/subagent/pack/integration/hooks
+│   │   │   ├── core/       # schemas, loader, renderer, registry, project layer, integrations
+│   │   │   └── lib/        # integration component and legacy helper utilities
+│   │   ├── data/
+│   │   │   ├── context-layer/ # project operating layer templates
+│   │   │   ├── integrations/  # integration catalog data
+│   │   │   ├── skills/        # skill component source/catalog data
+│   │   │   ├── packs/         # optional project pack source data
+│   │   │   └── subagents/     # subagent component source/catalog data
+│   │   └── README.md          # package-level operating layer and integrations contract
+│   └── studio/
+│       ├── src/               # Tauri/Vite React read-only Studio UI
+│       ├── src-tauri/         # desktop shell and snapshot bridge
+│       └── README.md          # Studio Dev MVP guide
 ├── docs/
 │   ├── plan.md                     # master blueprint
 │   ├── implementation-playbook.md  # phase execution guide
@@ -57,9 +64,12 @@ flowchart LR
 - `CLAUDE.md`
 - `docs/agent/rules/00-agent-baseline.md`
 - `docs/agent/workflow.md`
+- `docs/agent/terminology.md`
 - `docs/agent/rules/*`
-- `docs/agent/checks/*`
+- `docs/agent/project-rules/*.md` (프로젝트가 추가한 경우 project-owned)
+- `docs/agent/checks/impact-checklist.md`
 - `docs/agent/maps/codebase-map.md`
+- `docs/business/terminology.md`
 - `docs/business/business-rules.md`
 - `docs/docs-status.md`
 - `.ai-ops/manifest.json`
@@ -71,40 +81,97 @@ flowchart LR
 
 ### `ai-ops update`가 덮어쓰는 파일은 무엇인가요?
 
-`AGENTS.md`, `GEMINI.md`, `CLAUDE.md`, `docs/agent/rules/*`, `docs/agent/checks/*`, `docs/agent/workflow.md`는 ai-ops managed 문서입니다. 이 파일의 `<!-- ai-ops:start -->`부터 `<!-- ai-ops:end -->`까지는 CLI 템플릿 영역이고, `ai-ops update` 때 현재 CLI 템플릿으로 다시 적용됩니다. 사용자가 이 영역을 직접 수정하면 다음 update에서 유지되지 않습니다.
+`AGENTS.md`, `GEMINI.md`, `CLAUDE.md`, `docs/agent/rules/*`, `docs/agent/checks/impact-checklist.md`, `docs/agent/terminology.md`, `docs/agent/workflow.md`는 ai-ops managed 문서입니다. 이 파일의 `<!-- ai-ops:start -->`부터 `<!-- ai-ops:end -->`까지는 CLI 템플릿 영역이고, `ai-ops update` 때 현재 CLI 템플릿으로 다시 적용됩니다. 사용자가 이 영역을 직접 수정하면 다음 update에서 유지되지 않습니다.
+
+`docs/agent/project-rules/*.md`는 project-owned 영역이며 `ai-ops update --force`가 내용을 덮어쓰지 않습니다.
 
 `.ai-ops/manifest.json`과 `.ai-ops/context-layer.json`도 직접 편집 대상이 아닙니다. 각각 설치 상태와 문서 index를 기록하는 CLI 상태 파일입니다.
 
 ### 사용자가 직접 수정해야 하는 파일은 무엇인가요?
 
-프로젝트 지식은 project-owned 문서에 적습니다. 기본 project-owned 문서는 `docs/agent/maps/codebase-map.md`, `docs/business/business-rules.md`, `docs/docs-status.md`입니다. `docs/agent/maps/codebase-map.md`와 `docs/business/business-rules.md`는 처음에는 Reserved 템플릿이지만, 프로젝트가 실제 내용을 채운 뒤에는 update가 자동으로 덮어쓰지 않습니다.
+프로젝트 지식은 project-owned 문서에 적습니다. 기본 project-owned 문서는 `docs/agent/maps/codebase-map.md`, `docs/business/terminology.md`, `docs/business/business-rules.md`, `docs/docs-status.md`입니다. 프로젝트 고유 agent 행동 규칙은 `docs/agent/project-rules/*.md`에 둡니다. `docs/agent/maps/codebase-map.md`, `docs/business/terminology.md`, `docs/business/business-rules.md`는 처음에는 Reserved 템플릿이지만, 프로젝트가 실제 내용을 채운 뒤에는 update가 자동으로 덮어쓰지 않습니다.
 
 `docs/docs-status.md`는 project-owned 문서이지만 자유 메모장이 아니라 context-layer registry입니다. 문서 status/frontmatter를 바꿀 때 함께 맞추는 파일이며, update 과정에서 manifest와 실제 문서 frontmatter 기준으로 테이블이 정리될 수 있습니다.
 
 ### 프로젝트 고유 agent rule은 어디에 적나요?
 
-현재 기본 layer에는 프로젝트 구조와 비즈니스 규칙을 담는 project-owned 문서가 있지만, 프로젝트별 agent 행동 규칙만을 위한 별도 Active 문서는 아직 first-class 템플릿으로 열려 있지 않습니다. 그래서 `AGENTS.md`의 managed 영역이나 tool adapter에 직접 규칙을 추가하는 방식은 update-safe한 계약이 아닙니다.
+`docs/agent/project-rules/*.md`를 사용합니다. 이 디렉터리의 Markdown은 유효한 operating-layer frontmatter가 있으면 project-owned context 문서로 발견됩니다. `ai-ops update`, `diff`, `audit`는 이를 `.ai-ops/manifest.json`, `.ai-ops/context-layer.json`, `docs/docs-status.md`에 반영하고 forced update에서도 내용을 보존합니다.
 
-프로젝트별 agent rule을 안정적으로 지원하려면 `docs/agent/rules/project-rules.md` 같은 project-owned Active 문서를 추가하고, manifest/context-layer/docs-status가 함께 추적하도록 제품 계약을 확장하는 것이 다음 개선 후보입니다.
+이 repo의 `docs/references/codex/`는 ai-ops-cli 개발을 위한 local reference 자료입니다. 다른 project operating layer로 패키징하거나 설치하지 않습니다.
 
-## Global Assets
+## ai-ops Integrations
 
-skills와 subagents는 프로젝트에 복사하지 않습니다. 각 도구의 user/global discovery 규칙에 맞춰 설치하고, project manifest에는 기록하지 않습니다.
+Integration은 여러 프로젝트에서 agent 작업을 돕는 user/global runtime 기능 단위입니다. skill, subagent, Codex hook, hook runner, user-local receipt/config 같은 component로 구성될 수 있습니다. 이 component들은 프로젝트에 복사하지 않고 project manifest에도 기록하지 않습니다.
 
-global asset 명령은 `AI_OPS_HOME` 또는 `HOME`이 있어야 실행됩니다. 둘 다 없으면 cwd fallback 없이 실패합니다.
+Integration component 명령은 `AI_OPS_HOME` 또는 `HOME`이 있어야 실행됩니다. 둘 다 없으면 cwd fallback 없이 실패합니다.
 
-유지하는 global asset 종류:
+유지하는 runtime 표면:
 
+- integrations
 - reference skills
 - task skills
 - subagents
+- Codex hooks
+- Codex safe permissions
+- user-local context-promotion receipts
 
-현재 skill lifecycle은 global registry만 사용합니다.
+Integration lifecycle 명령:
+
+```bash
+ai-ops integration list
+ai-ops integration install context-promotion
+ai-ops integration install pc
+ai-ops integration status pc
+ai-ops integration uninstall pc
+ai-ops pc status
+ai-ops pc done draft --cwd /path/to/product-repo
+ai-ops pc done apply --draft /path/to/draft.json
+```
+
+`context-promotion`은 `context-promotion-review` Codex skill, Codex `PostToolUse` hook, user-local receipt workflow를 설치해 `git commit` 이후 재사용 가능한 운영 지식 승격 검토를 돕습니다.
+
+`pc`는 `pc` Codex skill과 Codex `PostToolUse` hook runner를 설치합니다. 성공적인 `git commit` 이후 `~/.personal-project-contexts/`에 matching workspace, active workstream, current repo scope가 준비된 경우에만 Codex가 `$pc:done`으로 이어가게 합니다. 준비되지 않은 repository에는 pc context를 새로 만들지 않습니다. Handoff 반영은 `ai-ops pc done draft` -> AI가 JSON 작성 -> `ai-ops pc done apply` 순서로 진행해, context 파일 갱신과 context repo commit은 CLI가 맡습니다.
+
+Codex safe permissions는 `pc`와 `context-promotion-review`가 쓰는 좁은 user-local 작업에서 반복 approval prompt를 줄입니다.
+
+```bash
+ai-ops codex-permissions install safe-local
+ai-ops codex-permissions status safe-local
+ai-ops codex-permissions uninstall safe-local
+```
+
+`safe-local`은 `~/.codex/config.toml`에 `ai-ops-safe-local` user-level Codex permission profile을 upsert합니다. `~/.personal-project-contexts`, `${AI_OPS_HOME:-$HOME}/.ai-ops/context-promotion`, active project root 아래 `.codex/plans`에는 write를 허용하고 `.git`은 read-only로 둡니다. Env 파일 보호는 하나의 TOML syntax를 전역 정답으로 가정하지 않고, generated profile을 installed Codex runtime으로 검증한 뒤 처음 통과한 Codex-compatible env-file protection rule을 설치합니다. Codex validation을 실행할 수 없으면 warning과 함께 portable compatibility syntax를 쓰고, Codex가 있지만 어떤 candidate도 통과하지 못하면 `config.toml`을 쓰지 않고 fail closed합니다. `PermissionRequest` hook이나 command allow rule은 설치하지 않습니다.
+
+ai-coding worker에서는 Codex subprocess를 run-scoped로 실행하고, commit/push/PR 생성은 orchestrator가 담당하게 합니다.
+
+```bash
+codex exec --ignore-user-config --ignore-rules --cd "$WORKTREE" \
+  -c 'approval_policy="never"' \
+  -c 'default_permissions=":read-only"'
+
+codex exec --ignore-user-config --ignore-rules --cd "$WORKTREE" \
+  -c 'approval_policy="never"' \
+  -c 'default_permissions="ai-worker-impl"' \
+  -c 'permissions.ai-worker-impl.filesystem.":minimal"="read"' \
+  -c 'permissions.ai-worker-impl.filesystem.":project_roots"."."="write"' \
+  -c 'permissions.ai-worker-impl.filesystem.":project_roots".".git"="read"' \
+  -c 'permissions.ai-worker-impl.filesystem.":project_roots".".codex/plans"="write"' \
+  -c 'permissions.ai-worker-impl.network.enabled=false'
+```
+
+Run-scoped worker profile에 env-file carveout을 추가할 때도 exact TOML syntax를 installed Codex runtime으로 검증해야 합니다. `safe-local`은 managed profile에 대해 이 검증을 자동으로 수행합니다.
+
+각 Codex 실행 후 orchestrator가 HEAD, branch ref, changed-file scope를 검증해야 합니다. Validation command 실행, commit 생성, branch push, `gh pr create --draft` 호출은 Codex가 아니라 orchestrator가 수행합니다.
+
+Integration 소유권은 user/global runtime home 아래 `.ai-ops/integrations-manifest.json`에 기록됩니다. Uninstall은 integration install이 소유한 component만 제거하고, 기존에 수동 설치되어 있던 skill이나 hook은 보존합니다.
+
+Skill lifecycle 명령:
 
 ```bash
 ai-ops skill list
 ai-ops skill install skill-load-check --tool codex
 ai-ops skill install doc-impact-reviewer --tool codex
+ai-ops skill install context-promotion-review --tool codex
 ai-ops skill diff
 ai-ops skill update
 ai-ops skill uninstall skill-load-check
@@ -112,7 +179,7 @@ ai-ops skill uninstall skill-load-check
 
 `doc-impact-reviewer`는 변경 완료 또는 커밋 직전에 diff를 보고 갱신해야 할 운영 문서 후보를 판정하는 task skill입니다. 수동으로 `$doc-impact-reviewer`를 호출해 사용하며, 사용자 확인 전에는 문서를 수정하지 않고 직접 staging/commit도 하지 않습니다.
 
-Subagent lifecycle도 global registry만 사용합니다.
+Subagent lifecycle 명령:
 
 ```bash
 ai-ops subagent list
@@ -129,6 +196,8 @@ ai-ops subagent uninstall security-gate
 - Gemini CLI: `.gemini/agents/<id>.md`
 - 상태 파일: `.ai-ops/subagents-manifest.json`
 
+Low-level component 명령도 계속 사용할 수 있습니다. 단일 skill 설치, Codex hook 점검, context-promotion receipt 직접 관리가 필요할 때 사용합니다.
+
 ## Optional Specs Pack
 
 `docs/specs/`는 optional pack 위치로 고정합니다. spec lifecycle이 필요한 프로젝트만 설치합니다.
@@ -142,7 +211,7 @@ ai-ops pack update spec-lifecycle
 ai-ops pack uninstall spec-lifecycle
 ```
 
-`spec-lifecycle` pack은 `.ai-ops/manifest.json`이 있는 project operating layer 안에서만 동작합니다. 설치 시 `docs/specs/README.md`와 `docs/specs/README.ko.md`는 `Reserved` 문서로 context-layer와 `docs/docs-status.md`에 기록하고, `.gitkeep` 파일은 일반 pack file로만 manifest에 기록합니다.
+`spec-lifecycle` pack은 `.ai-ops/manifest.json`이 있는 project operating layer 안에서만 동작합니다. 설치 시 `docs/specs/README.md`와 `docs/specs/README.ko.md`는 `Reserved` 문서로 context-layer와 `docs/docs-status.md`에 기록하고, `.gitkeep` 파일은 일반 pack file로만 manifest에 기록합니다. 프로젝트 용어는 계속 `docs/business/terminology.md`에서 중앙 관리합니다.
 
 Deprecated old model:
 
@@ -172,6 +241,38 @@ npm run build
 npm test
 ```
 
+## Studio Dev MVP
+
+`apps/studio`는 `ai-ops Studio`의 desktop Dev MVP입니다. `.ai-ops/context-layer.json`에 기록된 operating-layer graph만 읽는 project-bound read-only control plane이며, project operating document preview, audit diagnostics, runtime integration/component status, app-local appearance preference를 보여줍니다. repo-wide explorer나 mutation control은 v1 범위에 포함하지 않습니다.
+
+글로벌 설치된 CLI로 현재 프로젝트를 대상으로 Studio 실행:
+
+```bash
+ai-ops studio .
+```
+
+글로벌 launcher는 현재 macOS arm64를 `ai-ops-studio-darwin-arm64` optional platform package로 지원합니다. Source checkout 개발은 계속 Tauri dev shell을 사용합니다:
+
+```bash
+npm run studio:dev
+```
+
+다른 project root를 대상으로 실행:
+
+```bash
+AI_OPS_STUDIO_PROJECT_ROOT=/path/to/project npm run studio:dev
+```
+
+Studio workspace build/test:
+
+```bash
+npm run studio:test
+npm run studio:build
+npm run studio:package:darwin-arm64
+```
+
+범위, 경계, smoke scenario는 [apps/studio/README.ko.md](./apps/studio/README.ko.md)를 봅니다.
+
 자주 쓰는 명령:
 
 ```bash
@@ -183,6 +284,12 @@ npm run dev
 
 # Lint + test
 npm run check
+
+# Studio desktop shell
+ai-ops studio .
+npm run studio:dev
+npm run studio:build
+npm run studio:test
 ```
 
 코드와 운영 문서 변경은 `npm run check`를 기본 검증으로 사용합니다. CLI 배포 산출물 확인은 `npm run build`와 `npm run compile`을 함께 사용합니다.

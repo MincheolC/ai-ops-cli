@@ -1,7 +1,7 @@
 {
   "name": "ai-ops-cli",
-  "version": "1.0.3",
-  "description": "CLI for AI agent operating layers and global agent assets",
+  "version": "1.5.7",
+  "description": "CLI for AI agent operating layers and global runtime integrations",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -36,6 +36,9 @@
     "commander": "^13.1.0",
     "yaml": "^2.7.0",
     "zod": "^3.24.2"
+  },
+  "optionalDependencies": {
+    "ai-ops-studio-darwin-arm64": "1.5.7"
   },
   "devDependencies": {
     "@types/node": "^25.3.3",

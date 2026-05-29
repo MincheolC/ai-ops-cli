@@ -81,7 +81,7 @@ Global tool home
 
 5. **Phase 4: Optional `docs/specs` Pack**
    - `spec-lifecycle` pack을 추가하고 설치 위치를 `docs/specs/`로 고정한다.
-   - `spec-to-packet`의 `spec-product-*`, `spec-baseline-sync`, `spec-shared-glossary-sync`는 이 pack의 global skills 후보로 이관한다.
+   - `spec-to-packet`의 `spec-product-*`, `spec-baseline-sync`, `project-terminology-sync`는 이 pack의 global skills 후보로 이관한다.
    - pack 설치는 프로젝트 문서 구조만 만들고, 실제 절차 실행은 global skill이 담당한다.
 
 6. **Phase 5: Doc Impact Reviewer**

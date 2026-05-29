@@ -23,6 +23,9 @@ npm run build
 npm version "$BUMP" --no-git-tag-version --workspace=apps/cli
 
 NEW_VERSION=$(node -p "require('./apps/cli/package.json').version")
+npm version "$NEW_VERSION" --no-git-tag-version --prefix apps/studio-darwin-arm64 --allow-same-version
+npm pkg set "optionalDependencies.ai-ops-studio-darwin-arm64=$NEW_VERSION" --workspace=apps/cli
+npm install --package-lock-only --ignore-scripts
 echo "▶ Bumped to v$NEW_VERSION"
 
 # ── 3. CHANGELOG 업데이트 ([Unreleased] → [x.y.z] - YYYY-MM-DD) ─────────────
@@ -31,11 +34,17 @@ sed -i '' "s/^## \[Unreleased\]/## [Unreleased]\n\n## [$NEW_VERSION] - $TODAY/" 
 echo "▶ CHANGELOG.md updated for v$NEW_VERSION"
 
 # ── 4. git commit + tag ───────────────────────────────────────────────────────
-git add apps/cli/package.json package-lock.json CHANGELOG.md
+echo "▶ Preparing Studio macOS arm64 package..."
+npm run studio:package:darwin-arm64
+
+git add apps/cli/package.json apps/studio-darwin-arm64/package.json package-lock.json CHANGELOG.md
 git commit -m "chore: release v$NEW_VERSION"
 git tag "v$NEW_VERSION"
 
-# ── 5. publish (cli only) ─────────────────────────────────────────────────────
+# ── 5. publish platform package, then cli ─────────────────────────────────────
+echo "▶ Publishing ai-ops-studio-darwin-arm64@$NEW_VERSION..."
+npm publish apps/studio-darwin-arm64
+
 echo "▶ Publishing ai-ops-cli@$NEW_VERSION..."
 npm publish --workspace=apps/cli
 

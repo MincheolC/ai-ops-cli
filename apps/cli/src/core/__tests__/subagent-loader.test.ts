@@ -3,7 +3,7 @@ import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
-import { loadAllSubagents, loadSubagentCatalog } from '../loader.js';
+import { loadAllSubagents, loadSubagentCatalog } from '../../shared/catalog-loader.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const dataDir = resolve(__dirname, '../../../data');

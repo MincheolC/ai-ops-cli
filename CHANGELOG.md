@@ -5,6 +5,145 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.5.7] - 2026-05-29
+
+### Fixed
+
+- `fix(project-layer)`: `update --force` now preserves valid non-template project-owned documents already registered in the manifest so `docs-status` and `context-layer` rows are not dropped.
+
+## [1.5.6] - 2026-05-28
+
+### Added
+
+- `feat(pc)`: add `ai-ops pc status` and `$pc:done` draft/apply commands so Codex can fill a structured handoff draft while `ai-ops` deterministically updates and commits only the personal context repo.
+
+### Fixed
+
+- `fix(codex-permissions)`: `safe-local` status no longer reports an installed managed profile as missing when the only config difference is trailing EOF blank lines.
+
+## [1.5.5] - 2026-05-22
+
+### Added
+
+- `feat(studio)`: `ai-ops studio [project]` now launches the macOS arm64 desktop Studio app through an optional `ai-ops-studio-darwin-arm64` platform package while preserving `ai-ops studio snapshot --json`.
+
+## [1.5.4] - 2026-05-22
+
+### Fixed
+
+- `fix(codex-permissions)`: `safe-local` now avoids the legacy `**/*.env = "none"` fallback unless no portable exact env-file candidate validates, and its runtime smoke uses permission-feature config resolution instead of the shallower model catalog command.
+
+## [1.5.3] - 2026-05-22
+
+## [1.5.2] - 2026-05-22
+
+### Fixed
+
+- `fix(codex-permissions)`: `safe-local` now validates its generated permission profile with the installed Codex runtime, selects the first compatible env-file deny syntax, falls back with a warning only when runtime validation is unavailable, and fails closed instead of writing invalid `config.toml`.
+
+## [1.5.1] - 2026-05-22
+
+### Added
+
+- `docs(agent-layer)`: `Reference-Backed Implementation` workflow rule을 추가해 reference 문서의 핵심 제약을 acceptance condition, test fixture, smoke command로 고정하도록 안내
+
+### Fixed
+
+- `fix(codex-permissions)`: `safe-local` now writes `default_permissions` before the first TOML table so existing Codex config tables do not scope the selector under another table.
+
+## [1.5.0] - 2026-05-22
+
+### Added
+
+- `feat(project-layer)`: `docs/agent/project-rules/*.md` project-owned agent rule discovery를 추가하고, `update`/`diff`/`audit`/Studio snapshot이 manifest, context-layer, docs-status와 함께 추적하도록 지원
+
+### Fixed
+
+- `fix(codex-permissions)`: `safe-local` generated Codex 0.130.0-compatible permission profile TOML using the `:project_roots` table shape.
+
+## [1.4.1] - 2026-05-21
+
+### Added
+
+- `feat(codex-permissions)`: `safe-local`을 permission profile 기반으로 전환해 `pc` context repo와 workspace `.codex/plans` write를 허용하고, ai-coding worker용 run-scoped `codex exec` 가이드를 문서화
+- `docs(agent-layer)`: baseline과 impact checklist에 파일 크기, Rule of Three, 책임 경계 기반 리팩토링 검토 신호를 soft trigger로 추가
+
+### Changed
+
+- `refactor(cli)`: `apps/cli/src`를 `commands/core/lib` 중심에서 `features/*`, `shared`, `cli/program.ts` 중심 구조로 재배치하고 CLI command/options/JSON contract는 유지
+- `refactor(project-layer)`: project-layer lifecycle, audit, docs-status, pack source/loading, command shell을 feature-local 모듈로 분리
+- `refactor(studio)`: Studio snapshot 생성을 project snapshot, runtime snapshot, issue normalization/source state 단위로 분리
+- `refactor(runtime-assets)`: skills, subagents, integrations, Codex hooks, permissions, context-promotion, pc 로직을 각 feature 내부로 이동하고 `core`는 schema/facade 중심으로 축소
+
+## [1.4.0] - 2026-05-21
+
+### Fixed
+
+- `fix(context-promotion)`: `context-promotion-review`가 `HEAD` 커밋만 보고 `no-promotion`으로 수렴하지 않도록 post-commit worktree 상태, 리뷰 루프 학습, 사용자 교정, changeset hygiene 후보를 함께 검토하도록 보강
+
+## [1.3.1] - 2026-05-19
+
+### Added
+
+- `feat(terminology)`: project operating layer에 `docs/agent/terminology.md`와 project-owned `docs/business/terminology.md`를 추가해 agent 운영 용어와 프로젝트/domain 용어 SSOT를 분리
+- `feat(skill)`: `project-terminology-sync` task skill을 추가해 `docs/business/terminology.md` 생성/갱신, `Reserved` → `Active` 승격, docs-status/context-layer 동기화 규칙을 명시
+
+### Changed
+
+- `refactor(spec-lifecycle)`: spec lifecycle 용어 기준을 `docs/specs/baseline/01_glossary.md`에서 `docs/business/terminology.md`로 통합
+
+### Removed
+
+- `refactor(skill)`: `spec-shared-glossary-sync` task skill id와 별도 spec glossary SSOT 계약 제거
+
+## [1.3.0] - 2026-05-19
+
+### Removed
+
+- `refactor(legacy)`: root `.ai-ops-manifest.json`, root `specs/`, preset-first rules scaffolder internals, and unused workspace/settings utilities removed.
+
+## [1.2.0] - 2026-05-19
+
+### Added
+
+- `feat(integration)`: `ai-ops integration list|install|status|uninstall` 상위 명령 추가
+- `feat(integration)`: `context-promotion`과 `pc` integration catalog 및 user/global integration manifest 추가
+- `feat(pc)`: 성공적인 `git commit` 이후 `$pc:done` handoff 누락을 방지하는 `pc` Codex skill과 `PostToolUse` hook runner 추가
+
+### Changed
+
+- `refactor(codex-hook)`: Codex hook 설치/상태/제거 로직을 공통 hook definition 기반으로 정리하고 integration installer에서 재사용
+- `docs(integration)`: 제품 정의를 project operating layer와 user/global runtime integration 구조로 갱신
+
+### Fixed
+
+- `fix(integration)`: integration install이 기존 skill의 `sourceHash`를 비교해 오래된 user/global skill source를 최신 bundled source로 보정
+- `fix(pc)`: active workstream이 현재 `HEAD`를 이미 마지막 확인 commit으로 기록한 경우 `$pc:done` continuation prompt를 중복 요청하지 않도록 처리
+
+## [1.1.1] - 2026-05-18
+
+### Fixed
+
+- `fix(cli)`: `ai-ops --version`이 하드코딩된 `0.1.0` 대신 package version을 출력하도록 수정
+
+## [1.1.0] - 2026-05-18
+
+### Added
+
+- `feat(context-promotion)`: 작업 커밋 직후 Codex `PostToolUse` hook으로 `context-promotion-review` 후속 검토를 요청하는 흐름 추가
+- `feat(codex-hook)`: `ai-ops codex-hook install|status|uninstall context-promotion` 명령 추가 및 설치 시 `context-promotion-review` Codex skill 보장 설치
+- `feat(context-promotion)`: user-local receipt store, `status`, `resolve`, `prune`, `hook post-tool-use` 명령 추가
+
+### Changed
+
+- `refactor(context-promotion)`: commit 차단형 `PreToolUse` gate 대신 작업 커밋과 승격 수정을 분리하는 post-commit review 방식으로 전환
+- `chore(codex-hook)`: 기본 hook command를 repo-local 절대경로 대신 portable `ai-ops context-promotion hook post-tool-use` 형태로 변경
+
+### Fixed
+
+- `fix(context-promotion)`: 실패한 commit output과 성공한 commit subject를 구분해 잘못된 review suppression을 방지
+- `fix(context-promotion)`: hook continuation prompt와 skill 계약을 Project root 안으로 제한하고 웹 검색/다른 repo 탐색을 금지
+
 ## [1.0.3] - 2026-05-18
 
 ### Fixed

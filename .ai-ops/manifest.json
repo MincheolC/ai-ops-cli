@@ -9,43 +9,43 @@
   "managed_files": [
     {
       "path": "AGENTS.md",
-      "sourceHash": "2176ad"
+      "sourceHash": "c2028f"
     },
     {
       "path": "CLAUDE.md",
-      "sourceHash": "2176ad"
+      "sourceHash": "c2028f"
     },
     {
       "path": "docs/agent/checks/impact-checklist.md",
-      "sourceHash": "2176ad"
-    },
-    {
-      "path": "docs/agent/checks/review-checklist.md",
-      "sourceHash": "2176ad"
+      "sourceHash": "c2028f"
     },
     {
       "path": "docs/agent/rules/00-agent-baseline.md",
-      "sourceHash": "2176ad"
+      "sourceHash": "c2028f"
     },
     {
       "path": "docs/agent/rules/doc-update-rules.md",
-      "sourceHash": "2176ad"
+      "sourceHash": "c2028f"
     },
     {
       "path": "docs/agent/rules/routing-rules.md",
-      "sourceHash": "2176ad"
+      "sourceHash": "c2028f"
     },
     {
       "path": "docs/agent/rules/stop-rules.md",
-      "sourceHash": "2176ad"
+      "sourceHash": "c2028f"
+    },
+    {
+      "path": "docs/agent/terminology.md",
+      "sourceHash": "c2028f"
     },
     {
       "path": "docs/agent/workflow.md",
-      "sourceHash": "2176ad"
+      "sourceHash": "c2028f"
     },
     {
       "path": "GEMINI.md",
-      "sourceHash": "2176ad"
+      "sourceHash": "c2028f"
     }
   ],
   "project_files": [
@@ -55,19 +55,34 @@
       "created": true
     },
     {
+      "path": "docs/agent/maps/studio-launcher-architecture.md",
+      "templateHash": "4bc8c8",
+      "created": false
+    },
+    {
+      "path": "docs/agent/project-rules/routing-rules.md",
+      "templateHash": "7292e0",
+      "created": false
+    },
+    {
       "path": "docs/business/business-rules.md",
       "templateHash": "9eddc3",
       "created": true
     },
     {
+      "path": "docs/business/terminology.md",
+      "templateHash": "64117b",
+      "created": true
+    },
+    {
       "path": "docs/docs-status.md",
-      "templateHash": "6105c0",
+      "templateHash": "700a79",
       "created": true
     }
   ],
   "packs": [],
   "settings": {},
-  "sourceHash": "2176ad",
-  "cliVersion": "1.0.1",
-  "generatedAt": "2026-05-18T03:10:52.831Z"
+  "sourceHash": "c2028f",
+  "cliVersion": "1.5.7",
+  "generatedAt": "2026-05-29T07:29:39.393Z"
 }

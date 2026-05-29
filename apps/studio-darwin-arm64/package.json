@@ -1,0 +1,25 @@
+{
+  "name": "ai-ops-studio-darwin-arm64",
+  "version": "1.5.7",
+  "description": "macOS arm64 desktop binary for ai-ops Studio",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MincheolC/ai-ops-cli.git",
+    "directory": "apps/studio-darwin-arm64"
+  },
+  "type": "module",
+  "os": [
+    "darwin"
+  ],
+  "cpu": [
+    "arm64"
+  ],
+  "files": [
+    "bin",
+    "README.md"
+  ],
+  "bin": {
+    "ai-ops-studio": "./bin/ai-ops-studio"
+  }
+}

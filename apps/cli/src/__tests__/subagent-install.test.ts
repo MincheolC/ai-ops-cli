@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { installSubagentPackages, removeSubagentFiles } from '../lib/subagent-install.js';
+import { installSubagentPackages, removeSubagentFiles } from '../features/subagents/install-files.js';
 
 const setup = () => {
   const dir = mkdtempSync(join(tmpdir(), 'subagent-install-test-'));

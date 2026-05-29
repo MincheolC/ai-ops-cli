@@ -15,6 +15,7 @@ update_when:
 - 문서 상태/frontmatter 관리는 모든 Markdown이 아니라 context-layer와 `docs/docs-status.md`에 등록된 operating-layer 문서를 기준으로 한다.
 - `Reserved` 문서를 실제 판단 근거로 승격하려면 frontmatter와 `docs/docs-status.md`를 함께 갱신한다.
 - 오래된 문서는 삭제보다 `Archived` 전환을 우선 검토한다.
+- `docs/agent/project-rules/*.md`를 추가/수정할 때는 기존 `Active` agent rules와의 중복, 충돌 가능성, 적용 우선순위/조건을 함께 검토하고 필요한 경우 문서에 명시한다.
 
 ## 금지
 

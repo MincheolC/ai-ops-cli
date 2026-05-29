@@ -16,6 +16,12 @@ export default defineConfig(
     },
   },
   {
-    ignores: ['**/dist/**', '**/node_modules/**', '**/*.config.*', 'apps/cli/data/skills/**/scripts/**'],
+    ignores: [
+      '**/dist/**',
+      '**/node_modules/**',
+      '**/*.config.*',
+      'apps/cli/data/skills/**/scripts/**',
+      'apps/studio/src-tauri/target/**',
+    ],
   },
 );

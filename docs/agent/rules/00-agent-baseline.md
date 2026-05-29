@@ -1,5 +1,5 @@
 <!-- ai-ops:start -->
-<!-- sourceHash: 2176ad | generatedAt: 2026-05-18T03:10:52.831Z -->
+<!-- sourceHash: c2028f | generatedAt: 2026-05-29T07:29:39.393Z -->
 
 ---
 status: Active
@@ -10,6 +10,7 @@ read_when:
 update_when:
   - baseline_rule_changes
 ---
+
 # Agent Baseline Rules
 
 이 문서는 모든 작업 전에 먼저 적용할 기본 협업 규칙이다. 세부 routing, workflow, stop rule보다 앞서 읽고, 프로젝트별 Active 문서가 더 구체적인 판단 근거를 제공하면 그 문서를 우선한다.
@@ -37,6 +38,17 @@ update_when:
 - 파일 내부 선언은 types, constants, validators/guards, helper functions, main logic/exports 순서로 배치한다.
 - 한 파일에 의미가 다른 그룹이 둘 이상 있으면 `// ----- types -----` 같은 section divider comment로 경계를 표시한다.
 
+## 유지보수/리팩토링 기준
+
+- 줄 수 기준은 hard gate가 아니라 검토 신호로 사용한다. 자동 lint/test 실패 조건을 만들기보다 변경 맥락에서 분리 필요성을 판단한다.
+- touched production file이 250줄을 넘으면 책임 경계, 테스트 위치, helper 추출 가능성을 한 번 확인한다.
+- 새 기능을 400줄 이상 파일에 추가하려면 먼저 feature slice, command shell, pure logic, schema/state I/O로 나눌 수 있는지 검토한다.
+- production TypeScript 파일이 600줄을 넘으면 다음 기능 추가 전에 분리 계획을 우선 세운다.
+- 같은 패턴이 세 번째 등장하면 WET 유지보다 shared helper 또는 feature-local abstraction이 더 명확한지 확인한다.
+- 한 변경이 서로 다른 책임의 section 3곳 이상을 건드리면 파일/폴더 경계를 다시 그릴 시점으로 본다.
+- 공통화는 Rule of Three와 호출 맥락이 함께 맞을 때 진행한다. 우발적으로 비슷한 코드 두 개만 보고 abstraction을 만들지 않는다.
+- 리팩토링은 public CLI command, option, JSON/schema 계약을 보존하는 작은 이동부터 시작하고, behavior assertion은 먼저 유지한다.
+
 ## 네이밍
 
 - directory name은 kebab-case를 사용한다.
@@ -47,6 +59,6 @@ update_when:
 - flow, sequence, state, structure를 설명할 때 긴 bullet list보다 Mermaid diagram을 우선 검토한다.
 - UX/control flow와 decision tree는 `flowchart`, request/response와 service interaction은 `sequenceDiagram`, entity/schema relationship은 `erDiagram`, lifecycle/state transition은 `stateDiagram-v2`를 사용한다.
 - Mermaid diagram은 fenced `mermaid` code block으로 작성한다.
-- plan 문서를 저장할 때는 `YYYYMMDD_<topic>.md` 형식을 사용하고, topic은 kebab-case로 작성한다.
+- plan 문서를 저장할 때는 `YYYYMMDDHH_<topic>.md` 형식을 사용하고, topic은 kebab-case로 작성한다.
 
 <!-- ai-ops:end -->

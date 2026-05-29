@@ -41,7 +41,6 @@ staged 변경과 untracked 파일도 구현 영향에 포함한다.
 - `.ai-ops/context-layer.json`
 - `docs/agent/rules/doc-update-rules.md`
 - `docs/agent/checks/impact-checklist.md`
-- `docs/agent/checks/review-checklist.md`
 
 필요하면 변경 파일과 가까운 README, runbook, spec, API 문서도 읽되, 전체 문서를 기계적으로 훑지 않는다.
 

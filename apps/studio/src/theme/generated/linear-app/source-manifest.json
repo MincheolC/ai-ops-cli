@@ -1,0 +1,17 @@
+{
+  "sourceSlug": "linear.app",
+  "id": "linear-app",
+  "label": "Linear",
+  "command": "npx getdesign@latest add linear.app",
+  "generatedFiles": [
+    {
+      "path": "DESIGN.md",
+      "included": true,
+      "checksum": "sha256:30bd30e72c48a16e4bdbd010f2d1c85fab657c6fae3cc85389399aab10f9cb5f"
+    }
+  ],
+  "importedFiles": [
+    "DESIGN.md"
+  ],
+  "excludedFiles": []
+}

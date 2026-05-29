@@ -1,0 +1,560 @@
+import { describe, expect, it } from 'vitest';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
+import {
+  installProjectLayer,
+  parseProjectLayerDocument,
+  readProjectLayerContextIndex,
+  resolveProjectLayerTools,
+  serializeProjectLayerContextIndex,
+} from '../../features/project-layer/index.js';
+import { writeIntegrationManifest } from '../../features/integrations/manifest-io.js';
+import { writeSkillRegistry } from '../../features/skills/registry-io.js';
+import { writeSubagentManifest } from '../../features/subagents/manifest-io.js';
+import { buildStudioSnapshot, normalizeStudioProjectIssue } from '../../features/studio/snapshot.js';
+import type { StudioProjectIssue } from '../schemas/index.js';
+
+const GENERATED_AT = '2026-05-19T06:00:00.000Z';
+
+const setup = (): { dir: string; userHome: string; codexHome: string; cleanup: () => void } => {
+  const dir = mkdtempSync(join(tmpdir(), 'studio-snapshot-project-'));
+  const userHome = mkdtempSync(join(tmpdir(), 'studio-snapshot-home-'));
+  const codexHome = join(userHome, '.codex');
+  return {
+    dir,
+    userHome,
+    codexHome,
+    cleanup: () => {
+      rmSync(dir, { recursive: true, force: true });
+      rmSync(userHome, { recursive: true, force: true });
+    },
+  };
+};
+
+const buildSnapshotForTest = (params: { dir: string; userHome: string | null; codexHome: string | null }) =>
+  buildStudioSnapshot({
+    basePath: params.dir,
+    userBasePath: params.userHome,
+    codexHomePath: params.codexHome,
+    generatedAt: GENERATED_AT,
+    cliVersion: 'test',
+  });
+
+const listFiles = (root: string): string[] => {
+  if (!existsSync(root)) {
+    return [];
+  }
+
+  const files: string[] = [];
+  const walk = (relativeDir = ''): void => {
+    const absoluteDir = relativeDir.length > 0 ? join(root, relativeDir) : root;
+    for (const entry of readdirSync(absoluteDir, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
+      const relativePath = relativeDir.length > 0 ? join(relativeDir, entry.name) : entry.name;
+      if (entry.isDirectory()) {
+        walk(relativePath);
+        continue;
+      }
+      files.push(relativePath);
+    }
+  };
+
+  walk();
+  return files;
+};
+
+const findIssue = (
+  issues: readonly StudioProjectIssue[],
+  params: { code: string; affectedPath?: string | null },
+): StudioProjectIssue => {
+  const found = issues.find(
+    (issue) =>
+      issue.code === params.code &&
+      (params.affectedPath === undefined || issue.affectedPath === params.affectedPath),
+  );
+  if (found === undefined) {
+    throw new Error(`Expected audit issue not found: ${params.code}`);
+  }
+  return found;
+};
+
+describe('studio snapshot core', () => {
+  it('builds a ready project snapshot from context-layer documents only', () => {
+    const { dir, userHome, codexHome, cleanup } = setup();
+    try {
+      installProjectLayer({ basePath: dir, tools: resolveProjectLayerTools(['codex']) });
+
+      const snapshot = buildSnapshotForTest({ dir, userHome, codexHome });
+      const contextIndex = readProjectLayerContextIndex(dir);
+
+      expect(snapshot.kind).toBe('ai-ops-studio-snapshot');
+      expect(snapshot.project.state).toBe('ready');
+      expect(snapshot.project.documents.map((document) => document.path)).toEqual(
+        contextIndex?.documents.map((document) => document.path),
+      );
+      expect(snapshot.project.documents.map((document) => document.path)).not.toContain('package.json');
+      expect(snapshot.project.audit.hasErrors).toBe(false);
+    } finally {
+      cleanup();
+    }
+  });
+
+  it('reports uninitialized projects without creating .ai-ops', () => {
+    const { dir, userHome, codexHome, cleanup } = setup();
+    try {
+      const before = listFiles(dir);
+      const snapshot = buildSnapshotForTest({ dir, userHome, codexHome });
+      const after = listFiles(dir);
+
+      expect(snapshot.project.state).toBe('uninitialized');
+      expect(snapshot.project.files.manifest.exists).toBe(false);
+      const manifestIssue = findIssue(snapshot.project.audit.issues, {
+        code: 'missing-manifest',
+        affectedPath: '.ai-ops/manifest.json',
+      });
+      expect(manifestIssue).toMatchObject({
+        level: 'error',
+        code: 'missing-manifest',
+        source: 'manifest',
+        suggestedActionLabel: 'Review manifest record',
+      });
+      expect(manifestIssue.message).toContain('.ai-ops/manifest.json');
+      expect(existsSync(join(dir, '.ai-ops'))).toBe(false);
+      expect(after).toEqual(before);
+    } finally {
+      cleanup();
+    }
+  });
+
+  it('adds docs-status audit metadata with the affected document path', () => {
+    const { dir, userHome, codexHome, cleanup } = setup();
+    try {
+      installProjectLayer({ basePath: dir, tools: resolveProjectLayerTools(['codex']) });
+      const docsStatusPath = join(dir, 'docs/docs-status.md');
+      const docsStatus = readFileSync(docsStatusPath, 'utf-8');
+      writeFileSync(
+        docsStatusPath,
+        docsStatus.replace('| AGENTS.md | Active | ai-ops |', '| AGENTS.md | Draft | ai-ops |'),
+        'utf-8',
+      );
+
+      const snapshot = buildSnapshotForTest({ dir, userHome, codexHome });
+      const issue = findIssue(snapshot.project.audit.issues, {
+        code: 'docs-status-mismatch',
+        affectedPath: 'AGENTS.md',
+      });
+
+      expect(issue.source).toBe('docs-status');
+      expect(issue.suggestedActionLabel).toBe('Review docs status');
+      expect(issue).toMatchObject({
+        level: 'error',
+        code: 'docs-status-mismatch',
+      });
+    } finally {
+      cleanup();
+    }
+  });
+
+  it('adds context-layer audit metadata with the affected document path', () => {
+    const { dir, userHome, codexHome, cleanup } = setup();
+    try {
+      installProjectLayer({ basePath: dir, tools: resolveProjectLayerTools(['codex']) });
+      const contextIndex = readProjectLayerContextIndex(dir);
+      if (contextIndex === null) {
+        throw new Error('context index missing in test setup');
+      }
+      writeFileSync(
+        join(dir, '.ai-ops/context-layer.json'),
+        serializeProjectLayerContextIndex({
+          ...contextIndex,
+          documents: contextIndex.documents.map((document) =>
+            document.path === 'AGENTS.md' ? { ...document, owner: 'project' } : document,
+          ),
+        }),
+        'utf-8',
+      );
+
+      const snapshot = buildSnapshotForTest({ dir, userHome, codexHome });
+      const issue = findIssue(snapshot.project.audit.issues, {
+        code: 'context-document-mismatch',
+        affectedPath: 'AGENTS.md',
+      });
+
+      expect(issue.source).toBe('context-layer');
+      expect(issue.suggestedActionLabel).toBe('Review context index');
+      expect(issue.message).toContain('context owner');
+    } finally {
+      cleanup();
+    }
+  });
+
+  it('adds file-system audit metadata for missing files', () => {
+    const { dir, userHome, codexHome, cleanup } = setup();
+    try {
+      installProjectLayer({ basePath: dir, tools: resolveProjectLayerTools(['codex']) });
+      rmSync(join(dir, 'AGENTS.md'));
+
+      const snapshot = buildSnapshotForTest({ dir, userHome, codexHome });
+      const issue = findIssue(snapshot.project.audit.issues, {
+        code: 'missing-file',
+        affectedPath: 'AGENTS.md',
+      });
+
+      expect(issue.source).toBe('file-system');
+      expect(issue.suggestedActionLabel).toBe('Review missing file');
+    } finally {
+      cleanup();
+    }
+  });
+
+  it('adds frontmatter audit metadata for invalid documents', () => {
+    const { dir, userHome, codexHome, cleanup } = setup();
+    try {
+      installProjectLayer({ basePath: dir, tools: resolveProjectLayerTools(['codex']) });
+      writeFileSync(join(dir, 'AGENTS.md'), '# Broken document\n', 'utf-8');
+
+      const snapshot = buildSnapshotForTest({ dir, userHome, codexHome });
+      const issue = findIssue(snapshot.project.audit.issues, {
+        code: 'invalid-frontmatter',
+        affectedPath: 'AGENTS.md',
+      });
+
+      expect(issue.source).toBe('frontmatter');
+      expect(issue.suggestedActionLabel).toBe('Review frontmatter');
+    } finally {
+      cleanup();
+    }
+  });
+
+  it('adds frontmatter audit metadata for invalid project-owned agent rules', () => {
+    const { dir, userHome, codexHome, cleanup } = setup();
+    const customPath = 'docs/agent/project-rules/wrong-owner.md';
+
+    try {
+      installProjectLayer({ basePath: dir, tools: resolveProjectLayerTools(['codex']) });
+      mkdirSync(join(dir, 'docs/agent/project-rules'), { recursive: true });
+      writeFileSync(
+        join(dir, customPath),
+        `---
+status: Active
+layer: agent
+owner: ai-ops
+read_when:
+  - codex_work
+update_when:
+  - project_rule_changes
+---
+# Wrong Owner
+`,
+        'utf-8',
+      );
+
+      const snapshot = buildSnapshotForTest({ dir, userHome, codexHome });
+      const issue = findIssue(snapshot.project.audit.issues, {
+        code: 'invalid-custom-project-rule',
+        affectedPath: customPath,
+      });
+
+      expect(issue.source).toBe('frontmatter');
+      expect(issue.suggestedActionLabel).toBe('Review frontmatter');
+    } finally {
+      cleanup();
+    }
+  });
+
+  it('adds manifest audit metadata for project-owned agent rule discovery drift', () => {
+    const { dir, userHome, codexHome, cleanup } = setup();
+    const customPath = 'docs/agent/project-rules/routing-rules.md';
+
+    try {
+      installProjectLayer({ basePath: dir, tools: resolveProjectLayerTools(['codex']) });
+      mkdirSync(join(dir, 'docs/agent/project-rules'), { recursive: true });
+      writeFileSync(
+        join(dir, customPath),
+        `---
+status: Active
+layer: agent
+owner: project
+read_when:
+  - codex_work
+update_when:
+  - project_rule_changes
+---
+# Routing Rules
+`,
+        'utf-8',
+      );
+
+      const snapshot = buildSnapshotForTest({ dir, userHome, codexHome });
+      const issue = findIssue(snapshot.project.audit.issues, {
+        code: 'custom-project-rules-drift',
+      });
+
+      expect(issue.source).toBe('manifest');
+      expect(issue.suggestedActionLabel).toBe('Review manifest record');
+    } finally {
+      cleanup();
+    }
+  });
+
+  it('normalizes unknown audit issue codes without crashing', () => {
+    expect(
+      normalizeStudioProjectIssue({
+        level: 'warning',
+        code: 'custom-audit-code',
+        message: 'custom warning',
+      }),
+    ).toEqual({
+      level: 'warning',
+      code: 'custom-audit-code',
+      message: 'custom warning',
+      source: 'unknown',
+      affectedPath: null,
+      suggestedActionLabel: null,
+    });
+  });
+
+  it('keeps snapshot generation alive for invalid project sources', () => {
+    const { dir, userHome, codexHome, cleanup } = setup();
+    try {
+      installProjectLayer({ basePath: dir, tools: resolveProjectLayerTools(['codex']) });
+      writeFileSync(join(dir, '.ai-ops/manifest.json'), '{broken', 'utf-8');
+      writeFileSync(join(dir, '.ai-ops/context-layer.json'), '{"schemaVersion":1}\n', 'utf-8');
+      writeFileSync(join(dir, 'docs/docs-status.md'), '# Missing frontmatter\n', 'utf-8');
+
+      const snapshot = buildSnapshotForTest({ dir, userHome, codexHome });
+
+      expect(snapshot.project.state).toBe('degraded');
+      expect(snapshot.project.files.manifest.parsed).toBe(false);
+      expect(snapshot.project.files.contextIndex.parsed).toBe(false);
+      expect(snapshot.project.files.docsStatus.parsed).toBe(false);
+      expect(snapshot.project.documents).toEqual([]);
+      expect(snapshot.project.audit.issues.length).toBeGreaterThan(0);
+    } finally {
+      cleanup();
+    }
+  });
+
+  it('keeps valid context documents when another context document has an unsafe path', () => {
+    const { dir, userHome, codexHome, cleanup } = setup();
+    try {
+      installProjectLayer({ basePath: dir, tools: resolveProjectLayerTools(['codex']) });
+      const contextIndex = readProjectLayerContextIndex(dir);
+      const firstDocument = contextIndex?.documents[0];
+      const secondDocument = contextIndex?.documents[1];
+      if (contextIndex === null || firstDocument === undefined || secondDocument === undefined) {
+        throw new Error('context index missing documents in test setup');
+      }
+      writeFileSync(
+        join(dir, '.ai-ops/context-layer.json'),
+        JSON.stringify(
+          {
+            ...contextIndex,
+            documents: [
+              firstDocument,
+              {
+                ...secondDocument,
+                path: '../outside.md',
+              },
+            ],
+          },
+          null,
+          2,
+        ) + '\n',
+        'utf-8',
+      );
+
+      const snapshot = buildSnapshotForTest({ dir, userHome, codexHome });
+      const unsafeDocument = snapshot.project.documents.find((document) => document.path === '../outside.md');
+
+      expect(snapshot.project.state).toBe('degraded');
+      expect(snapshot.project.files.contextIndex.parsed).toBe(false);
+      expect(snapshot.project.documents.find((document) => document.path === firstDocument.path)?.readError).toBeNull();
+      expect(unsafeDocument?.readError).toContain('unsafe-path');
+      expect(snapshot.project.documents).toHaveLength(2);
+    } finally {
+      cleanup();
+    }
+  });
+
+  it('marks context-layer-only documents without treating manifest as a fallback source', () => {
+    const { dir, userHome, codexHome, cleanup } = setup();
+    try {
+      installProjectLayer({ basePath: dir, tools: resolveProjectLayerTools(['codex']) });
+      const extraPath = 'docs/agent/extra-context.md';
+      const extraContent = [
+        '---',
+        'status: Active',
+        'layer: agent',
+        'owner: project',
+        'read_when:',
+        '  - before_task',
+        'update_when:',
+        '  - extra_context_changes',
+        '---',
+        '# Extra Context',
+        '',
+      ].join('\n');
+      mkdirSync(join(dir, 'docs/agent'), { recursive: true });
+      writeFileSync(join(dir, extraPath), extraContent, 'utf-8');
+
+      const contextIndex = readProjectLayerContextIndex(dir);
+      if (contextIndex === null) {
+        throw new Error('context index missing in test setup');
+      }
+      const { content: _content, ...extraDocument } = parseProjectLayerDocument(extraPath, extraContent);
+      writeFileSync(
+        join(dir, '.ai-ops/context-layer.json'),
+        serializeProjectLayerContextIndex({
+          ...contextIndex,
+          documents: [...contextIndex.documents, extraDocument],
+        }),
+        'utf-8',
+      );
+
+      const snapshot = buildSnapshotForTest({ dir, userHome, codexHome });
+      const extra = snapshot.project.documents.find((document) => document.path === extraPath);
+
+      expect(extra?.provenance).toBe('context-only');
+      expect(snapshot.project.audit.issues.some((issue) => issue.code === 'context-extra-document')).toBe(true);
+    } finally {
+      cleanup();
+    }
+  });
+
+  it('adds trust warnings for Reserved documents', () => {
+    const { dir, userHome, codexHome, cleanup } = setup();
+    try {
+      installProjectLayer({ basePath: dir, tools: resolveProjectLayerTools(['codex']) });
+
+      const snapshot = buildSnapshotForTest({ dir, userHome, codexHome });
+      const reserved = snapshot.project.documents.find((document) => document.status === 'Reserved');
+
+      expect(reserved?.trustWarning).toContain('not current decision-making evidence');
+    } finally {
+      cleanup();
+    }
+  });
+
+  it('shows runtime catalogs as not installed when manifests are absent', () => {
+    const { dir, userHome, codexHome, cleanup } = setup();
+    try {
+      installProjectLayer({ basePath: dir, tools: resolveProjectLayerTools(['codex']) });
+
+      const snapshot = buildSnapshotForTest({ dir, userHome, codexHome });
+
+      expect(snapshot.runtime.available).toBe(true);
+      expect(snapshot.runtime.integrations.map((integration) => integration.id)).toEqual(['context-promotion', 'pc']);
+      expect(snapshot.runtime.integrations.every((integration) => integration.installed === false)).toBe(true);
+      expect(snapshot.runtime.skills.length).toBeGreaterThan(0);
+      expect(snapshot.runtime.skills.every((skill) => skill.installed === false)).toBe(true);
+      expect(snapshot.runtime.subagents.length).toBeGreaterThan(0);
+      expect(snapshot.runtime.subagents.every((subagent) => subagent.installed === false)).toBe(true);
+    } finally {
+      cleanup();
+    }
+  });
+
+  it('combines installed runtime manifests and path existence without mutating files', () => {
+    const { dir, userHome, codexHome, cleanup } = setup();
+    try {
+      installProjectLayer({ basePath: dir, tools: resolveProjectLayerTools(['codex']) });
+      mkdirSync(join(userHome, '.agents/skills/skill-load-check'), { recursive: true });
+      writeFileSync(join(userHome, '.agents/skills/skill-load-check/SKILL.md'), '# skill\n', 'utf-8');
+      mkdirSync(join(userHome, '.codex/agents'), { recursive: true });
+      writeFileSync(join(userHome, '.codex/agents/security-gate.toml'), 'name = "security-gate"\n', 'utf-8');
+      writeSkillRegistry(join(userHome, '.ai-ops/skills-manifest.json'), {
+        skills: [
+          {
+            id: 'skill-load-check',
+            kind: 'task',
+            tools: ['codex'],
+            installed_paths: ['.agents/skills/skill-load-check/SKILL.md'],
+            sourceHash: 'aaaaaa',
+          },
+        ],
+        cliVersion: 'test',
+        generatedAt: GENERATED_AT,
+      });
+      writeSubagentManifest(join(userHome, '.ai-ops/subagents-manifest.json'), {
+        subagents: [
+          {
+            id: 'security-gate',
+            tools: ['codex'],
+            installed_paths: ['.codex/agents/security-gate.toml'],
+            sourceHash: 'bbbbbb',
+          },
+        ],
+        cliVersion: 'test',
+        generatedAt: GENERATED_AT,
+      });
+      writeIntegrationManifest(join(userHome, '.ai-ops/integrations-manifest.json'), {
+        schemaVersion: 1,
+        kind: 'ai-ops-integrations-manifest',
+        integrations: [
+          {
+            id: 'context-promotion',
+            installedAt: GENERATED_AT,
+            updatedAt: GENERATED_AT,
+            components: [
+              {
+                type: 'skill',
+                id: 'context-promotion-review',
+                tools: ['codex'],
+                owned: true,
+              },
+              {
+                type: 'codex-hook',
+                id: 'context-promotion',
+                command: 'ai-ops context-promotion hook post-tool-use',
+                owned: true,
+              },
+              {
+                type: 'receipt-config',
+                id: 'context-promotion-receipts',
+                storagePath: '.ai-ops/context-promotion/projects/demo/receipts-index.json',
+                owned: true,
+              },
+            ],
+          },
+        ],
+        cliVersion: 'test',
+        generatedAt: GENERATED_AT,
+      });
+      const beforeProject = listFiles(dir);
+      const beforeRuntime = listFiles(userHome);
+
+      const snapshot = buildSnapshotForTest({ dir, userHome, codexHome });
+
+      expect(snapshot.runtime.skills.find((skill) => skill.id === 'skill-load-check')?.installedPaths[0]?.exists).toBe(
+        true,
+      );
+      expect(snapshot.runtime.subagents.find((subagent) => subagent.id === 'security-gate')?.installedPaths[0]?.exists).toBe(
+        true,
+      );
+      expect(snapshot.runtime.integrations.find((integration) => integration.id === 'context-promotion')?.installed).toBe(
+        true,
+      );
+      expect(listFiles(dir)).toEqual(beforeProject);
+      expect(listFiles(userHome)).toEqual(beforeRuntime);
+    } finally {
+      cleanup();
+    }
+  });
+
+  it('marks runtime unavailable without failing when home paths are missing', () => {
+    const { dir, cleanup } = setup();
+    try {
+      installProjectLayer({ basePath: dir, tools: resolveProjectLayerTools(['codex']) });
+
+      const snapshot = buildSnapshotForTest({ dir, userHome: null, codexHome: null });
+
+      expect(snapshot.runtime.available).toBe(false);
+      expect(snapshot.runtime.unavailableReason).toContain('AI_OPS_HOME or HOME');
+      expect(snapshot.runtime.integrations.length).toBeGreaterThan(0);
+      expect(snapshot.runtime.hooks.every((hook) => hook.error !== null)).toBe(true);
+    } finally {
+      cleanup();
+    }
+  });
+});

@@ -16,9 +16,11 @@ update_when:
 1. `AGENTS.md`
 2. `docs/agent/rules/00-agent-baseline.md`
 3. `docs/agent/workflow.md`
-4. 나머지 `docs/agent/rules/*.md`
-5. 작업 성격에 맞는 `docs/agent/checks/*.md`
-6. `docs/docs-status.md`
+4. `docs/agent/terminology.md`
+5. 나머지 `docs/agent/rules/*.md`
+6. 프로젝트가 보강한 `docs/agent/project-rules/*.md`
+7. 변경 영향 확인이 필요하면 `docs/agent/checks/impact-checklist.md`
+8. `docs/docs-status.md`
 
 ## 문서 신뢰도
 

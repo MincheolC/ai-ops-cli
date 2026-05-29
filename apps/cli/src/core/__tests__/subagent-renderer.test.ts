@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildSubagentInstallPlan } from '../subagent-renderer.js';
+import { buildSubagentInstallPlan } from '../../features/subagents/renderer.js';
 import type { Subagent } from '../schemas/index.js';
 
 const makeSubagent = (partial?: Partial<Subagent>): Subagent => ({

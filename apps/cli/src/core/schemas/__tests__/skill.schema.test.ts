@@ -12,7 +12,6 @@ const validSkillCatalogEntry = {
   kind: 'reference' as const,
   supported_tools: ['claude-code', 'codex', 'gemini'],
   groups: ['frontend-web', 'backend-ts'],
-  included_in_presets: ['frontend-web', 'backend-ts'],
   source_path: 'reference-skills/graphql-contract',
 };
 

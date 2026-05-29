@@ -1,5 +1,5 @@
 <!-- ai-ops:start -->
-<!-- sourceHash: 2176ad | generatedAt: 2026-05-18T03:10:52.831Z -->
+<!-- sourceHash: c2028f | generatedAt: 2026-05-29T07:29:39.393Z -->
 
 ---
 status: Active
@@ -22,6 +22,7 @@ update_when:
 ## 범위
 
 - project scope: `AGENTS.md`, `GEMINI.md`, `CLAUDE.md`, `docs/agent/*`, `docs/business/*`, `docs/docs-status.md`, `.ai-ops/*`
-- global scope: skills, subagents, tool-specific reusable assets
+- integration scope: user/global runtime integrations and their components
+- component scope: skills, subagents, Codex hooks, hook runners, user-local receipts/config
 
 <!-- ai-ops:end -->
