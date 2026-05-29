@@ -5,6 +5,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.5.7] - 2026-05-29
+
+### Fixed
+
+- `fix(project-layer)`: `update --force` now preserves valid non-template project-owned documents already registered in the manifest so `docs-status` and `context-layer` rows are not dropped.
+
 ## [1.5.6] - 2026-05-28
 
 ### Added
