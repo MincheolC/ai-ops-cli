@@ -23,7 +23,7 @@ npm run build
 npm version "$BUMP" --no-git-tag-version --workspace=apps/cli
 
 NEW_VERSION=$(node -p "require('./apps/cli/package.json').version")
-npm version "$NEW_VERSION" --no-git-tag-version --workspace=apps/studio-darwin-arm64 --allow-same-version
+npm version "$NEW_VERSION" --no-git-tag-version --prefix apps/studio-darwin-arm64 --allow-same-version
 npm pkg set "optionalDependencies.ai-ops-studio-darwin-arm64=$NEW_VERSION" --workspace=apps/cli
 npm install --package-lock-only --ignore-scripts
 echo "▶ Bumped to v$NEW_VERSION"
@@ -43,7 +43,7 @@ git tag "v$NEW_VERSION"
 
 # ── 5. publish platform package, then cli ─────────────────────────────────────
 echo "▶ Publishing ai-ops-studio-darwin-arm64@$NEW_VERSION..."
-npm publish --workspace=apps/studio-darwin-arm64
+npm publish apps/studio-darwin-arm64
 
 echo "▶ Publishing ai-ops-cli@$NEW_VERSION..."
 npm publish --workspace=apps/cli
