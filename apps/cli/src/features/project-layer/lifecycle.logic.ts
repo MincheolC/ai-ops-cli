@@ -5,6 +5,8 @@ import { ProjectLayerManifestSchema } from "@/core/schemas/index.js";
 import type { ProjectLayerManifest, ProjectLayerPackRecord, ProjectLayerProjectFile, ProjectLayerTool } from "@/core/schemas/index.js";
 import { hasAiOpsSection, hasLegacyHeader, replaceAiOpsSection, stripAiOpsSection, wrapWithSection } from "./managed-header.js";
 import { computeProjectLayerSourceHash, loadProjectLayerTemplateSpecs } from "./templates.js";
+import { parseProjectLayerDocument } from "./document.logic.js";
+import { isCustomProjectRulePath } from "./custom-project-rules.js";
 import { resolveProjectLayerFilePath } from "./path.util.js";
 import { readProjectLayerManifest, refreshProjectLayerDerivedState, writeProjectLayerManifest } from "./state-io.js";
 import { removeManagedProjectFile } from "./uninstall.logic.js";
@@ -102,6 +104,31 @@ const installProjectFiles = (params: {
       templateHash: previous?.templateHash ?? spec.contentHash,
       created: previous?.created ?? false,
     });
+  }
+
+  const recordPaths = new Set(records.map((record) => record.path));
+  for (const previous of params.previousProjectFiles ?? []) {
+    if (recordPaths.has(previous.path) || isCustomProjectRulePath(previous.path)) {
+      continue;
+    }
+
+    const absolutePath = resolveProjectLayerFilePath(params.basePath, previous.path);
+    if (!existsSync(absolutePath)) {
+      continue;
+    }
+
+    const document = parseProjectLayerDocument(previous.path, readFileSync(absolutePath, 'utf-8'));
+    if (document.owner !== 'project') {
+      continue;
+    }
+
+    preserved.push(previous.path);
+    records.push({
+      path: previous.path,
+      templateHash: previous.created ? previous.templateHash : document.contentHash,
+      created: previous.created,
+    });
+    recordPaths.add(previous.path);
   }
 
   return { records, created, refreshed, preserved };

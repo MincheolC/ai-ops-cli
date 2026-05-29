@@ -169,6 +169,64 @@ describe('project operating layer lifecycle', () => {
     }
   });
 
+  it('updates while preserving registered non-template project-owned documents', () => {
+    const { dir, cleanup } = setup();
+    const architecturePath = 'docs/agent/maps/studio-launcher-architecture.md';
+    const architectureContent = `---
+status: Active
+layer: agent
+owner: project
+read_when:
+  - studio_architecture
+update_when:
+  - studio_launcher_changes
+---
+# Studio Launcher Architecture
+
+Studio launcher build and runtime flow.
+`;
+
+    try {
+      const installed = installProjectLayer({ basePath: dir, tools: resolveProjectLayerTools(['codex']) });
+      mkdirSync(dirname(join(dir, architecturePath)), { recursive: true });
+      writeFileSync(join(dir, architecturePath), architectureContent, 'utf-8');
+
+      const previousManifest: ProjectLayerManifest = {
+        ...installed.manifest,
+        project_files: [
+          ...installed.manifest.project_files,
+          {
+            path: architecturePath,
+            templateHash: 'aaaaaa',
+            created: false,
+          },
+        ],
+      };
+
+      const updated = updateProjectLayer({ basePath: dir, manifest: previousManifest });
+      const architectureRecord = updated.manifest.project_files.find((file) => file.path === architecturePath);
+      const contextDocument = readProjectLayerContextIndex(dir)?.documents.find((document) => document.path === architecturePath);
+
+      expect(architectureRecord).toMatchObject({
+        path: architecturePath,
+        created: false,
+      });
+      expect(architectureRecord?.templateHash).not.toBe('aaaaaa');
+      expect(readProjectFile(dir, 'docs/docs-status.md')).toContain(
+        '| docs/agent/maps/studio-launcher-architecture.md | Active | project |',
+      );
+      expect(contextDocument).toMatchObject({
+        path: architecturePath,
+        status: 'Active',
+        owner: 'project',
+      });
+      expect(readProjectFile(dir, architecturePath)).toContain('Studio launcher build and runtime flow.');
+      expect(auditProjectLayer(dir).issues).toHaveLength(0);
+    } finally {
+      cleanup();
+    }
+  });
+
   it('discovers project-owned agent rules and preserves them on update', () => {
     const { dir, cleanup } = setup();
     const customPath = 'docs/agent/project-rules/routing-rules.md';

@@ -61,7 +61,9 @@ export type DocsStatusTableBounds = {
 };
 
 export type ManagedInstallResult = {
+  // Paths where the ai-ops managed section is the standalone effective file content.
   written: string[];
+  // Paths where user content remains outside the ai-ops managed section.
   appended: string[];
 };
 
