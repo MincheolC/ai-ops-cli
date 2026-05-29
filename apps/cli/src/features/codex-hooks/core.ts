@@ -7,21 +7,33 @@ export type CodexHookInstallResult = {
   hooksPath: string;
   installed: boolean;
   changed: boolean;
+  command: string;
+  commandWindows: string | null;
+  workflows: CodexHookWorkflow[];
 };
 
 export type CodexHookStatusResult = {
   hooksPath: string;
   installed: boolean;
+  trustReviewHint: string | null;
 };
 
 export type CodexHookUninstallResult = {
   hooksPath: string;
   removed: boolean;
   changed: boolean;
+  workflows: CodexHookWorkflow[];
+};
+
+export type CodexHookWorkflow = 'context-promotion' | 'pc';
+
+export type CodexHookCommandConfig = {
+  command: string;
+  commandWindows?: string;
 };
 
 export type CodexHookDefinition = {
-  id: string;
+  id: CodexHookWorkflow;
   commandMarker: string;
   legacyCommandMarkers: readonly string[];
   defaultCommand: string;
@@ -41,9 +53,15 @@ export const PC_HOOK_ID = 'pc';
 export const PC_HOOK_COMMAND_MARKER = 'integration hook post-tool-use pc';
 export const PC_DEFAULT_HOOK_COMMAND = `ai-ops ${PC_HOOK_COMMAND_MARKER}`;
 
+export const SHARED_POST_TOOL_USE_HOOK_COMMAND_MARKER = 'integration hook post-tool-use';
+export const SHARED_POST_TOOL_USE_DEFAULT_HOOK_COMMAND = `ai-ops ${SHARED_POST_TOOL_USE_HOOK_COMMAND_MARKER}`;
+export const CODEX_HOOK_TRUST_REVIEW_HINT =
+  'configured; review and trust this non-managed hook with /hooks in Codex before it will run';
+
 const PRE_TOOL_USE_EVENT = 'PreToolUse';
 const POST_TOOL_USE_EVENT = 'PostToolUse';
 const BASH_MATCHER = '^Bash$';
+const SHARED_POST_TOOL_USE_STATUS_MESSAGE = 'Checking ai-ops post-commit workflows';
 
 export const CONTEXT_PROMOTION_CODEX_HOOK: CodexHookDefinition = {
   id: CONTEXT_PROMOTION_HOOK_ID,
@@ -60,6 +78,9 @@ export const PC_CODEX_HOOK: CodexHookDefinition = {
   defaultCommand: PC_DEFAULT_HOOK_COMMAND,
   statusMessage: 'Checking pc handoff',
 } as const;
+
+export const CODEX_HOOK_WORKFLOW_ORDER = [CONTEXT_PROMOTION_HOOK_ID, PC_HOOK_ID] as const;
+const CODEX_HOOK_DEFINITIONS = [CONTEXT_PROMOTION_CODEX_HOOK, PC_CODEX_HOOK] as const;
 
 // ----- JSON helpers -----
 
@@ -98,60 +119,135 @@ const getArray = (record: JsonRecord, key: string): unknown[] => {
   return Array.isArray(existing) ? existing : [];
 };
 
+const cloneJsonRecord = (record: JsonRecord): JsonRecord => JSON.parse(JSON.stringify(record)) as JsonRecord;
+
+const recordsMatch = (left: JsonRecord, right: JsonRecord): boolean => JSON.stringify(left) === JSON.stringify(right);
+
+const isCodexHookWorkflow = (value: string): value is CodexHookWorkflow =>
+  CODEX_HOOK_WORKFLOW_ORDER.includes(value as CodexHookWorkflow);
+
+const normalizeWorkflows = (workflows: readonly string[]): CodexHookWorkflow[] => {
+  const requested = new Set(workflows.filter(isCodexHookWorkflow));
+  return CODEX_HOOK_WORKFLOW_ORDER.filter((workflow) => requested.has(workflow));
+};
+
+const serializeWorkflows = (workflows: readonly CodexHookWorkflow[]): string => normalizeWorkflows(workflows).join(',');
+
+const parseWorkflowList = (raw: string): CodexHookWorkflow[] =>
+  normalizeWorkflows(
+    raw
+      .split(',')
+      .map((workflow) => workflow.trim())
+      .filter((workflow) => workflow.length > 0),
+  );
+
+const parseWorkflowsFromCommand = (command: string): CodexHookWorkflow[] => {
+  const equalsMatch = /(?:^|\s)--workflows=([^\s]+)/.exec(command);
+  if (equalsMatch) {
+    return parseWorkflowList(equalsMatch[1]);
+  }
+
+  const valueMatch = /(?:^|\s)--workflows\s+([^\s]+)/.exec(command);
+  if (valueMatch) {
+    return parseWorkflowList(valueMatch[1]);
+  }
+
+  return normalizeWorkflows(
+    CODEX_HOOK_DEFINITIONS.filter((definition) =>
+      [definition.commandMarker, ...definition.legacyCommandMarkers].some((marker) => command.includes(marker)),
+    ).map((definition) => definition.id),
+  );
+};
+
+const handlerCommand = (handler: unknown): string | null =>
+  isJsonRecord(handler) && typeof handler.command === 'string' ? handler.command : null;
+
+const handlerCommandWindows = (handler: unknown): string | null =>
+  isJsonRecord(handler) && typeof handler.commandWindows === 'string' ? handler.commandWindows : null;
+
+const handlerWorkflows = (handler: unknown): CodexHookWorkflow[] => {
+  const command = handlerCommand(handler);
+  if (!command) {
+    return [];
+  }
+  return parseWorkflowsFromCommand(command);
+};
+
+const commandHasWorkflowSelector = (command: string): boolean => /(?:^|\s)--workflows(?:=|\s+)/.test(command);
+
+const handlerMatchesSharedAiOpsHook = (handler: unknown): boolean =>
+  handlerCommand(handler)?.includes(SHARED_POST_TOOL_USE_HOOK_COMMAND_MARKER) === true &&
+  commandHasWorkflowSelector(handlerCommand(handler) ?? '');
+
 const handlerMatchesDefinition =
   (definition: CodexHookDefinition) =>
   (handler: unknown): boolean =>
-    isJsonRecord(handler) &&
-    typeof handler.command === 'string' &&
-    [definition.commandMarker, ...definition.legacyCommandMarkers].some((marker) => handler.command.includes(marker));
+    handlerWorkflows(handler).includes(definition.id);
 
-const handlerMatchesCommand = (handler: unknown, command: string): boolean =>
-  isJsonRecord(handler) && handler.command === command;
+const handlerMatchesAnyAiOpsHook = (handler: unknown): boolean =>
+  handlerMatchesSharedAiOpsHook(handler) ||
+  CODEX_HOOK_DEFINITIONS.some((definition) => handlerMatchesDefinition(definition)(handler));
 
 const groupHasDefinitionHook =
   (definition: CodexHookDefinition) =>
   (group: unknown): boolean =>
     isJsonRecord(group) && getArray(group, 'hooks').some(handlerMatchesDefinition(definition));
 
-const groupHasCurrentDefinitionHook = (group: unknown, command: string): boolean =>
-  isJsonRecord(group) && getArray(group, 'hooks').some((handler) => handlerMatchesCommand(handler, command));
-
-const countDefinitionHandlers = (groups: readonly unknown[], definition: CodexHookDefinition): number =>
-  groups.reduce((count, group) => {
-    if (!isJsonRecord(group)) {
-      return count;
-    }
-    return count + getArray(group, 'hooks').filter(handlerMatchesDefinition(definition)).length;
-  }, 0);
-
 const configHasDefinitionHook = (config: JsonRecord, definition: CodexHookDefinition): boolean => {
   const hooks = config.hooks;
   if (!isJsonRecord(hooks)) {
     return false;
   }
-  return getArray(hooks, POST_TOOL_USE_EVENT).some(groupHasDefinitionHook(definition));
+  return [PRE_TOOL_USE_EVENT, POST_TOOL_USE_EVENT].some((eventName) =>
+    getArray(hooks, eventName).some(groupHasDefinitionHook(definition)),
+  );
 };
 
-const configHasOnlyCurrentDefinitionHook = (
-  config: JsonRecord,
-  definition: CodexHookDefinition,
-  command: string,
-): boolean => {
+const collectConfiguredWorkflows = (config: JsonRecord): CodexHookWorkflow[] => {
   const hooks = config.hooks;
   if (!isJsonRecord(hooks)) {
-    return false;
+    return [];
   }
-  const hasLegacy = getArray(hooks, PRE_TOOL_USE_EVENT).some(groupHasDefinitionHook(definition));
-  const postGroups = getArray(hooks, POST_TOOL_USE_EVENT);
-  const hasCurrent = postGroups.some((group) => groupHasCurrentDefinitionHook(group, command));
-  return hasCurrent && !hasLegacy && countDefinitionHandlers(postGroups, definition) === 1;
+
+  const workflows: CodexHookWorkflow[] = [];
+  for (const eventName of [PRE_TOOL_USE_EVENT, POST_TOOL_USE_EVENT]) {
+    for (const group of getArray(hooks, eventName)) {
+      if (!isJsonRecord(group)) {
+        continue;
+      }
+      for (const handler of getArray(group, 'hooks')) {
+        workflows.push(...handlerWorkflows(handler));
+      }
+    }
+  }
+
+  return normalizeWorkflows(workflows);
 };
 
-const removeDefinitionHooksFromEvent = (
-  hooks: JsonRecord,
-  eventName: string,
-  definition: CodexHookDefinition,
-): boolean => {
+const findSharedHookCommandConfig = (config: JsonRecord): CodexHookCommandConfig | null => {
+  const hooks = config.hooks;
+  if (!isJsonRecord(hooks)) {
+    return null;
+  }
+
+  for (const group of getArray(hooks, POST_TOOL_USE_EVENT)) {
+    if (!isJsonRecord(group)) {
+      continue;
+    }
+    for (const handler of getArray(group, 'hooks')) {
+      const command = handlerCommand(handler);
+      if (!command?.includes(SHARED_POST_TOOL_USE_HOOK_COMMAND_MARKER) || !commandHasWorkflowSelector(command)) {
+        continue;
+      }
+      const commandWindows = handlerCommandWindows(handler);
+      return commandWindows ? { command, commandWindows } : { command };
+    }
+  }
+
+  return null;
+};
+
+const removeAiOpsHooksFromEvent = (hooks: JsonRecord, eventName: string): boolean => {
   const previousGroups = getArray(hooks, eventName);
   let removed = false;
   const nextGroups = previousGroups
@@ -161,7 +257,7 @@ const removeDefinitionHooksFromEvent = (
       }
       const previousHandlers = getArray(group, 'hooks');
       const nextHandlers = previousHandlers.filter((handler) => {
-        const matches = handlerMatchesDefinition(definition)(handler);
+        const matches = handlerMatchesAnyAiOpsHook(handler);
         if (matches) {
           removed = true;
         }
@@ -189,6 +285,102 @@ const removeDefinitionHooksFromEvent = (
   return true;
 };
 
+const replaceOrAppendWorkflows = (command: string, workflows: readonly CodexHookWorkflow[]): string => {
+  const serialized = serializeWorkflows(workflows);
+  if (/(^|\s)--workflows=([^\s]+)/.test(command)) {
+    return command.replace(/(^|\s)--workflows=([^\s]+)/, `$1--workflows=${serialized}`);
+  }
+  if (/(^|\s)--workflows\s+([^\s]+)/.test(command)) {
+    return command.replace(/(^|\s)--workflows\s+([^\s]+)/, `$1--workflows ${serialized}`);
+  }
+  return `${command} --workflows ${serialized}`;
+};
+
+const buildSharedHookCommand = (params: {
+  definition: CodexHookDefinition;
+  overrideCommand?: string;
+  workflows: readonly CodexHookWorkflow[];
+}): string => {
+  const command = params.overrideCommand?.trim() ?? SHARED_POST_TOOL_USE_DEFAULT_HOOK_COMMAND;
+  if (!command.includes(SHARED_POST_TOOL_USE_HOOK_COMMAND_MARKER)) {
+    throw new Error(`${params.definition.id} hook command must include: ${SHARED_POST_TOOL_USE_HOOK_COMMAND_MARKER}`);
+  }
+  return replaceOrAppendWorkflows(command, params.workflows);
+};
+
+const buildSharedHookCommandConfig = (params: {
+  definition: CodexHookDefinition;
+  overrideCommand?: string;
+  overrideCommandWindows?: string;
+  workflows: readonly CodexHookWorkflow[];
+}): CodexHookCommandConfig => {
+  const command = buildSharedHookCommand({
+    definition: params.definition,
+    overrideCommand: params.overrideCommand,
+    workflows: params.workflows,
+  });
+  const commandWindows = params.overrideCommandWindows?.trim();
+  if (!commandWindows) {
+    return { command };
+  }
+  return {
+    command,
+    commandWindows: buildSharedHookCommand({
+      definition: params.definition,
+      overrideCommand: commandWindows,
+      workflows: params.workflows,
+    }),
+  };
+};
+
+const appendSharedHookGroup = (hooks: JsonRecord, commandConfig: CodexHookCommandConfig): void => {
+  const existingGroups = getArray(hooks, POST_TOOL_USE_EVENT);
+  const handler: JsonRecord = {
+    type: 'command',
+    command: commandConfig.command,
+    timeout: 30,
+    statusMessage: SHARED_POST_TOOL_USE_STATUS_MESSAGE,
+  };
+  if (commandConfig.commandWindows) {
+    handler.commandWindows = commandConfig.commandWindows;
+  }
+
+  hooks[POST_TOOL_USE_EVENT] = [
+    ...existingGroups,
+    {
+      matcher: BASH_MATCHER,
+      hooks: [handler],
+    },
+  ];
+};
+
+const buildConfigWithSharedAiOpsHook = (params: {
+  config: JsonRecord;
+  workflows: readonly CodexHookWorkflow[];
+  commandConfig?: CodexHookCommandConfig;
+}): JsonRecord => {
+  const nextConfig = cloneJsonRecord(params.config);
+  const existingHooks = nextConfig.hooks;
+
+  const workflows = normalizeWorkflows(params.workflows);
+  if (!isJsonRecord(existingHooks) && workflows.length === 0) {
+    return nextConfig;
+  }
+
+  const hooks = getOrCreateRecord(nextConfig, 'hooks');
+  removeAiOpsHooksFromEvent(hooks, PRE_TOOL_USE_EVENT);
+  removeAiOpsHooksFromEvent(hooks, POST_TOOL_USE_EVENT);
+
+  if (workflows.length > 0) {
+    if (!params.commandConfig) {
+      throw new Error('command config is required when installing ai-ops workflows');
+    }
+    appendSharedHookGroup(hooks, params.commandConfig);
+  }
+
+  return nextConfig;
+};
+
 // ----- public API -----
 
 export const resolveCodexHooksPath = (codexHomePath: string): string => join(codexHomePath, 'hooks.json');
@@ -196,80 +388,95 @@ export const resolveCodexHooksPath = (codexHomePath: string): string => join(cod
 export const buildCodexHookCommand = (params: {
   definition: CodexHookDefinition;
   overrideCommand?: string;
+  workflows?: readonly CodexHookWorkflow[];
 }): string => {
-  const command = params.overrideCommand?.trim() ?? params.definition.defaultCommand;
-  if (!command.includes(params.definition.commandMarker)) {
-    throw new Error(`${params.definition.id} hook command must include: ${params.definition.commandMarker}`);
-  }
-  return command;
+  return buildCodexHookCommands(params).command;
+};
+
+export const buildCodexHookCommands = (params: {
+  definition: CodexHookDefinition;
+  overrideCommand?: string;
+  overrideCommandWindows?: string;
+  workflows?: readonly CodexHookWorkflow[];
+}): CodexHookCommandConfig => {
+  const workflows = normalizeWorkflows(params.workflows ?? [params.definition.id]);
+  return buildSharedHookCommandConfig({
+    definition: params.definition,
+    overrideCommand: params.overrideCommand,
+    overrideCommandWindows: params.overrideCommandWindows,
+    workflows,
+  });
 };
 
 export const buildContextPromotionHookCommand = (overrideCommand?: string): string =>
-  buildCodexHookCommand({
+  buildCodexHookCommands({
     definition: CONTEXT_PROMOTION_CODEX_HOOK,
     overrideCommand,
-  });
+  }).command;
 
 export const quoteShellArg = (value: string): string => `'${value.replace(/'/g, "'\\''")}'`;
 
 export const inspectCodexHook = (params: {
   hooksPath: string;
   definition: CodexHookDefinition;
-}): CodexHookStatusResult => ({
-  hooksPath: params.hooksPath,
-  installed: configHasDefinitionHook(readJsonRecord(params.hooksPath), params.definition),
-});
+}): CodexHookStatusResult => {
+  const installed = configHasDefinitionHook(readJsonRecord(params.hooksPath), params.definition);
+  return {
+    hooksPath: params.hooksPath,
+    installed,
+    trustReviewHint: installed ? CODEX_HOOK_TRUST_REVIEW_HINT : null,
+  };
+};
 
 export const inspectContextPromotionHook = (hooksPath: string): CodexHookStatusResult => ({
-  hooksPath,
-  installed: inspectCodexHook({ hooksPath, definition: CONTEXT_PROMOTION_CODEX_HOOK }).installed,
+  ...inspectCodexHook({ hooksPath, definition: CONTEXT_PROMOTION_CODEX_HOOK }),
 });
 
 export const installCodexHook = (params: {
   hooksPath: string;
   definition: CodexHookDefinition;
-  command: string;
+  command?: string;
+  commandWindows?: string;
 }): CodexHookInstallResult => {
   const config = readJsonRecord(params.hooksPath);
-  if (configHasOnlyCurrentDefinitionHook(config, params.definition, params.command)) {
-    return {
-      hooksPath: params.hooksPath,
-      installed: true,
-      changed: false,
-    };
+  const existingCommandConfig = findSharedHookCommandConfig(config);
+  const workflows = normalizeWorkflows([...collectConfiguredWorkflows(config), params.definition.id]);
+  const commandConfig = buildCodexHookCommands({
+    definition: params.definition,
+    overrideCommand: params.command ?? existingCommandConfig?.command,
+    overrideCommandWindows: params.commandWindows ?? existingCommandConfig?.commandWindows,
+    workflows,
+  });
+  const nextConfig = buildConfigWithSharedAiOpsHook({
+    config,
+    workflows,
+    commandConfig,
+  });
+  const changed = !recordsMatch(config, nextConfig);
+  if (changed) {
+    writeJsonRecord(params.hooksPath, nextConfig);
   }
-
-  const hooks = getOrCreateRecord(config, 'hooks');
-  removeDefinitionHooksFromEvent(hooks, PRE_TOOL_USE_EVENT, params.definition);
-  removeDefinitionHooksFromEvent(hooks, POST_TOOL_USE_EVENT, params.definition);
-  const existingGroups = getArray(hooks, POST_TOOL_USE_EVENT);
-
-  const nextGroup: JsonRecord = {
-    matcher: BASH_MATCHER,
-    hooks: [
-      {
-        type: 'command',
-        command: params.command,
-        timeout: 30,
-        statusMessage: params.definition.statusMessage,
-      },
-    ],
-  };
-  hooks[POST_TOOL_USE_EVENT] = [...existingGroups, nextGroup];
-  writeJsonRecord(params.hooksPath, config);
 
   return {
     hooksPath: params.hooksPath,
     installed: true,
-    changed: true,
+    changed,
+    command: commandConfig.command,
+    commandWindows: commandConfig.commandWindows ?? null,
+    workflows,
   };
 };
 
-export const installContextPromotionHook = (params: { hooksPath: string; command: string }): CodexHookInstallResult =>
+export const installContextPromotionHook = (params: {
+  hooksPath: string;
+  command?: string;
+  commandWindows?: string;
+}): CodexHookInstallResult =>
   installCodexHook({
     hooksPath: params.hooksPath,
     definition: CONTEXT_PROMOTION_CODEX_HOOK,
     command: params.command,
+    commandWindows: params.commandWindows,
   });
 
 export const uninstallCodexHook = (params: {
@@ -277,21 +484,34 @@ export const uninstallCodexHook = (params: {
   definition: CodexHookDefinition;
 }): CodexHookUninstallResult => {
   const config = readJsonRecord(params.hooksPath);
-  const hooks = config.hooks;
-  if (!isJsonRecord(hooks)) {
-    return { hooksPath: params.hooksPath, removed: false, changed: false };
+  const previousWorkflows = collectConfiguredWorkflows(config);
+  const workflows = previousWorkflows.filter((workflow) => workflow !== params.definition.id);
+  const existingCommandConfig = findSharedHookCommandConfig(config);
+  const commandConfig =
+    workflows.length > 0
+      ? buildCodexHookCommands({
+          definition: params.definition,
+          overrideCommand: existingCommandConfig?.command,
+          overrideCommandWindows: existingCommandConfig?.commandWindows,
+          workflows,
+        })
+      : undefined;
+  const nextConfig = buildConfigWithSharedAiOpsHook({
+    config,
+    workflows,
+    commandConfig,
+  });
+  const changed = !recordsMatch(config, nextConfig);
+  if (changed) {
+    writeJsonRecord(params.hooksPath, nextConfig);
   }
 
-  const removedLegacy = removeDefinitionHooksFromEvent(hooks, PRE_TOOL_USE_EVENT, params.definition);
-  const removedCurrent = removeDefinitionHooksFromEvent(hooks, POST_TOOL_USE_EVENT, params.definition);
-  const removed = removedLegacy || removedCurrent;
-
-  if (!removed) {
-    return { hooksPath: params.hooksPath, removed: false, changed: false };
-  }
-  writeJsonRecord(params.hooksPath, config);
-
-  return { hooksPath: params.hooksPath, removed: true, changed: true };
+  return {
+    hooksPath: params.hooksPath,
+    removed: previousWorkflows.includes(params.definition.id),
+    changed,
+    workflows,
+  };
 };
 
 export const uninstallContextPromotionHook = (hooksPath: string): CodexHookUninstallResult =>

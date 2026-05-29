@@ -83,6 +83,26 @@ describe('loadAllSubagents', () => {
     }
   });
 
+  it('Codex frontmatter name은 catalog id와 달라도 spawn name으로 보존한다', () => {
+    const { dir, cleanup } = setup();
+    try {
+      writeValidCatalog(dir);
+      writeValidSource(dir);
+      writeFileSync(
+        join(dir, 'security-gate', 'codex.frontmatter.toml'),
+        'name = "security_gate"\ndescription = "Gate changes."\nskill_names = ["spec-security-01-triage"]\n',
+        'utf-8',
+      );
+
+      const subagents = loadAllSubagents(dir);
+
+      expect(subagents[0]?.id).toBe('security-gate');
+      expect(subagents[0]?.frontmatter.codex.parsed.name).toBe('security_gate');
+    } finally {
+      cleanup();
+    }
+  });
+
   it('필수 파일이 없으면 명확히 실패한다', () => {
     const { dir, cleanup } = setup();
     try {

@@ -19,11 +19,7 @@ type HookDetailsProps = {
   readonly hook: RuntimeHookView | null;
 };
 
-export function HooksView({
-  hooks,
-  selectedRuntimeItemId,
-  onSelectRuntimeItem,
-}: HooksViewProps): React.JSX.Element {
+export function HooksView({ hooks, selectedRuntimeItemId, onSelectRuntimeItem }: HooksViewProps): React.JSX.Element {
   const selectedHook = selectRuntimeItem(hooks, selectedRuntimeItemId);
 
   return (
@@ -56,6 +52,7 @@ function HookDetails({ hook }: HookDetailsProps): React.JSX.Element {
       )}
       <dl className="grid gap-4 md:grid-cols-2">
         <DetailsDatum label="hooksPath">{formatOptionalValue(hook.hooksPath)}</DetailsDatum>
+        <DetailsDatum label="Trust review">{formatOptionalValue(hook.trustReviewHint)}</DetailsDatum>
         <DetailsDatum label="Related integrations">
           <TokenList values={hook.relatedIntegrationIds} />
         </DetailsDatum>

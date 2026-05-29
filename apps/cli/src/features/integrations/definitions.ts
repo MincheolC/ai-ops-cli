@@ -1,8 +1,4 @@
-import type {
-  IntegrationCatalogComponent,
-  IntegrationCatalogEntry,
-  IntegrationId,
-} from '@/core/schemas/index.js';
+import type { IntegrationCatalogComponent, IntegrationCatalogEntry, IntegrationId } from '@/core/schemas/index.js';
 import { INTEGRATION_COMPONENT_TYPE } from '@/core/schemas/index.js';
 import { loadAllIntegrations } from '@/shared/catalog-loader.js';
 import { CONTEXT_PROMOTION_CODEX_HOOK, PC_CODEX_HOOK } from '../codex-hooks/core.js';
@@ -11,6 +7,7 @@ import { resolveIntegrationsDir } from '../../shared/command-paths.js';
 
 export type IntegrationInstallOptions = {
   command?: string;
+  commandWindows?: string;
 };
 
 export type IntegrationDefinition = IntegrationCatalogEntry & {

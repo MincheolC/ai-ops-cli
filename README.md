@@ -128,9 +128,11 @@ ai-ops pc done draft --cwd /path/to/product-repo
 ai-ops pc done apply --draft /path/to/draft.json
 ```
 
-`context-promotion` installs the `context-promotion-review` Codex skill, a Codex `PostToolUse` hook, and user-local receipt workflow for reusable operating knowledge review after `git commit`.
+`context-promotion` installs the `context-promotion-review` Codex skill, a shared Codex `PostToolUse` hook workflow, and user-local receipt workflow for reusable operating knowledge review after `git commit`.
 
-`pc` installs the `pc` Codex skill and a Codex `PostToolUse` hook runner. After a successful `git commit`, the hook asks Codex to continue into `$pc:done` only when `~/.personal-project-contexts/` already has a matching workspace, active workstream, and current repo scope. It does not create pc context for unprepared repositories. Handoff writes use `ai-ops pc done draft` -> AI fills JSON -> `ai-ops pc done apply`, so `ai-ops` owns context file updates and the context repo commit.
+`pc` installs the `pc` Codex skill and the same shared Codex `PostToolUse` hook runner. After a successful `git commit`, the hook asks Codex to continue into `$pc:done` only when `~/.personal-project-contexts/` already has a matching workspace, active workstream, and current repo scope. It does not create pc context for unprepared repositories. Handoff writes use `ai-ops pc done draft` -> AI fills JSON -> `ai-ops pc done apply`, so `ai-ops` owns context file updates and the context repo commit.
+
+When both workflows are installed, `ai-ops` stores one `PostToolUse` command hook with `--workflows context-promotion,pc` and merges continuation output instead of installing competing `decision: "block"` hooks. Codex still requires non-managed hooks to be reviewed and trusted through `/hooks` before they run.
 
 Codex safe permissions can reduce repeated approval prompts for the narrow user-local work used by `pc` and `context-promotion-review`:
 

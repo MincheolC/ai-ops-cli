@@ -9,14 +9,15 @@ import type {
 } from '@/core/schemas/index.js';
 import { INTEGRATION_COMPONENT_TYPE, SKILL_TOOL } from '@/core/schemas/index.js';
 import { loadAllSkills } from '@/shared/catalog-loader.js';
-import {
-  buildCodexHookCommand,
-  inspectCodexHook,
-  installCodexHook,
-} from '../codex-hooks/core.js';
+import { inspectCodexHook, installCodexHook } from '../codex-hooks/core.js';
 import type { CodexHookDefinition } from '../codex-hooks/core.js';
 import { installSkillPackages, removeDirectories } from '../skills/install-files.js';
-import { readSkillRegistry, resolveCanonicalSkillId, resolveSkillRegistryPath, writeSkillRegistry } from '../skills/registry-io.js';
+import {
+  readSkillRegistry,
+  resolveCanonicalSkillId,
+  resolveSkillRegistryPath,
+  writeSkillRegistry,
+} from '../skills/registry-io.js';
 import { buildSkillInstallPlan } from '../skills/renderer.js';
 import { findInstalledSkill, mergeSkillTools, removeInstalledSkill, upsertInstalledSkill } from '../skills/state.js';
 import { resolveSkillsDir } from '../../shared/command-paths.js';
@@ -122,12 +123,9 @@ export const ensureHookComponent = (params: {
   hookId: IntegrationId;
   definition: CodexHookDefinition;
   command?: string;
+  commandWindows?: string;
   previouslyOwned: boolean;
 }): IntegrationComponent => {
-  const command = buildCodexHookCommand({
-    definition: params.definition,
-    overrideCommand: params.command,
-  });
   const installedBefore = inspectCodexHook({
     hooksPath: params.hooksPath,
     definition: params.definition,
@@ -135,13 +133,15 @@ export const ensureHookComponent = (params: {
   const result = installCodexHook({
     hooksPath: params.hooksPath,
     definition: params.definition,
-    command,
+    command: params.command,
+    commandWindows: params.commandWindows,
   });
 
   return {
     type: INTEGRATION_COMPONENT_TYPE.CODEX_HOOK,
     id: params.hookId,
-    command,
+    command: result.command,
+    commandWindows: result.commandWindows ?? undefined,
     owned: params.previouslyOwned || result.changed || !installedBefore,
   };
 };

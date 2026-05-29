@@ -62,14 +62,26 @@ describe('buildSubagentInstallPlan', () => {
 
   it('Codex output은 TOML metadata와 developer_instructions, skills.config를 포함한다', () => {
     const result = buildSubagentInstallPlan({
-      subagent: makeSubagent(),
+      subagent: makeSubagent({
+        frontmatter: {
+          ...makeSubagent().frontmatter,
+          codex: {
+            raw: 'name = "security_gate"\ndescription = "Gate changes."\nskill_names = ["spec-security-01-triage"]\n',
+            parsed: {
+              name: 'security_gate',
+              description: 'Gate changes.',
+              skill_names: ['spec-security-01-triage'],
+            },
+          },
+        },
+      }),
       requestedTools: ['codex'],
       userBasePath: '/tmp/ai-ops-home',
     });
     const content = result.packages[0]?.files[0]?.content ?? '';
 
     expect(result.installedSubagent.installed_paths).toEqual(['.codex/agents/security-gate.toml']);
-    expect(content).toContain('name = "security-gate"');
+    expect(content).toContain('name = "security_gate"');
     expect(content).toContain('developer_instructions = "You are `security-gate`."');
     expect(content).toContain('[[skills.config]]');
     expect(content).toContain('/tmp/ai-ops-home/.agents/skills/spec-security-01-triage/SKILL.md');

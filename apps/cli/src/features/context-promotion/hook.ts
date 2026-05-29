@@ -1,6 +1,7 @@
-import { getContextPromotionStatus } from "./status.js";
-import { parseSuccessfulGitCommitPostToolUseHook } from "./tool-use-hook.js";
-import type { ContextPromotionPostToolUseHookOutput, ContextPromotionProjectStatus } from "./types.js";
+import { getContextPromotionStatus } from './status.js';
+import { parseSuccessfulGitCommitPostToolUseHook } from './tool-use-hook.js';
+import type { SuccessfulGitCommitPostToolUse } from './tool-use-hook.js';
+import type { ContextPromotionPostToolUseHookOutput, ContextPromotionProjectStatus } from './types.js';
 
 // ----- hook guard -----
 
@@ -67,23 +68,18 @@ const buildPostToolUseOutput = (prompt: string): ContextPromotionPostToolUseHook
   },
 });
 
-export const evaluateContextPromotionPostToolUseHook = (params: {
-  hookInput: unknown;
+export const evaluateContextPromotionSuccessfulGitCommitHook = (params: {
+  gitCommitHook: SuccessfulGitCommitPostToolUse;
   userBasePath: string;
 }): ContextPromotionPostToolUseHookOutput | null => {
-  const hookInput = parseSuccessfulGitCommitPostToolUseHook(params.hookInput);
-  if (!hookInput) {
-    return null;
-  }
-
   let status: ContextPromotionProjectStatus;
   try {
     status = getContextPromotionStatus({
-      cwd: hookInput.cwd,
+      cwd: params.gitCommitHook.cwd,
       userBasePath: params.userBasePath,
     });
   } catch (error) {
-    return buildPostToolUseOutput(buildContextPromotionStatusFailurePrompt(hookInput.cwd, error));
+    return buildPostToolUseOutput(buildContextPromotionStatusFailurePrompt(params.gitCommitHook.cwd, error));
   }
 
   if (!status.hasContextLayer || status.receipt) {
@@ -91,4 +87,18 @@ export const evaluateContextPromotionPostToolUseHook = (params: {
   }
 
   return buildPostToolUseOutput(buildContextPromotionReviewPrompt(status));
+};
+
+export const evaluateContextPromotionPostToolUseHook = (params: {
+  hookInput: unknown;
+  userBasePath: string;
+}): ContextPromotionPostToolUseHookOutput | null => {
+  const gitCommitHook = parseSuccessfulGitCommitPostToolUseHook(params.hookInput);
+  if (!gitCommitHook) {
+    return null;
+  }
+  return evaluateContextPromotionSuccessfulGitCommitHook({
+    gitCommitHook,
+    userBasePath: params.userBasePath,
+  });
 };

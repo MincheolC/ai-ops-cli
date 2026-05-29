@@ -91,8 +91,8 @@ Integration catalog source는 `apps/cli/data/integrations/integration-registry.j
 
 현재 integration:
 
-- `context-promotion`: `context-promotion-review` Codex skill, Codex `PostToolUse` hook, user-local receipt를 묶어 git commit 이후 운영 지식 승격 검토를 돕는다.
-- `pc`: `pc` Codex skill과 Codex `PostToolUse` hook runner를 묶어 성공적인 `git commit` 직후 `$pc:done` handoff 누락을 방지한다. hook은 `~/.personal-project-contexts/`에 matching workspace, active workstream, current repo scope가 준비된 경우에만 prompt를 내며, handoff 반영은 `ai-ops pc done draft` -> AI draft 작성 -> `ai-ops pc done apply` 순서로 처리한다.
+- `context-promotion`: `context-promotion-review` Codex skill, shared Codex `PostToolUse` hook workflow, user-local receipt를 묶어 git commit 이후 운영 지식 승격 검토를 돕는다.
+- `pc`: `pc` Codex skill과 같은 shared Codex `PostToolUse` hook runner를 묶어 성공적인 `git commit` 직후 `$pc:done` handoff 누락을 방지한다. hook은 `~/.personal-project-contexts/`에 matching workspace, active workstream, current repo scope가 준비된 경우에만 prompt를 내며, handoff 반영은 `ai-ops pc done draft` -> AI draft 작성 -> `ai-ops pc done apply` 순서로 처리한다.
 
 Integration 설치 소유권은 user/global runtime home의 `.ai-ops/integrations-manifest.json`에 기록한다. Uninstall은 integration이 소유한 component만 제거하고 기존 수동 설치는 보존한다.
 
@@ -241,7 +241,7 @@ integration component인 subagent lifecycle만 관리한다. Phase 3에서 도�
 
 ### `ai-ops codex-hook ...`
 
-Codex 전용 opt-in hook component를 설치, 조회, 제거한다. v1 hook은 npm global `ai-ops` command를 user-level `PostToolUse`에 저장하고, `git commit` 이후 `context-promotion-review` skill 사용을 안내한다. 설치 시 Codex skill도 user/global runtime 위치에 보장 설치한다. 작업 커밋은 막지 않고, 승격 수정은 사용자 검사 후 별도 커밋으로 다룬다.
+Codex 전용 opt-in hook component를 설치, 조회, 제거한다. hook은 npm global `ai-ops integration hook post-tool-use --workflows ...` dispatcher command를 user-level `PostToolUse`에 저장한다. `context-promotion` workflow는 `git commit` 이후 `context-promotion-review` skill 사용을 안내하고, `pc` workflow와 함께 설치되면 하나의 handler에서 continuation output을 병합한다. 설치 시 Codex skill도 user/global runtime 위치에 보장 설치한다. 작업 커밋은 막지 않고, non-managed hook 실행 여부는 Codex `/hooks` review/trust가 authoritative 하다.
 
 ### `ai-ops integration ...`
 

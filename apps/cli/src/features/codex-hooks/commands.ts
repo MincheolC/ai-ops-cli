@@ -3,7 +3,6 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import type { InstalledSkill, Skill } from '@/core/schemas/index.js';
 import {
-  buildContextPromotionHookCommand,
   CONTEXT_PROMOTION_HOOK_ID,
   inspectContextPromotionHook,
   installContextPromotionHook,
@@ -14,13 +13,19 @@ import { SKILL_TOOL } from '@/core/schemas/index.js';
 import { loadAllSkills } from '@/shared/catalog-loader.js';
 import { getCliVersion } from '@/shared/source-hash.js';
 import { buildSkillInstallPlan } from '../skills/renderer.js';
-import { readSkillRegistry, resolveCanonicalSkillId, resolveSkillRegistryPath, writeSkillRegistry } from '../skills/registry-io.js';
+import {
+  readSkillRegistry,
+  resolveCanonicalSkillId,
+  resolveSkillRegistryPath,
+  writeSkillRegistry,
+} from '../skills/registry-io.js';
 import { installSkillPackages } from '../skills/install-files.js';
 import { findInstalledSkill, mergeSkillTools, upsertInstalledSkill } from '../skills/state.js';
 import { resolveSkillsDir, resolveUserBasePath } from '../../shared/command-paths.js';
 
 type CodexHookInstallOptions = {
   command?: string;
+  commandWindows?: string;
 };
 
 const CONTEXT_PROMOTION_REVIEW_SKILL_ID = 'context-promotion-review';
@@ -104,10 +109,7 @@ const ensureContextPromotionReviewSkill = (basePath: string): { changed: boolean
   return { changed: true, installedSkill };
 };
 
-export const codexHookInstallCommand = async (
-  hookId: string,
-  opts: CodexHookInstallOptions = {},
-): Promise<void> => {
+export const codexHookInstallCommand = async (hookId: string, opts: CodexHookInstallOptions = {}): Promise<void> => {
   p.intro(`ai-ops codex-hook install ${hookId}`);
   try {
     assertContextPromotionHookId(hookId);
@@ -115,7 +117,8 @@ export const codexHookInstallCommand = async (
     const hooksPath = resolveCodexHooksPath(resolveCodexHomePath());
     const result = installContextPromotionHook({
       hooksPath,
-      command: buildContextPromotionHookCommand(opts.command),
+      command: opts.command,
+      commandWindows: opts.commandWindows,
     });
     p.log.success(
       skillResult.changed
@@ -123,6 +126,10 @@ export const codexHookInstallCommand = async (
         : `skill 이미 설치됨: ${skillResult.installedSkill.id}`,
     );
     p.log.success(result.changed ? `hook 설치 완료: ${result.hooksPath}` : `hook 이미 설치됨: ${result.hooksPath}`);
+    if (result.commandWindows) {
+      p.log.info(`hook Windows command: ${result.commandWindows}`);
+    }
+    p.log.info('hook trust: review with /hooks in Codex before first run');
   } catch (error) {
     reportCodexHookError(error);
   }
@@ -140,6 +147,7 @@ export const codexHookStatusCommand = async (hookId: string): Promise<void> => {
         `hooks file: ${result.hooksPath}`,
         `hook installed: ${result.installed ? 'yes' : 'no'}`,
         `skill installed: ${skillInstalled ? 'yes' : 'no'}`,
+        `hook trust: ${result.trustReviewHint ?? 'n/a'}`,
       ].join('\n'),
     );
   } catch (error) {

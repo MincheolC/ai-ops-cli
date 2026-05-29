@@ -28,9 +28,11 @@ const setup = (): { dir: string; hooksPath: string; cleanup: () => void } => {
 describe('Codex context promotion hook config', () => {
   it('builds portable hook commands and validates overrides', () => {
     expect(quoteShellArg("/tmp/it's/node")).toBe("'/tmp/it'\\''s/node'");
-    expect(buildContextPromotionHookCommand()).toBe('ai-ops context-promotion hook post-tool-use');
-    expect(buildContextPromotionHookCommand('/custom/bin/ai-ops context-promotion hook post-tool-use')).toBe(
-      '/custom/bin/ai-ops context-promotion hook post-tool-use',
+    expect(buildContextPromotionHookCommand()).toBe(
+      'ai-ops integration hook post-tool-use --workflows context-promotion',
+    );
+    expect(buildContextPromotionHookCommand('/custom/bin/ai-ops integration hook post-tool-use')).toBe(
+      '/custom/bin/ai-ops integration hook post-tool-use --workflows context-promotion',
     );
     expect(() => buildContextPromotionHookCommand('/custom/bin/ai-ops hook')).toThrow(
       'context-promotion hook command must include',
@@ -61,11 +63,9 @@ describe('Codex context promotion hook config', () => {
 
       const result = installContextPromotionHook({
         hooksPath,
-        command: 'ai-ops context-promotion hook post-tool-use',
       });
       const second = installContextPromotionHook({
         hooksPath,
-        command: 'ai-ops context-promotion hook post-tool-use',
       });
       const raw = readFileSync(hooksPath, 'utf-8');
 
@@ -73,7 +73,8 @@ describe('Codex context promotion hook config', () => {
       expect(second.changed).toBe(false);
       expect(inspectContextPromotionHook(hooksPath).installed).toBe(true);
       expect(raw).toContain('echo keep');
-      expect(raw.match(/context-promotion hook post-tool-use/g)?.length).toBe(1);
+      expect(raw).toContain('integration hook post-tool-use --workflows context-promotion');
+      expect(raw.match(/integration hook post-tool-use/g)?.length).toBe(1);
     } finally {
       cleanup();
     }
@@ -109,14 +110,13 @@ describe('Codex context promotion hook config', () => {
 
       const result = installContextPromotionHook({
         hooksPath,
-        command: 'ai-ops context-promotion hook post-tool-use',
       });
       const raw = readFileSync(hooksPath, 'utf-8');
 
       expect(result.changed).toBe(true);
       expect(raw).toContain('echo keep');
       expect(raw).not.toContain('context-promotion hook pre-tool-use');
-      expect(raw).toContain('context-promotion hook post-tool-use');
+      expect(raw).toContain('integration hook post-tool-use --workflows context-promotion');
     } finally {
       cleanup();
     }
@@ -172,6 +172,7 @@ describe('Codex context promotion hook config', () => {
       expect(raw).toContain('echo keep');
       expect(raw).not.toContain('context-promotion hook pre-tool-use');
       expect(raw).not.toContain('context-promotion hook post-tool-use');
+      expect(raw).not.toContain('integration hook post-tool-use');
     } finally {
       cleanup();
     }
@@ -193,7 +194,6 @@ describe('Codex context promotion hook config', () => {
       const pcCommand = buildCodexHookCommand({ definition: PC_CODEX_HOOK });
       installContextPromotionHook({
         hooksPath,
-        command: 'ai-ops context-promotion hook post-tool-use',
       });
       const result = installCodexHook({
         hooksPath,
@@ -204,6 +204,8 @@ describe('Codex context promotion hook config', () => {
       expect(result.changed).toBe(true);
       expect(inspectContextPromotionHook(hooksPath).installed).toBe(true);
       expect(inspectCodexHook({ hooksPath, definition: PC_CODEX_HOOK }).installed).toBe(true);
+      expect(readFileSync(hooksPath, 'utf-8').match(/integration hook post-tool-use/g)?.length).toBe(1);
+      expect(readFileSync(hooksPath, 'utf-8')).toContain('--workflows context-promotion,pc');
 
       const removed = uninstallCodexHook({
         hooksPath,
@@ -213,8 +215,34 @@ describe('Codex context promotion hook config', () => {
       expect(removed.removed).toBe(true);
       expect(inspectCodexHook({ hooksPath, definition: PC_CODEX_HOOK }).installed).toBe(false);
       expect(inspectContextPromotionHook(hooksPath).installed).toBe(true);
-      expect(readFileSync(hooksPath, 'utf-8')).toContain('context-promotion hook post-tool-use');
+      expect(readFileSync(hooksPath, 'utf-8')).toContain('--workflows context-promotion');
       expect(readFileSync(hooksPath, 'utf-8')).not.toContain('integration hook post-tool-use pc');
+    } finally {
+      cleanup();
+    }
+  });
+
+  it('writes commandWindows only when a Windows override is provided', () => {
+    const { hooksPath, cleanup } = setup();
+    try {
+      const result = installContextPromotionHook({
+        hooksPath,
+        command: '/custom/bin/ai-ops integration hook post-tool-use',
+        commandWindows: 'C:\\tools\\ai-ops.exe integration hook post-tool-use',
+      });
+      const raw = readFileSync(hooksPath, 'utf-8');
+
+      expect(result.command).toBe('/custom/bin/ai-ops integration hook post-tool-use --workflows context-promotion');
+      expect(result.commandWindows).toBe(
+        'C:\\tools\\ai-ops.exe integration hook post-tool-use --workflows context-promotion',
+      );
+      expect(raw).toContain('"commandWindows"');
+      expect(() =>
+        installContextPromotionHook({
+          hooksPath,
+          commandWindows: 'C:\\tools\\ai-ops.exe context-promotion hook post-tool-use',
+        }),
+      ).toThrow('context-promotion hook command must include');
     } finally {
       cleanup();
     }

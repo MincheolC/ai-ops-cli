@@ -1,15 +1,12 @@
 import * as p from '@clack/prompts';
-import {
-  INTEGRATION_COMPONENT_TYPE,
-  INTEGRATION_ID,
-} from '@/core/schemas/index.js';
+import { INTEGRATION_COMPONENT_TYPE, INTEGRATION_ID } from '@/core/schemas/index.js';
 import { getCliVersion } from '@/shared/source-hash.js';
+import { inspectCodexHook, resolveCodexHooksPath, uninstallCodexHook } from '../codex-hooks/core.js';
+import { getPcHandoffStatus } from '../pc/core.js';
 import {
-  inspectCodexHook,
-  resolveCodexHooksPath,
-  uninstallCodexHook,
-} from '../codex-hooks/core.js';
-import { evaluatePcPostToolUseHook, getPcHandoffStatus } from '../pc/core.js';
+  evaluateIntegrationPostToolUseWorkflows,
+  parseIntegrationPostToolUseWorkflows,
+} from './post-tool-use-dispatcher.js';
 import {
   findInstalledIntegration,
   readIntegrationManifest,
@@ -79,6 +76,7 @@ export const integrationInstallCommand = async (
       hookId: definition.hookComponent.id,
       definition: definition.hookDefinition,
       command: opts.command,
+      commandWindows: opts.commandWindows,
       previouslyOwned: componentWasOwned({
         previous,
         type: INTEGRATION_COMPONENT_TYPE.CODEX_HOOK,
@@ -99,6 +97,7 @@ export const integrationInstallCommand = async (
 
     p.log.success(`integration 설치 완료: ${definition.id}`);
     p.log.info(installedIntegration.components.map(formatComponentStatus).join('\n'));
+    p.log.info('hook trust: review configured non-managed hooks with /hooks in Codex before first run');
   } catch (error) {
     reportIntegrationError(error);
   }
@@ -121,6 +120,7 @@ export const integrationStatusCommand = async (integrationId: string): Promise<v
       `skill installed: ${hasInstalledCodexSkill({ basePath, skillId: definition.skillComponent.id }) ? 'yes' : 'no'}`,
       `hook installed: ${hookStatus.installed ? 'yes' : 'no'}`,
       `hooks file: ${hookStatus.hooksPath}`,
+      `hook trust: ${hookStatus.trustReviewHint ?? 'n/a'}`,
     ];
 
     if (definition.id === INTEGRATION_ID.PC) {
@@ -197,18 +197,26 @@ export const integrationUninstallCommand = async (integrationId: string): Promis
   p.outro('ai-ops integration uninstall 완료');
 };
 
-export const integrationPostToolUseHookCommand = async (integrationId: string): Promise<void> => {
+export const integrationPostToolUseHookCommand = async (params: {
+  legacyIntegrationId?: string;
+  workflows?: string;
+}): Promise<void> => {
   try {
-    const id = parseIntegrationId(integrationId);
+    const workflows = parseIntegrationPostToolUseWorkflows({
+      legacyIntegrationId: params.legacyIntegrationId ? parseIntegrationId(params.legacyIntegrationId) : undefined,
+      workflows: params.workflows,
+    });
     const raw = await readStdin();
     const hookInput = raw.trim().length > 0 ? JSON.parse(raw) : {};
-    if (id !== INTEGRATION_ID.PC) {
+    if (workflows.length === 0) {
       return;
     }
 
-    const output = evaluatePcPostToolUseHook({
+    const output = evaluateIntegrationPostToolUseWorkflows({
       hookInput,
-      contextRoot: resolvePersonalContextRoot(),
+      workflows,
+      userBasePath: resolveUserBasePath(),
+      contextRoot: workflows.includes(INTEGRATION_ID.PC) ? resolvePersonalContextRoot() : undefined,
     });
     if (output) {
       process.stdout.write(JSON.stringify(output) + '\n');

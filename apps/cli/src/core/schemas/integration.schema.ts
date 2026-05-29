@@ -28,6 +28,7 @@ const IntegrationCodexHookComponentSchema = z
     type: z.literal(INTEGRATION_COMPONENT_TYPE.CODEX_HOOK),
     id: IntegrationIdSchema,
     command: z.string().min(1),
+    commandWindows: z.string().min(1).optional(),
     owned: z.boolean(),
   })
   .strict();

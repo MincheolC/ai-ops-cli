@@ -2,10 +2,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { describe, expect, it } from 'vitest';
-import {
-  INTEGRATION_COMPONENT_TYPE,
-  INTEGRATION_ID,
-} from '../schemas/index.js';
+import { INTEGRATION_COMPONENT_TYPE, INTEGRATION_ID } from '../schemas/index.js';
 import {
   findInstalledIntegration,
   readIntegrationManifest,
@@ -33,7 +30,7 @@ describe('integration manifest IO', () => {
             {
               type: INTEGRATION_COMPONENT_TYPE.CODEX_HOOK,
               id: INTEGRATION_ID.PC,
-              command: 'ai-ops integration hook post-tool-use pc',
+              command: 'ai-ops integration hook post-tool-use --workflows pc',
               owned: true,
             },
             {

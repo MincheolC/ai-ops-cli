@@ -4,6 +4,9 @@ import { isSafeProjectLayerPath } from './project-layer.schema.js';
 import { buildSubagentRelativePath } from './subagent-paths.js';
 
 export const SubagentIdSchema = z.string().regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, 'id must be kebab-case');
+export const CodexAgentNameSchema = z
+  .string()
+  .regex(/^[A-Za-z0-9_-]+$/, 'Codex agent name must use ASCII letters, digits, hyphens, or underscores');
 
 export const SubagentMarkdownFrontmatterSchema = z
   .object({
@@ -20,7 +23,7 @@ const SubagentInstalledPathSchema = z
 
 export const CodexSubagentFrontmatterSchema = z
   .object({
-    name: SubagentIdSchema,
+    name: CodexAgentNameSchema,
     description: z.string().min(1),
     skill_names: z.array(SubagentIdSchema).optional(),
   })

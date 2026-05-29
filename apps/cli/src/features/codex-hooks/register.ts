@@ -8,7 +8,14 @@ export const registerCodexHookCommands = (program: Command): void => {
     .command('install <hookId>')
     .description('Codex hook 설치')
     .option('--command <command>', 'hook에 저장할 context-promotion 실행 명령')
-    .action((hookId, opts: { command?: string }) => codexHookInstallCommand(hookId, opts));
-  command.command('status <hookId>').description('Codex hook 설치 상태 확인').action((hookId) => codexHookStatusCommand(hookId));
-  command.command('uninstall <hookId>').description('Codex hook 제거').action((hookId) => codexHookUninstallCommand(hookId));
+    .option('--command-windows <command>', 'Windows에서 사용할 hook 실행 명령')
+    .action((hookId, opts: { command?: string; commandWindows?: string }) => codexHookInstallCommand(hookId, opts));
+  command
+    .command('status <hookId>')
+    .description('Codex hook 설치 상태 확인')
+    .action((hookId) => codexHookStatusCommand(hookId));
+  command
+    .command('uninstall <hookId>')
+    .description('Codex hook 제거')
+    .action((hookId) => codexHookUninstallCommand(hookId));
 };

@@ -140,9 +140,11 @@ ai-ops pc done draft --cwd /path/to/product-repo
 ai-ops pc done apply --draft /path/to/draft.json
 ```
 
-`context-promotion`은 `context-promotion-review` Codex skill, Codex `PostToolUse` hook, user-local receipt workflow를 묶습니다.
+`context-promotion`은 `context-promotion-review` Codex skill, shared Codex `PostToolUse` hook workflow, user-local receipt workflow를 묶습니다.
 
-`pc`는 `pc` Codex skill과 Codex `PostToolUse` hook runner를 묶습니다. 성공적인 `git commit` 이후 `~/.personal-project-contexts/`에 matching workspace, active workstream, current repo scope가 이미 준비된 경우에만 Codex가 `$pc:done`으로 이어가게 합니다. Handoff 반영은 `ai-ops pc done draft` -> AI가 JSON 작성 -> `ai-ops pc done apply` 순서로 진행해, context 파일 갱신과 context repo commit은 CLI가 맡습니다.
+`pc`는 `pc` Codex skill과 같은 shared Codex `PostToolUse` hook runner를 묶습니다. 성공적인 `git commit` 이후 `~/.personal-project-contexts/`에 matching workspace, active workstream, current repo scope가 이미 준비된 경우에만 Codex가 `$pc:done`으로 이어가게 합니다. Handoff 반영은 `ai-ops pc done draft` -> AI가 JSON 작성 -> `ai-ops pc done apply` 순서로 진행해, context 파일 갱신과 context repo commit은 CLI가 맡습니다.
+
+두 workflow가 함께 설치되면 `ai-ops`는 `--workflows context-promotion,pc`를 쓰는 하나의 `PostToolUse` command hook만 저장하고 continuation output을 병합합니다. Codex non-managed hook은 실행 전 `/hooks`에서 review/trust가 필요합니다.
 
 Integration 소유권은 user/global runtime home의 `.ai-ops/integrations-manifest.json`에 기록합니다. Uninstall은 owned component만 제거하고 기존 수동 설치는 보존합니다.
 
@@ -171,7 +173,8 @@ ai-ops context-promotion status
 ai-ops context-promotion resolve --decision no-promotion --summary "No reusable operating knowledge found"
 ai-ops context-promotion prune --max 50
 ai-ops codex-hook install context-promotion
-ai-ops codex-hook install context-promotion --command "/custom/bin/ai-ops context-promotion hook post-tool-use"
+ai-ops codex-hook install context-promotion --command "/custom/bin/ai-ops integration hook post-tool-use"
+ai-ops codex-hook install context-promotion --command-windows "C:\tools\ai-ops.exe integration hook post-tool-use"
 ai-ops codex-hook status context-promotion
 ai-ops codex-hook uninstall context-promotion
 ai-ops codex-permissions install safe-local

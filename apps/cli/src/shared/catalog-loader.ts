@@ -114,7 +114,6 @@ export const loadAllSubagents = (subagentsDir: string): Subagent[] => {
     const gemini = SubagentMarkdownFrontmatterSchema.parse(parse(geminiRaw));
 
     assertSubagentFrontmatterName({ id: entry.id, tool: 'claude', name: claude.name });
-    assertSubagentFrontmatterName({ id: entry.id, tool: 'codex', name: codex.name });
     assertSubagentFrontmatterName({ id: entry.id, tool: 'gemini', name: gemini.name });
 
     return {

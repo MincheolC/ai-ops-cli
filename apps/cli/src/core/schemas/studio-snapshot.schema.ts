@@ -166,6 +166,7 @@ export const StudioHookSnapshotSchema = z
     hooksPath: nullableString,
     installed: z.boolean(),
     error: nullableString,
+    trustReviewHint: nullableString,
   })
   .strict();
 

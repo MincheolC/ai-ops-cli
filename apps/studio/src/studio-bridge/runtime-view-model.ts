@@ -98,6 +98,7 @@ export type RuntimeHookView = {
   readonly hooksPath: string | null;
   readonly installed: boolean;
   readonly error: string | null;
+  readonly trustReviewHint: string | null;
   readonly relatedIntegrationIds: readonly string[];
 };
 
@@ -447,6 +448,7 @@ const parseHook = (value: unknown, integrations: readonly RuntimeIntegrationView
     hooksPath: getNullableString(value, 'hooksPath'),
     installed: getBoolean(value, 'installed') ?? false,
     error: getNullableString(value, 'error'),
+    trustReviewHint: getNullableString(value, 'trustReviewHint'),
     relatedIntegrationIds: findRelatedIntegrationIds(integrations, id),
   };
 };

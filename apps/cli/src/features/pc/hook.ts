@@ -1,8 +1,9 @@
-import { readGitHead, resolveGitRoot } from "./status.js";
-import { parseSuccessfulGitCommitPostToolUseHook } from "../context-promotion/tool-use-hook.js";
-import type { PcHandoffStatus, PcPostToolUseHookOutput } from "./types.js";
-import { getPcHandoffStatus } from "./status.js";
-import { pathContains } from "./markdown.js";
+import { readGitHead, resolveGitRoot } from './status.js';
+import { parseSuccessfulGitCommitPostToolUseHook } from '../context-promotion/tool-use-hook.js';
+import type { SuccessfulGitCommitPostToolUse } from '../context-promotion/tool-use-hook.js';
+import type { PcHandoffStatus, PcPostToolUseHookOutput } from './types.js';
+import { getPcHandoffStatus } from './status.js';
+import { pathContains } from './markdown.js';
 
 // ----- hook output -----
 
@@ -41,16 +42,11 @@ const buildPostToolUseOutput = (prompt: string): PcPostToolUseHookOutput => ({
   },
 });
 
-export const evaluatePcPostToolUseHook = (params: {
-  hookInput: unknown;
+export const evaluatePcSuccessfulGitCommitHook = (params: {
+  gitCommitHook: SuccessfulGitCommitPostToolUse;
   contextRoot: string;
 }): PcPostToolUseHookOutput | null => {
-  const gitCommitHook = parseSuccessfulGitCommitPostToolUseHook(params.hookInput);
-  if (!gitCommitHook) {
-    return null;
-  }
-
-  const gitRoot = resolveGitRoot(gitCommitHook.cwd);
+  const gitRoot = resolveGitRoot(params.gitCommitHook.cwd);
   if (!gitRoot) {
     return null;
   }
@@ -64,7 +60,7 @@ export const evaluatePcPostToolUseHook = (params: {
   }
 
   const status = getPcHandoffStatus({
-    cwd: gitCommitHook.cwd,
+    cwd: params.gitCommitHook.cwd,
     contextRoot: params.contextRoot,
   });
   if (!status.ready) {
@@ -75,4 +71,18 @@ export const evaluatePcPostToolUseHook = (params: {
   }
 
   return buildPostToolUseOutput(buildPcDonePrompt({ status, head, gitRoot }));
+};
+
+export const evaluatePcPostToolUseHook = (params: {
+  hookInput: unknown;
+  contextRoot: string;
+}): PcPostToolUseHookOutput | null => {
+  const gitCommitHook = parseSuccessfulGitCommitPostToolUseHook(params.hookInput);
+  if (!gitCommitHook) {
+    return null;
+  }
+  return evaluatePcSuccessfulGitCommitHook({
+    gitCommitHook,
+    contextRoot: params.contextRoot,
+  });
 };

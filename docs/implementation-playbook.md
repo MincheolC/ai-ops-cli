@@ -214,9 +214,11 @@ npm run compile
 
 - `doc-impact-reviewer`와 별개로 `context-promotion-review` Codex 전용 task skill을 추가한다.
 - `ai-ops context-promotion status/resolve/prune`은 현재 `HEAD` 커밋에 대한 user-local receipt만 관리하고 프로젝트 repo에는 receipt를 쓰지 않는다.
-- `ai-ops codex-hook install context-promotion`은 Codex `PostToolUse` Bash hook을 opt-in으로 설치하고 `context-promotion-review` Codex skill도 user/global runtime 위치에 보장 설치한다.
+- `ai-ops codex-hook install context-promotion`은 Codex `PostToolUse` Bash hook workflow를 opt-in으로 설치하고 `context-promotion-review` Codex skill도 user/global runtime 위치에 보장 설치한다.
 - hook은 `git commit` 이후 Codex에게 `context-promotion-review` 검토를 이어서 요청한다. 작업 커밋은 막지 않고, 승격 수정은 사용자 검사 후 별도 커밋으로 다룬다.
-- 기본 hook command는 npm global 설치를 전제로 `ai-ops context-promotion hook post-tool-use`를 저장한다. 비표준 PATH 환경은 `--command` override로 처리한다.
+- 기본 hook command는 npm global 설치를 전제로 `ai-ops integration hook post-tool-use --workflows context-promotion`를 저장한다. 비표준 PATH 환경은 `--command` override로 처리하고, Windows 전용 override는 `--command-windows`로 처리한다.
+- `context-promotion`과 `pc`가 함께 설치되면 하나의 shared dispatcher hook에 `--workflows context-promotion,pc`를 저장하고 continuation output을 병합한다.
+- Codex hook trust 여부는 ai-ops가 직접 판정하지 않고, 설치/status/runtime snapshot에서 `/hooks` review/trust가 필요하다는 hint만 제공한다.
 - 이 후속 기능은 `context-promotion` integration의 component 기반이며, low-level 명령으로도 계속 사용할 수 있다.
 
 검증:
@@ -355,8 +357,8 @@ node apps/cli/dist/bin/index.js audit
 - `apps/cli/data/integrations/integration-registry.json`를 integration catalog source로 추가하고 schema/loader test를 둔다.
 - Catalog는 각 integration의 `skill`, `codex-hook`, `receipt-config` component를 선언한다.
 - Integration manifest는 user/global runtime home의 `.ai-ops/integrations-manifest.json`에 둔다.
-- `context-promotion` integration은 기존 `context-promotion-review` skill, Codex `PostToolUse` hook, user-local receipt workflow를 묶는다.
-- `pc` integration은 `pc` Codex skill과 Codex `PostToolUse` hook runner를 묶는다.
+- `context-promotion` integration은 기존 `context-promotion-review` skill, shared Codex `PostToolUse` hook workflow, user-local receipt workflow를 묶는다.
+- `pc` integration은 `pc` Codex skill과 같은 shared Codex `PostToolUse` hook runner를 묶는다.
 - `pc` hook은 성공적인 `git commit` 이후, `~/.personal-project-contexts/`에 matching workspace, active workstream, current repo scope가 모두 준비된 경우에만 Codex에게 `$pc:done` continuation prompt를 준다.
 - 준비되지 않은 repository에서는 hook이 새 context/workstream을 만들지 않고 조용히 skip한다.
 - Uninstall은 integration install이 소유한 component만 제거하고, 기존 수동 설치로 판단되는 skill/hook은 보존한다.

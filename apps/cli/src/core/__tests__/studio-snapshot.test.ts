@@ -49,7 +49,9 @@ const listFiles = (root: string): string[] => {
   const files: string[] = [];
   const walk = (relativeDir = ''): void => {
     const absoluteDir = relativeDir.length > 0 ? join(root, relativeDir) : root;
-    for (const entry of readdirSync(absoluteDir, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
+    for (const entry of readdirSync(absoluteDir, { withFileTypes: true }).sort((a, b) =>
+      a.name.localeCompare(b.name),
+    )) {
       const relativePath = relativeDir.length > 0 ? join(relativeDir, entry.name) : entry.name;
       if (entry.isDirectory()) {
         walk(relativePath);
@@ -69,8 +71,7 @@ const findIssue = (
 ): StudioProjectIssue => {
   const found = issues.find(
     (issue) =>
-      issue.code === params.code &&
-      (params.affectedPath === undefined || issue.affectedPath === params.affectedPath),
+      issue.code === params.code && (params.affectedPath === undefined || issue.affectedPath === params.affectedPath),
   );
   if (found === undefined) {
     throw new Error(`Expected audit issue not found: ${params.code}`);
@@ -506,7 +507,7 @@ update_when:
               {
                 type: 'codex-hook',
                 id: 'context-promotion',
-                command: 'ai-ops context-promotion hook post-tool-use',
+                command: 'ai-ops integration hook post-tool-use --workflows context-promotion',
                 owned: true,
               },
               {
@@ -529,12 +530,12 @@ update_when:
       expect(snapshot.runtime.skills.find((skill) => skill.id === 'skill-load-check')?.installedPaths[0]?.exists).toBe(
         true,
       );
-      expect(snapshot.runtime.subagents.find((subagent) => subagent.id === 'security-gate')?.installedPaths[0]?.exists).toBe(
-        true,
-      );
-      expect(snapshot.runtime.integrations.find((integration) => integration.id === 'context-promotion')?.installed).toBe(
-        true,
-      );
+      expect(
+        snapshot.runtime.subagents.find((subagent) => subagent.id === 'security-gate')?.installedPaths[0]?.exists,
+      ).toBe(true);
+      expect(
+        snapshot.runtime.integrations.find((integration) => integration.id === 'context-promotion')?.installed,
+      ).toBe(true);
       expect(listFiles(dir)).toEqual(beforeProject);
       expect(listFiles(userHome)).toEqual(beforeRuntime);
     } finally {

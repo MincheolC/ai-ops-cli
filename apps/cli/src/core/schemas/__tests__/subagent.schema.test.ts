@@ -54,15 +54,22 @@ describe('SubagentFrontmatterSchema', () => {
   it('Codex TOML frontmatter의 skill_names를 검증한다', () => {
     expect(
       CodexSubagentFrontmatterSchema.parse({
-        name: 'security-gate',
+        name: 'security_gate',
         description: 'Decide whether review is required.',
         model: 'gpt-5.4-mini',
         skill_names: ['spec-security-01-triage'],
       }),
     ).toMatchObject({
-      name: 'security-gate',
+      name: 'security_gate',
       skill_names: ['spec-security-01-triage'],
     });
+    expect(() =>
+      CodexSubagentFrontmatterSchema.parse({
+        name: 'security-gate',
+        description: 'Decide whether review is required.',
+        skill_names: ['spec_security_01_triage'],
+      }),
+    ).toThrow('id must be kebab-case');
   });
 });
 

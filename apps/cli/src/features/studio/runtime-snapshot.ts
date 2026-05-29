@@ -1,15 +1,43 @@
-import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-import { COMPILER_DATA_DIR } from "@/shared/paths.js";
-import { loadAllIntegrations, loadAllSkills, loadAllSubagents } from "@/shared/catalog-loader.js";
-import { CONTEXT_PROMOTION_CODEX_HOOK, PC_CODEX_HOOK, inspectCodexHook, resolveCodexHooksPath } from "../codex-hooks/core.js";
-import type { CodexHookDefinition } from "../codex-hooks/core.js";
-import { findInstalledIntegration, readIntegrationManifest, resolveIntegrationManifestPath } from "../integrations/manifest-io.js";
-import { readSkillRegistry, resolveCanonicalSkillId, resolveSkillRegistryPath } from "../skills/registry-io.js";
-import { readSubagentManifest, resolveSubagentManifestPath } from "../subagents/manifest-io.js";
-import type { IntegrationCatalogComponent, IntegrationComponent, InstalledIntegration, InstalledSkill, InstalledSubagent, Skill, StudioHookSnapshot, StudioInstalledPathState, StudioIntegrationComponentStatus, StudioIntegrationSnapshot, StudioRuntimeSnapshot, StudioSourceState, Subagent } from "@/core/schemas/index.js";
-import { buildSourceState, createMissingSourceState, createUnavailableSourceState, getErrorMessage } from "./snapshot-shared.js";
-import type { RuntimeReadResult } from "./snapshot-shared.js";
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { COMPILER_DATA_DIR } from '@/shared/paths.js';
+import { loadAllIntegrations, loadAllSkills, loadAllSubagents } from '@/shared/catalog-loader.js';
+import {
+  CONTEXT_PROMOTION_CODEX_HOOK,
+  PC_CODEX_HOOK,
+  inspectCodexHook,
+  resolveCodexHooksPath,
+} from '../codex-hooks/core.js';
+import type { CodexHookDefinition } from '../codex-hooks/core.js';
+import {
+  findInstalledIntegration,
+  readIntegrationManifest,
+  resolveIntegrationManifestPath,
+} from '../integrations/manifest-io.js';
+import { readSkillRegistry, resolveCanonicalSkillId, resolveSkillRegistryPath } from '../skills/registry-io.js';
+import { readSubagentManifest, resolveSubagentManifestPath } from '../subagents/manifest-io.js';
+import type {
+  IntegrationCatalogComponent,
+  IntegrationComponent,
+  InstalledIntegration,
+  InstalledSkill,
+  InstalledSubagent,
+  Skill,
+  StudioHookSnapshot,
+  StudioInstalledPathState,
+  StudioIntegrationComponentStatus,
+  StudioIntegrationSnapshot,
+  StudioRuntimeSnapshot,
+  StudioSourceState,
+  Subagent,
+} from '@/core/schemas/index.js';
+import {
+  buildSourceState,
+  createMissingSourceState,
+  createUnavailableSourceState,
+  getErrorMessage,
+} from './snapshot-shared.js';
+import type { RuntimeReadResult } from './snapshot-shared.js';
 
 // ----- constants -----
 
@@ -125,7 +153,8 @@ const findInstalledComponent = (
 ): IntegrationComponent | null =>
   integration?.components.find(
     (component) =>
-      component.type === catalogComponent.type && getInstalledComponentId(component) === getCatalogComponentId(catalogComponent),
+      component.type === catalogComponent.type &&
+      getInstalledComponentId(component) === getCatalogComponentId(catalogComponent),
   ) ?? null;
 
 const buildIntegrationComponentStatus = (params: {
@@ -140,7 +169,9 @@ const buildIntegrationComponentStatus = (params: {
   installedComponent: params.installedComponent,
 });
 
-const buildIntegrationSnapshots = (installedIntegrations: readonly InstalledIntegration[]): StudioIntegrationSnapshot[] => {
+const buildIntegrationSnapshots = (
+  installedIntegrations: readonly InstalledIntegration[],
+): StudioIntegrationSnapshot[] => {
   const catalog = loadAllIntegrations(INTEGRATIONS_DATA_DIR);
   return catalog.map((entry) => {
     const installedIntegration = findInstalledIntegration(installedIntegrations, entry.id);
@@ -246,6 +277,7 @@ const buildHookSnapshot = (params: {
       hooksPath: null,
       installed: false,
       error: params.unavailableReason ?? 'CODEX_HOME or HOME is required for Codex hooks.',
+      trustReviewHint: null,
     };
   }
 
@@ -261,6 +293,7 @@ const buildHookSnapshot = (params: {
       hooksPath: status.hooksPath,
       installed: status.installed,
       error: null,
+      trustReviewHint: status.trustReviewHint,
     };
   } catch (error) {
     return {
@@ -269,6 +302,7 @@ const buildHookSnapshot = (params: {
       hooksPath,
       installed: false,
       error: getErrorMessage(error),
+      trustReviewHint: null,
     };
   }
 };
