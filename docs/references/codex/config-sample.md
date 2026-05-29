@@ -1,6 +1,6 @@
 ---
 source: https://developers.openai.com/codex/config-sample
-last_fetched: 2026-05-21
+last_fetched: 2026-05-29
 ---
 
 # Sample Configuration
@@ -26,7 +26,7 @@ Use the snippet below as a reference. Copy only the keys and sections you need i
 # Notes
 # - Root keys must appear before tables in TOML.
 # - Optional keys that default to "unset" are shown commented out with notes.
-# - MCP servers, profiles, and model providers are examples; remove or edit.
+# - MCP servers, profile files, and model providers are examples; remove or edit.
 
 ################################################################################
 
@@ -314,9 +314,9 @@ check_for_update_on_startup = true
 
 web_search = "cached"
 
-# Active profile name. When unset, no profile is applied.
+# Config profiles are separate files under CODEX_HOME.
 
-# profile = "default"
+# Example: ~/.codex/ci.config.toml, selected with codex --profile ci.
 
 # Suppress the warning shown when under-development feature flags are enabled.
 
@@ -658,8 +658,6 @@ enabled = true
 
 # hooks = false
 
-# plugin_hooks = false # Default off; set true to opt into plugin-bundled hooks.
-
 # codex_git_commit = false
 
 # unified_exec = true
@@ -960,17 +958,17 @@ enabled = true
 
 ################################################################################
 
-# Profiles (named presets)
+# Config Profiles (separate files)
 
 ################################################################################
 
-[profiles]
+# To create a config profile, put overrides in a separate profile file under $CODEX_HOME.
 
-# [profiles.default]
+# Select it with codex --profile ci.
+
+# For example, a CI profile could live at $CODEX_HOME/ci.config.toml:
 
 # model = "gpt-5.4"
-
-# model_provider = "openai"
 
 # approval_policy = "on-request"
 

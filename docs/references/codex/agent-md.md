@@ -1,6 +1,6 @@
 ---
 source: https://developers.openai.com/codex/guides/agents-md
-last_fetched: 2026-05-21
+last_fetched: 2026-05-29
 ---
 
 # Custom instructions with AGENTS.md

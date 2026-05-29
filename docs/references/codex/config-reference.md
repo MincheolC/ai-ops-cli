@@ -1,6 +1,6 @@
 ---
 source: https://developers.openai.com/codex/config-reference
-last_fetched: 2026-05-21
+last_fetched: 2026-05-29
 ---
 
 # Configuration Reference
@@ -12,11 +12,15 @@ Use this page as a searchable reference for Codex configuration files. For conce
 User-level configuration lives in `~/.codex/config.toml`. You can also add project-scoped overrides in `.codex/config.toml` files. Codex loads project-scoped config files only when you trust the project.
 
 Project-scoped config can't override machine-local provider, auth,
-notification, profile, or telemetry routing keys. Codex ignores
-`openai_base_url`, `chatgpt_base_url`, `model_provider`, `model_providers`,
-`notify`, `profile`, `profiles`, `experimental_realtime_ws_base_url`, and
-`otel` when they appear in a project-local `.codex/config.toml`; put those in
-user-level config instead.
+host-owned app request metadata, notification, configuration profile selection,
+or telemetry routing keys. Codex ignores `openai_base_url`,
+`chatgpt_base_url`, `apps_mcp_product_sku`, `model_provider`,
+`model_providers`, `notify`, `profile`, `profiles`,
+`experimental_realtime_ws_base_url`, and `otel` when they appear in a
+project-local `.codex/config.toml`; put provider, notification, and telemetry
+keys in user-level config instead. Config [profile files](https://developers.openai.com/codex/config-advanced#profiles) live next to
+`config.toml` as `$CODEX_HOME/profile-name.config.toml`; select one with
+`--profile profile-name`.
 
 For sandbox and approval keys (`approval_policy`, `sandbox_mode`, and `sandbox_workspace_write.*`), pair this reference with [Sandbox and approvals](https://developers.openai.com/codex/agent-approvals-security#sandbox-and-approvals), [Protected paths in writable roots](https://developers.openai.com/codex/agent-approvals-security#protected-paths-in-writable-roots), and [Network access](https://developers.openai.com/codex/agent-approvals-security#network-access). For beta permission profiles, see [Permissions](https://developers.openai.com/codex/permissions).
 
@@ -28,7 +32,7 @@ type: "string",
 description: "Model to use (e.g., `gpt-5.5`).",
 },
 {
-key: "review*model",
+key: "review_model",
 type: "string",
 description:
 "Optional model override used by `/review` (defaults to the current session model).",
@@ -59,7 +63,7 @@ description:
 key: "model_catalog_json",
 type: "string (path)",
 description:
-"Optional path to a JSON model catalog loaded on startup. Profile-level `profiles.<name>.model_catalog_json` can override this per profile.",
+"Optional path to a JSON model catalog loaded on startup. A selected `$CODEX_HOME/profile-name.config.toml` profile file can override this per profile.",
 },
 {
 key: "oss_provider",
@@ -356,10 +360,22 @@ description:
 "Lifecycle hooks configured inline in `config.toml`. Uses the same event schema as `hooks.json`; see the Hooks guide for examples and supported events.",
 },
 {
-key: "features.plugin_hooks",
-type: "boolean",
+key: "hooks.<Event>",
+type: "array<table>",
 description:
-"Opt into lifecycle hooks bundled with enabled plugins. Off by default in this release; set to `true` to opt in.",
+"Matcher groups for hook events such as `PreToolUse`, `PermissionRequest`, `PostToolUse`, `PreCompact`, `PostCompact`, `SessionStart`, `SubagentStart`, `SubagentStop`, `UserPromptSubmit`, or `Stop`.",
+},
+{
+key: "hooks.<Event>[].hooks",
+type: "array<table>",
+description:
+"Hook handlers for a matcher group. Command hooks are currently supported; prompt and agent hook handlers are parsed but skipped.",
+},
+{
+key: "hooks.<Event>[].hooks[].commandWindows",
+type: "string",
+description:
+"Windows-only command override for command hooks. The TOML alias `command_windows` is also accepted.",
 },
 {
 key: "features.memories",
@@ -627,24 +643,24 @@ description: "Enable sandboxed networking. Defaults to `false`.",
 key: "features.network_proxy.domains",
 type: "map<string, allow | deny>",
 description:
-"Domain policy for sandboxed networking. Unset by default, which means no external destinations are allowed until you add `allow` rules. Supports exact hosts, `*.example.com`for subdomains only,`\*_.example.com`for apex plus subdomains, and global`_`allow rules; prefer scoped rules because`_`broadly opens public outbound access. Add`deny`rules for blocked destinations;`deny`wins on conflicts.",
+"Domain policy for sandboxed networking. Unset by default, which means no external destinations are allowed until you add `allow` rules. Supports exact hosts, `*.example.com` for subdomains only, `**.example.com` for apex plus subdomains, and global `*` allow rules; prefer scoped rules because `*` broadly opens public outbound access. Add `deny` rules for blocked destinations; `deny` wins on conflicts.",
 },
 {
 key: "features.network_proxy.unix_sockets",
-type: "map<string, allow | none>",
+type: "map<string, allow | deny>",
 description:
-"Unix socket policy for sandboxed networking. Unset by default; add`allow`entries for permitted sockets.",
+"Unix socket policy for sandboxed networking. Unset by default; add `allow` entries for permitted sockets.",
 },
 {
 key: "features.network_proxy.allow_local_binding",
 type: "boolean",
 description:
-"Allow broader local/private-network access. Defaults to`false`; exact local IP literal or `localhost`allow rules can still permit specific local targets.",
+"Allow broader local/private-network access. Defaults to `false`; exact local IP literal or `localhost` allow rules can still permit specific local targets.",
 },
 {
 key: "features.network_proxy.enable_socks5",
 type: "boolean",
-description: "Expose SOCKS5 support. Defaults to`true`.",
+description: "Expose SOCKS5 support. Defaults to `true`.",
 },
 {
 key: "features.network_proxy.enable_socks5_udp",
@@ -943,78 +959,6 @@ description:
 key: "project_doc_fallback_filenames",
 type: "array<string>",
 description: "Additional filenames to try when `AGENTS.md` is missing.",
-},
-{
-key: "profile",
-type: "string",
-description:
-"Default profile applied at startup (equivalent to `--profile`).",
-},
-{
-key: "profiles.<name>._",
-type: "various",
-description:
-"Profile-scoped overrides for any of the supported configuration keys.",
-},
-{
-key: "profiles.<name>.service*tier",
-type: "string",
-description: "Profile-scoped service tier preference for new turns.",
-},
-{
-key: "profiles.<name>.plan_mode_reasoning_effort",
-type: "none | minimal | low | medium | high | xhigh",
-description: "Profile-scoped Plan-mode reasoning override.",
-},
-{
-key: "profiles.<name>.web_search",
-type: "disabled | cached | live",
-description:
-'Profile-scoped web search mode override (default: `"cached"`).',
-},
-{
-key: "profiles.<name>.personality",
-type: "none | friendly | pragmatic",
-description:
-"Profile-scoped communication style override for supported models.",
-},
-{
-key: "profiles.<name>.model_catalog_json",
-type: "string (path)",
-description:
-"Profile-scoped model catalog JSON path override (applied on startup only; overrides the top-level `model_catalog_json` for that profile).",
-},
-{
-key: "profiles.<name>.model_instructions_file",
-type: "string (path)",
-description:
-"Profile-scoped replacement for the built-in instruction file.",
-},
-{
-key: "profiles.<name>.experimental_use_unified_exec_tool",
-type: "boolean",
-description:
-"Legacy name for enabling unified exec; prefer `[features].unified_exec`.",
-},
-{
-key: "profiles.<name>.oss_provider",
-type: "lmstudio | ollama",
-description: "Profile-scoped OSS provider for `--oss` sessions.",
-},
-{
-key: "profiles.<name>.tools_view_image",
-type: "boolean",
-description: "Enable or disable the `view_image` tool in that profile.",
-},
-{
-key: "profiles.<name>.analytics.enabled",
-type: "boolean",
-description: "Profile-scoped analytics enablement override.",
-},
-{
-key: "profiles.<name>.windows.sandbox",
-type: "unelevated | elevated",
-description: "Profile-scoped Windows sandbox mode override.",
 },
 {
 key: "history.persistence",
@@ -1332,7 +1276,19 @@ description:
 key: "default_permissions",
 type: "string",
 description:
-"Name of the default permissions profile to apply to sandboxed tool calls. Built-ins are `:read-only`, `:workspace`, and `:danger-full-access`; custom profile names require matching `[permissions.<name>]` tables.",
+"Name of the default permissions profile to apply to sandboxed tool calls. Built-ins are `:read-only`, `:workspace`, and `:danger-full-access`; custom profile names require matching `[permissions.<name>]` tables. Don't combine with `sandbox_mode` or `[sandbox_workspace_write]`.",
+},
+{
+key: "permissions.<name>.description",
+type: "string",
+description:
+"Human-readable description for this named profile. A profile does not inherit its parent's description through `extends`.",
+},
+{
+key: "permissions.<name>.extends",
+type: "string",
+description:
+"Optional parent profile applied before this named profile. Set it to another named profile, `:read-only`, or `:workspace`; `:danger-full-access`, undefined parents, and cycles are rejected.",
 },
 {
 key: "permissions.<name>.workspace_roots",
@@ -1368,94 +1324,94 @@ description:
 key: 'permissions.<name>.filesystem.":workspace_roots".<subpath-or-glob>',
 type: '"read" | "write" | "deny"',
 description:
-'Scoped filesystem access relative to each effective workspace root. Use `"."` for the root itself; glob subpaths such as `"\*\*/*.env"`can deny reads with`"deny"`.',
-    },
-    {
-      key: "permissions.<name>.network.enabled",
-      type: "boolean",
-      description:
-        "Enable network access for this named permissions profile. This changes the sandbox network policy; it does not start the network proxy by itself.",
-    },
-    {
-      key: "permissions.<name>.network.proxy_url",
-      type: "string",
-      description:
-        "HTTP listener URL used when this permissions profile enables sandboxed networking.",
-    },
-    {
-      key: "permissions.<name>.network.enable_socks5",
-      type: "boolean",
-      description:
-        "Expose SOCKS5 support when this permissions profile enables sandboxed networking.",
-    },
-    {
-      key: "permissions.<name>.network.socks_url",
-      type: "string",
-      description: "SOCKS5 proxy endpoint used by this permissions profile.",
-    },
-    {
-      key: "permissions.<name>.network.enable_socks5_udp",
-      type: "boolean",
-      description: "Allow UDP over the SOCKS5 listener when enabled.",
-    },
-    {
-      key: "permissions.<name>.network.allow_upstream_proxy",
-      type: "boolean",
-      description:
-        "Allow sandboxed networking to chain through another upstream proxy.",
-    },
-    {
-      key: "permissions.<name>.network.dangerously_allow_non_loopback_proxy",
-      type: "boolean",
-      description:
-        "Permit non-loopback bind addresses for sandboxed networking listeners. Enabling it can expose listeners beyond localhost.",
-    },
-    {
-      key: "permissions.<name>.network.dangerously_allow_all_unix_sockets",
-      type: "boolean",
-      description:
-        "Allow arbitrary Unix socket destinations instead of the default restricted set. Use only in tightly controlled environments.",
-    },
-    {
-      key: "permissions.<name>.network.mode",
-      type: "limited | full",
-      description: "Network proxy mode used for subprocess traffic.",
-    },
-    {
-      key: "permissions.<name>.network.domains",
-      type: "table",
-      description:
-        "Domain rules for sandboxed networking. Supports exact hosts, `_.example.com`for subdomains only,`\*\*.example.com`for apex plus subdomains, and global`_`allow rules.`deny`wins on conflicts.",
-    },
-    {
-      key: "permissions.<name>.network.domains.<pattern>",
-      type: "allow | deny",
-      description:
-        "Allow or deny an exact host or scoped wildcard pattern such as`\*.example.com`or`\*\*.example.com`.",
-    },
-    {
-      key: "permissions.<name>.network.unix_sockets",
-      type: "table",
-      description:
-        "Unix socket allowlist overrides for sandboxed networking. Use socket paths as keys; `allow`adds a path, and`none`clears an inherited allow entry.",
-    },
-    {
-      key: "permissions.<name>.network.unix_sockets.<path>",
-      type: "allow | none",
-      description:
-        "Add an absolute Unix socket path to the effective allowlist with`allow`, or clear an inherited allow entry with `none`. `none`is not a separate deny-list decision.",
-    },
-    {
-      key: "permissions.<name>.network.allow_local_binding",
-      type: "boolean",
-      description:
-        "Permit broader local/private-network access through sandboxed networking. Exact local IP literal or`localhost`allow rules can still permit specific local targets when this stays`false`.",
-    },
-    {
-      key: "projects.<path>.trust_level",
-      type: "string",
-      description:
-        'Mark a project or worktree as trusted or untrusted (`"trusted"`|`"untrusted"`). Untrusted projects skip project-scoped `.codex/` layers, including project-local config, hooks, and rules.',
+'Scoped filesystem access relative to each effective workspace root. Use `"."` for the root itself; glob subpaths such as `"**/*.env"` can deny reads with `"deny"`.',
+},
+{
+key: "permissions.<name>.network.enabled",
+type: "boolean",
+description:
+"Enable network access for this named permissions profile. This changes the sandbox network policy; it does not start the network proxy by itself.",
+},
+{
+key: "permissions.<name>.network.proxy_url",
+type: "string",
+description:
+"HTTP listener URL used when this permissions profile enables sandboxed networking.",
+},
+{
+key: "permissions.<name>.network.enable_socks5",
+type: "boolean",
+description:
+"Expose SOCKS5 support when this permissions profile enables sandboxed networking.",
+},
+{
+key: "permissions.<name>.network.socks_url",
+type: "string",
+description: "SOCKS5 proxy endpoint used by this permissions profile.",
+},
+{
+key: "permissions.<name>.network.enable_socks5_udp",
+type: "boolean",
+description: "Allow UDP over the SOCKS5 listener when enabled.",
+},
+{
+key: "permissions.<name>.network.allow_upstream_proxy",
+type: "boolean",
+description:
+"Allow sandboxed networking to chain through another upstream proxy.",
+},
+{
+key: "permissions.<name>.network.dangerously_allow_non_loopback_proxy",
+type: "boolean",
+description:
+"Permit non-loopback bind addresses for sandboxed networking listeners. Enabling it can expose listeners beyond localhost.",
+},
+{
+key: "permissions.<name>.network.dangerously_allow_all_unix_sockets",
+type: "boolean",
+description:
+"Allow arbitrary Unix socket destinations instead of the default restricted set. Use only in tightly controlled environments.",
+},
+{
+key: "permissions.<name>.network.mode",
+type: "limited | full",
+description: "Network proxy mode used for subprocess traffic.",
+},
+{
+key: "permissions.<name>.network.domains",
+type: "table",
+description:
+"Domain rules for sandboxed networking. Supports exact hosts, `*.example.com` for subdomains only, `**.example.com` for apex plus subdomains, and global `*` allow rules. `deny` wins on conflicts.",
+},
+{
+key: "permissions.<name>.network.domains.<pattern>",
+type: "allow | deny",
+description:
+"Allow or deny an exact host or scoped wildcard pattern such as `*.example.com` or `**.example.com`.",
+},
+{
+key: "permissions.<name>.network.unix_sockets",
+type: "table",
+description:
+"Unix socket allowlist overrides for sandboxed networking. Use socket paths as keys; `allow` adds a path, and `deny` rejects it.",
+},
+{
+key: "permissions.<name>.network.unix_sockets.<path>",
+type: "allow | deny",
+description:
+"Add an absolute Unix socket path to the effective allowlist with `allow`, or reject it with `deny`. Denied entries are omitted from the effective allowlist.",
+},
+{
+key: "permissions.<name>.network.allow_local_binding",
+type: "boolean",
+description:
+"Permit broader local/private-network access through sandboxed networking. Exact local IP literal or `localhost` allow rules can still permit specific local targets when this stays `false`.",
+},
+{
+key: "projects.<path>.trust_level",
+type: "string",
+description:
+'Mark a project or worktree as trusted or untrusted (`"trusted"` | `"untrusted"`). Untrusted projects skip project-scoped `.codex/` layers, including project-local config, hooks, and rules.',
 },
 {
 key: "notice.hide_full_access_warning",
@@ -1573,6 +1529,18 @@ description:
 "Allowed values for `web_search` (`disabled`, `cached`, `live`). `disabled` is always allowed; an empty list effectively allows only `disabled`.",
 },
 {
+key: "allow_managed_hooks_only",
+type: "boolean",
+description:
+"When `true`, Codex skips user, project, session, and plugin hooks while still allowing managed hooks from `requirements.toml` and other managed config layers.",
+},
+{
+key: "plugin_sharing",
+type: "boolean",
+description:
+"Set to `false` in cloud-managed `requirements.toml` to disable workspace sharing for locally built plugins.",
+},
+{
 key: "features",
 type: "table",
 description:
@@ -1670,7 +1638,7 @@ description:
 },
 {
 key: "experimental_network.unix_sockets",
-type: "map<string, allow | none>",
+type: "map<string, allow | deny>",
 description:
 "Administrator-managed Unix socket policy for sandboxed networking.",
 },
@@ -1702,13 +1670,19 @@ description:
 key: "hooks.<Event>",
 type: "array<table>",
 description:
-"Matcher groups for a hook event such as `PreToolUse`, `PermissionRequest`, `PostToolUse`, `SessionStart`, `UserPromptSubmit`, or `Stop`.",
+"Matcher groups for a hook event such as `PreToolUse`, `PermissionRequest`, `PostToolUse`, `PreCompact`, `PostCompact`, `SessionStart`, `SubagentStart`, `SubagentStop`, `UserPromptSubmit`, or `Stop`.",
 },
 {
 key: "hooks.<Event>[].hooks",
 type: "array<table>",
 description:
 "Hook handlers for a matcher group. Command hooks are currently supported; prompt and agent hook handlers are parsed but skipped.",
+},
+{
+key: "hooks.<Event>[].hooks[].commandWindows",
+type: "string",
+description:
+"Windows-only command override for command hooks. The TOML alias `command_windows` is also accepted.",
 },
 {
 key: "permissions.filesystem.deny_read",

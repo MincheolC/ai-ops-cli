@@ -97,7 +97,7 @@ flowchart LR
 
 `docs/agent/project-rules/*.md`를 사용합니다. 이 디렉터리의 Markdown은 유효한 operating-layer frontmatter가 있으면 project-owned context 문서로 발견됩니다. `ai-ops update`, `diff`, `audit`는 이를 `.ai-ops/manifest.json`, `.ai-ops/context-layer.json`, `docs/docs-status.md`에 반영하고 forced update에서도 내용을 보존합니다.
 
-이 repo의 `docs/references/codex/`는 ai-ops-cli 개발을 위한 local reference 자료입니다. 다른 project operating layer로 패키징하거나 설치하지 않습니다.
+이 repo의 `docs/references/codex/`는 ai-ops-cli 개발을 위한 local reference 자료입니다. Codex configuration, permissions/sandbox, hooks, skills, rules, `AGENTS.md`, subagents, non-interactive `codex exec`, best-practice 지침을 다룹니다. 다른 project operating layer로 패키징하거나 설치하지 않습니다.
 
 ## ai-ops Integrations
 
@@ -140,7 +140,7 @@ ai-ops codex-permissions status safe-local
 ai-ops codex-permissions uninstall safe-local
 ```
 
-`safe-local`은 `~/.codex/config.toml`에 `ai-ops-safe-local` user-level Codex permission profile을 upsert합니다. `~/.personal-project-contexts`, `${AI_OPS_HOME:-$HOME}/.ai-ops/context-promotion`, active project root 아래 `.codex/plans`에는 write를 허용하고 `.git`은 read-only로 둡니다. Env 파일 보호는 하나의 TOML syntax를 전역 정답으로 가정하지 않고, generated profile을 installed Codex runtime으로 검증한 뒤 처음 통과한 Codex-compatible env-file protection rule을 설치합니다. Codex validation을 실행할 수 없으면 warning과 함께 portable compatibility syntax를 쓰고, Codex가 있지만 어떤 candidate도 통과하지 못하면 `config.toml`을 쓰지 않고 fail closed합니다. `PermissionRequest` hook이나 command allow rule은 설치하지 않습니다.
+`safe-local`은 `~/.codex/config.toml`에 `ai-ops-safe-local` user-level Codex permission profile을 upsert합니다. `~/.personal-project-contexts`, `${AI_OPS_HOME:-$HOME}/.ai-ops/context-promotion`, active workspace root 아래 `.codex/plans`에는 write를 허용하고 `.git`은 read-only로 둡니다. 현재 Codex permission syntax인 `:workspace_roots`와 `deny` env-file carveout을 먼저 시도하고, generated profile을 installed Codex runtime으로 검증한 뒤 처음 통과한 Codex-compatible syntax를 설치합니다. Codex validation을 실행할 수 없으면 warning과 함께 portable compatibility syntax를 쓰고, Codex가 있지만 어떤 candidate도 통과하지 못하면 `config.toml`을 쓰지 않고 fail closed합니다. `PermissionRequest` hook이나 command allow rule은 설치하지 않습니다.
 
 ai-coding worker에서는 Codex subprocess를 run-scoped로 실행하고, commit/push/PR 생성은 orchestrator가 담당하게 합니다.
 
@@ -152,10 +152,13 @@ codex exec --ignore-user-config --ignore-rules --cd "$WORKTREE" \
 codex exec --ignore-user-config --ignore-rules --cd "$WORKTREE" \
   -c 'approval_policy="never"' \
   -c 'default_permissions="ai-worker-impl"' \
+  -c 'permissions.ai-worker-impl.filesystem.glob_scan_max_depth=3' \
   -c 'permissions.ai-worker-impl.filesystem.":minimal"="read"' \
-  -c 'permissions.ai-worker-impl.filesystem.":project_roots"."."="write"' \
-  -c 'permissions.ai-worker-impl.filesystem.":project_roots".".git"="read"' \
-  -c 'permissions.ai-worker-impl.filesystem.":project_roots".".codex/plans"="write"' \
+  -c 'permissions.ai-worker-impl.filesystem.":workspace_roots"."."="write"' \
+  -c 'permissions.ai-worker-impl.filesystem.":workspace_roots".".git"="read"' \
+  -c 'permissions.ai-worker-impl.filesystem.":workspace_roots".".codex"="read"' \
+  -c 'permissions.ai-worker-impl.filesystem.":workspace_roots".".codex/plans"="write"' \
+  -c 'permissions.ai-worker-impl.filesystem.":workspace_roots"."**/*.env"="deny"' \
   -c 'permissions.ai-worker-impl.network.enabled=false'
 ```
 

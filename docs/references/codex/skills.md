@@ -1,6 +1,6 @@
 ---
 source: https://developers.openai.com/codex/skills
-last_fetched: 2026-05-21
+last_fetched: 2026-05-29
 ---
 
 # Agent Skills

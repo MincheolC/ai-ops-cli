@@ -97,7 +97,7 @@ Project knowledge belongs in project-owned documents. The default project-owned 
 
 Use `docs/agent/project-rules/*.md`. Files in this directory are project-owned context documents when they have valid operating-layer frontmatter. `ai-ops update`, `diff`, and `audit` discover them, track them in `.ai-ops/manifest.json`, `.ai-ops/context-layer.json`, and `docs/docs-status.md`, and preserve their content across forced updates.
 
-`docs/references/codex/` in this repo is local reference material for ai-ops-cli development. It is not packaged or installed into other project operating layers.
+`docs/references/codex/` in this repo is local reference material for ai-ops-cli development. It covers Codex configuration, permissions and sandboxing, hooks, skills, rules, `AGENTS.md`, subagents, non-interactive `codex exec`, and best-practice guidance. It is not packaged or installed into other project operating layers.
 
 ## ai-ops Integrations
 
@@ -140,7 +140,7 @@ ai-ops codex-permissions status safe-local
 ai-ops codex-permissions uninstall safe-local
 ```
 
-`safe-local` upserts a user-level Codex permission profile named `ai-ops-safe-local` in `~/.codex/config.toml`. It grants write access to `~/.personal-project-contexts`, `${AI_OPS_HOME:-$HOME}/.ai-ops/context-promotion`, and `.codex/plans` under active project roots while keeping `.git` read-only. It installs Codex-compatible env-file protection rules by validating the generated profile against the installed Codex runtime and choosing the first accepted syntax. If Codex validation is unavailable, it uses a portable compatibility syntax with a warning; if Codex is available but no candidate validates, it fails closed without writing `config.toml`. It does not install `PermissionRequest` hooks or command allow rules.
+`safe-local` upserts a user-level Codex permission profile named `ai-ops-safe-local` in `~/.codex/config.toml`. It grants write access to `~/.personal-project-contexts`, `${AI_OPS_HOME:-$HOME}/.ai-ops/context-promotion`, and `.codex/plans` under active workspace roots while keeping `.git` read-only. It prefers the current Codex permission syntax (`:workspace_roots` plus `deny` env-file carveouts), validates the generated profile against the installed Codex runtime, and chooses the first accepted syntax. If Codex validation is unavailable, it uses a portable compatibility syntax with a warning; if Codex is available but no candidate validates, it fails closed without writing `config.toml`. It does not install `PermissionRequest` hooks or command allow rules.
 
 For an ai-coding worker, keep Codex subprocesses run-scoped and let the orchestrator own commits, pushes, and PR creation:
 
@@ -152,10 +152,13 @@ codex exec --ignore-user-config --ignore-rules --cd "$WORKTREE" \
 codex exec --ignore-user-config --ignore-rules --cd "$WORKTREE" \
   -c 'approval_policy="never"' \
   -c 'default_permissions="ai-worker-impl"' \
+  -c 'permissions.ai-worker-impl.filesystem.glob_scan_max_depth=3' \
   -c 'permissions.ai-worker-impl.filesystem.":minimal"="read"' \
-  -c 'permissions.ai-worker-impl.filesystem.":project_roots"."."="write"' \
-  -c 'permissions.ai-worker-impl.filesystem.":project_roots".".git"="read"' \
-  -c 'permissions.ai-worker-impl.filesystem.":project_roots".".codex/plans"="write"' \
+  -c 'permissions.ai-worker-impl.filesystem.":workspace_roots"."."="write"' \
+  -c 'permissions.ai-worker-impl.filesystem.":workspace_roots".".git"="read"' \
+  -c 'permissions.ai-worker-impl.filesystem.":workspace_roots".".codex"="read"' \
+  -c 'permissions.ai-worker-impl.filesystem.":workspace_roots".".codex/plans"="write"' \
+  -c 'permissions.ai-worker-impl.filesystem.":workspace_roots"."**/*.env"="deny"' \
   -c 'permissions.ai-worker-impl.network.enabled=false'
 ```
 

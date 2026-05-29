@@ -61,7 +61,7 @@
     },
     {
       "path": "docs/agent/project-rules/routing-rules.md",
-      "templateHash": "7292e0",
+      "templateHash": "5cf5c6",
       "created": false
     },
     {
@@ -84,5 +84,5 @@
   "settings": {},
   "sourceHash": "c2028f",
   "cliVersion": "1.5.7",
-  "generatedAt": "2026-05-29T07:29:39.393Z"
+  "generatedAt": "2026-05-29T10:05:25.578Z"
 }

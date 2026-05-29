@@ -1,6 +1,6 @@
 ---
 source: https://developers.openai.com/codex/permissions
-last_fetched: 2026-05-21
+last_fetched: 2026-05-29
 ---
 
 # Permissions
@@ -113,12 +113,46 @@ Inside an active profile, narrower deny rules stay in force even when a broader
 path is readable or writable. For example, a profile can make workspace roots
 writable while still setting a matching `.env` path to `deny`.
 
+## Extend a profile
+
+Use `extends` when a profile is mostly the same as a built-in or another named
+profile. Prefer extending a built-in profile over starting from scratch so
+baseline protections carry forward. Extending `:workspace`, for example, keeps
+the workspace root's `.codex` directory read-only unless you explicitly
+override it. Set the parent once, then add or override only the rules that
+differ.
+
+```toml
+default_permissions = "project-edit"
+
+[permissions.project-edit]
+description = "Project editing with OpenAI API access."
+extends = ":workspace"
+
+[permissions.project-edit.filesystem.":workspace_roots"]
+"**/*.env" = "deny"
+
+[permissions.project-edit.network]
+enabled = true
+
+[permissions.project-edit.network.domains]
+"api.openai.com" = "allow"
+```
+
+This profile starts with `:workspace`, keeps matching `.env` files denied, and
+allows requests to `api.openai.com`. A profile can extend `:read-only`,
+`:workspace`, or another named profile. It cannot extend
+`:danger-full-access`; Codex also rejects unknown parents and inheritance
+cycles.
+
 ## Configuration spec
 
 | Entry                                                             | Type / values              | Default                 | Details                                                                                                                                                                                                                                                                                        |
 | ----------------------------------------------------------------- | -------------------------- | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `default_permissions`                                             | String profile name        | None                    | Names the permissions profile Codex applies by default. The value must match a profile under `[permissions]` or a built-in profile such as `:workspace`. Required when permission profiles are active. If an older sandbox setting is active, Codex uses those older sandbox settings instead. |
 | `[permissions.<name>]`                                            | Table                      | None                    | Defines a profile and its identifier. `default_permissions` selects one profile as the default; other permission-profile selectors also use the profile name.                                                                                                                                  |
+| `permissions.<name>.description`                                  | String                     | None                    | Provides a human-readable description for the profile. A profile does not inherit its parent's description through `extends`.                                                                                                                                                                  |
+| `permissions.<name>.extends`                                      | String profile name        | None                    | Starts this profile from another named profile or the built-in `:read-only` or `:workspace` profile. Codex rejects `:danger-full-access`, unknown parents, and inheritance cycles.                                                                                                             |
 | `[permissions.<name>.workspace_roots]`                            | Table                      | None                    | Adds profile-defined workspace roots that receive `:workspace_roots` filesystem rules alongside the current session's runtime workspace roots.                                                                                                                                                 |
 | `permissions.<name>.workspace_roots."<path>"`                     | Boolean                    | `false`                 | Adds the path to the profile's workspace root set when `true`. Entries set to `false` remain inactive.                                                                                                                                                                                         |
 | `[permissions.<name>.filesystem]`                                 | Table                      | None                    | Maps filesystem paths to access values or scoped subpath maps. Missing or empty filesystem tables keep filesystem access restricted and emit a startup warning.                                                                                                                                |
@@ -130,7 +164,7 @@ writable while still setting a matching `.env` path to `deny`.
 | `[permissions.<name>.network.domains]`                            | Table                      | None                    | Maps host patterns to `allow` or `deny`. If there are no `allow` entries, domain requests are blocked. Deny entries override allow entries.                                                                                                                                                    |
 | `permissions.<name>.network.domains."<pattern>"`                  | `allow` or `deny`          | None                    | Supports exact hosts, `*.example.com` for subdomains, `**.example.com` for apex plus subdomains, and `*` as an allow-only global wildcard. Host patterns are normalized by trimming, lowercasing, stripping a trailing dot, and stripping simple ports or brackets.                            |
 | `[permissions.<name>.network.unix_sockets]`                       | Table                      | None                    | Maps Unix socket allowlist overrides. Use only for local integrations such as Docker.                                                                                                                                                                                                          |
-| `permissions.<name>.network.unix_sockets."<path>"`                | `allow` or `none`          | None                    | Adds an absolute Unix socket path to the effective allowlist with `allow`, or clears an inherited allow entry with `none`. `none` is not a separate deny-list decision.                                                                                                                        |
+| `permissions.<name>.network.unix_sockets."<path>"`                | `allow` or `deny`          | None                    | Adds an absolute Unix socket path to the effective allowlist with `allow`, or rejects it with `deny`. Denied entries are omitted from the effective allowlist.                                                                                                                                 |
 | `permissions.<name>.network.proxy_url`                            | URL string                 | `http://127.0.0.1:3128` | HTTP proxy listener used for `HTTP_PROXY`, `HTTPS_PROXY`, websocket proxy variables, and related tool proxy environment variables.                                                                                                                                                             |
 | `permissions.<name>.network.enable_socks5`                        | Boolean                    | `true`                  | Enables the SOCKS5 listener used for `ALL_PROXY` and FTP proxy variables.                                                                                                                                                                                                                      |
 | `permissions.<name>.network.socks_url`                            | URL string                 | `http://127.0.0.1:8081` | SOCKS5 listener address.                                                                                                                                                                                                                                                                       |
@@ -337,11 +371,11 @@ sparingly:
 ```toml
 [permissions.project-edit.network.unix_sockets]
 "/var/run/docker.sock" = "allow"
-"/tmp/old.sock" = "none"
+"/tmp/old.sock" = "deny"
 ```
 
-Use `none` to clear a socket allow entry inherited from a lower-precedence
-configuration layer. It is not a domain-style deny rule.
+Use `deny` to reject a socket path, including an inherited allow entry. Denied
+socket paths are omitted from the effective allowlist.
 
 When Unix sockets are enabled, keep proxy listeners bound to loopback addresses.
 

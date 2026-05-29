@@ -1,6 +1,6 @@
 ---
 source: https://developers.openai.com/codex/config-basic
-last_fetched: 2026-05-21
+last_fetched: 2026-05-29
 ---
 
 # Config basics
@@ -24,13 +24,13 @@ The CLI and IDE extension share the same configuration layers. You can use them 
 Codex resolves values in this order (highest precedence first):
 
 1. CLI flags and `--config` overrides
-2. [Profile](https://developers.openai.com/codex/config-advanced#profiles) values (from `--profile <name>`)
-3. Project config files: `.codex/config.toml`, ordered from the project root down to your current working directory (closest wins; trusted projects only)
+2. Project config files: `.codex/config.toml`, ordered from the project root down to your current working directory (closest wins; trusted projects only)
+3. [Profile](https://developers.openai.com/codex/config-advanced#profiles) files selected with `--profile profile-name` (`~/.codex/profile-name.config.toml`)
 4. User config: `~/.codex/config.toml`
 5. System config (if present): `/etc/codex/config.toml` on Unix
 6. Built-in defaults
 
-Use that precedence to set shared defaults at the top level and keep profiles focused on the values that differ.
+Use that precedence to set shared defaults in `config.toml` and keep [profile files](https://developers.openai.com/codex/config-advanced#profiles) focused on the values that differ.
 
 If you mark a project as untrusted, Codex skips project-scoped `.codex/` layers, including project-local config, hooks, and rules. User and system config still load, including user/global hooks and rules.
 
@@ -169,23 +169,22 @@ shell_snapshot = true           # Speed up repeated commands
 
 ### Supported features
 
-| Key                  |        Default        | Maturity          | Description                                                                                                                 |
-| -------------------- | :-------------------: | ----------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `apps`               |         false         | Experimental      | Enable ChatGPT Apps/connectors support                                                                                      |
-| `codex_git_commit`   |         false         | Experimental      | Enable Codex-generated git commits and commit attribution trailers                                                          |
-| `hooks`              |         true          | Stable            | Enable lifecycle hooks from `hooks.json` or inline `[hooks]`. See [Hooks](https://developers.openai.com/codex/hooks).       |
-| `plugin_hooks`       |         false         | Under development | Opt into lifecycle hooks bundled with plugins. See [Hooks](https://developers.openai.com/codex/hooks#plugin-bundled-hooks). |
-| `fast_mode`          |         true          | Stable            | Enable Fast mode selection and the `service_tier = "fast"` path                                                             |
-| `memories`           |         false         | Stable            | Enable [Memories](https://developers.openai.com/codex/memories)                                                             |
-| `multi_agent`        |         true          | Stable            | Enable subagent collaboration tools                                                                                         |
-| `personality`        |         true          | Stable            | Enable personality selection controls                                                                                       |
-| `shell_snapshot`     |         true          | Stable            | Snapshot your shell environment to speed up repeated commands                                                               |
-| `shell_tool`         |         true          | Stable            | Enable the default `shell` tool                                                                                             |
-| `unified_exec`       | `true` except Windows | Stable            | Use the unified PTY-backed exec tool                                                                                        |
-| `undo`               |         false         | Stable            | Enable undo via per-turn git ghost snapshots                                                                                |
-| `web_search`         |         true          | Deprecated        | Legacy toggle; prefer the top-level `web_search` setting                                                                    |
-| `web_search_cached`  |         false         | Deprecated        | Legacy toggle that maps to `web_search = "cached"` when unset                                                               |
-| `web_search_request` |         false         | Deprecated        | Legacy toggle that maps to `web_search = "live"` when unset                                                                 |
+| Key                  |        Default        | Maturity     | Description                                                                                                           |
+| -------------------- | :-------------------: | ------------ | --------------------------------------------------------------------------------------------------------------------- |
+| `apps`               |         false         | Experimental | Enable ChatGPT Apps/connectors support                                                                                |
+| `codex_git_commit`   |         false         | Experimental | Enable Codex-generated git commits and commit attribution trailers                                                    |
+| `hooks`              |         true          | Stable       | Enable lifecycle hooks from `hooks.json` or inline `[hooks]`. See [Hooks](https://developers.openai.com/codex/hooks). |
+| `fast_mode`          |         true          | Stable       | Enable Fast mode selection and the `service_tier = "fast"` path                                                       |
+| `memories`           |         false         | Stable       | Enable [Memories](https://developers.openai.com/codex/memories)                                                       |
+| `multi_agent`        |         true          | Stable       | Enable subagent collaboration tools                                                                                   |
+| `personality`        |         true          | Stable       | Enable personality selection controls                                                                                 |
+| `shell_snapshot`     |         true          | Stable       | Snapshot your shell environment to speed up repeated commands                                                         |
+| `shell_tool`         |         true          | Stable       | Enable the default `shell` tool                                                                                       |
+| `unified_exec`       | `true` except Windows | Stable       | Use the unified PTY-backed exec tool                                                                                  |
+| `undo`               |         false         | Stable       | Enable undo via per-turn git ghost snapshots                                                                          |
+| `web_search`         |         true          | Deprecated   | Legacy toggle; prefer the top-level `web_search` setting                                                              |
+| `web_search_cached`  |         false         | Deprecated   | Legacy toggle that maps to `web_search = "cached"` when unset                                                         |
+| `web_search_request` |         false         | Deprecated   | Legacy toggle that maps to `web_search = "live"` when unset                                                           |
 
 The Maturity column uses feature maturity labels such as Experimental, Beta,
 and Stable. See [Feature Maturity](https://developers.openai.com/codex/feature-maturity) for how to

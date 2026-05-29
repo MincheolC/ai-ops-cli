@@ -52,10 +52,13 @@ describe('documentation contracts', () => {
       expect(raw).toContain('approval_policy="never"');
       expect(raw).toContain('default_permissions=":read-only"');
       expect(raw).toContain('default_permissions="ai-worker-impl"');
-      expect(raw).toContain('":project_roots"');
-      expect(raw).toContain('Codex-compatible');
+      expect(raw).toContain('":workspace_roots"');
+      expect(raw).toContain('"**/*.env"="deny"');
+      expect(raw).toContain('glob_scan_max_depth');
+      expect(raw).toContain('Codex permission syntax');
       expect(raw).toContain('installed Codex runtime');
       expect(raw).toContain('.codex/plans');
+      expect(raw).toContain('.codex');
       expect(raw).toContain('.git');
       expect(raw).toContain('orchestrator');
     }

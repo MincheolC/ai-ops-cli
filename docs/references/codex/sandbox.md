@@ -1,6 +1,6 @@
 ---
 source: https://developers.openai.com/codex/concepts/sandboxing
-last_fetched: 2026-05-21
+last_fetched: 2026-05-29
 ---
 
 # Sandbox

@@ -12,6 +12,6 @@ update_when:
 
 ## Codex 작업
 
-- Codex config, permissions, hooks, skills, agents, sandbox 관련 작업은 `docs/references/codex/`의 관련 문서를 먼저 확인한다.
+- Codex config, permissions, hooks, skills, rules/`AGENTS.md`, subagents/custom agents, non-interactive `codex exec`, best practices, sandbox 관련 작업은 `docs/references/codex/`의 관련 문서를 먼저 확인한다.
 - `docs/references/codex/`는 이 repo 전용 reference 자료이며, 패키징/설치 대상 operating-layer template으로 취급하지 않는다.
 - reference 문서와 현재 설치된 Codex 동작이 어긋나면 실제 로컬 `codex` 동작을 재현/검증한 결과를 우선한다.
