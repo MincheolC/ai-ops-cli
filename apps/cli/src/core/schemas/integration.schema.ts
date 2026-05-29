@@ -2,22 +2,39 @@ import { z } from 'zod';
 import { SkillToolSchema } from './skill.schema.js';
 
 export const INTEGRATION_ID = {
+  CODE_REVIEW_GATE: 'code-review-gate',
   CONTEXT_PROMOTION: 'context-promotion',
   PC: 'pc',
 } as const;
 
 export const INTEGRATION_COMPONENT_TYPE = {
   SKILL: 'skill',
+  SUBAGENT: 'subagent',
   CODEX_HOOK: 'codex-hook',
   RECEIPT_CONFIG: 'receipt-config',
 } as const;
 
-export const IntegrationIdSchema = z.union([z.literal(INTEGRATION_ID.CONTEXT_PROMOTION), z.literal(INTEGRATION_ID.PC)]);
+export const IntegrationIdSchema = z.union([
+  z.literal(INTEGRATION_ID.CODE_REVIEW_GATE),
+  z.literal(INTEGRATION_ID.CONTEXT_PROMOTION),
+  z.literal(INTEGRATION_ID.PC),
+]);
+
+const ComponentIdSchema = z.string().regex(/^[a-z0-9]+(-[a-z0-9]+)*$/);
 
 const IntegrationSkillComponentSchema = z
   .object({
     type: z.literal(INTEGRATION_COMPONENT_TYPE.SKILL),
-    id: z.string().regex(/^[a-z0-9]+(-[a-z0-9]+)*$/),
+    id: ComponentIdSchema,
+    tools: z.array(SkillToolSchema).min(1),
+    owned: z.boolean(),
+  })
+  .strict();
+
+const IntegrationSubagentComponentSchema = z
+  .object({
+    type: z.literal(INTEGRATION_COMPONENT_TYPE.SUBAGENT),
+    id: ComponentIdSchema,
     tools: z.array(SkillToolSchema).min(1),
     owned: z.boolean(),
   })
@@ -44,6 +61,7 @@ const IntegrationReceiptConfigComponentSchema = z
 
 export const IntegrationComponentSchema = z.union([
   IntegrationSkillComponentSchema,
+  IntegrationSubagentComponentSchema,
   IntegrationCodexHookComponentSchema,
   IntegrationReceiptConfigComponentSchema,
 ]);

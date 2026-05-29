@@ -1,0 +1,6 @@
+interface:
+  display_name: 'code-review-security'
+  short_description: 'Review auth, ownership, secret, PII, and permission risks.'
+  default_prompt: '$code-review-security를 사용해 security finding 후보만 정리하세요.'
+policy:
+  allow_implicit_invocation: false

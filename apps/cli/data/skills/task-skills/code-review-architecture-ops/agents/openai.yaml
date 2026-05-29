@@ -1,0 +1,6 @@
+interface:
+  display_name: 'code-review-architecture-ops'
+  short_description: 'Review architecture, migration, rollout, performance, and observability risks.'
+  default_prompt: '$code-review-architecture-ops를 사용해 architecture/ops finding 후보만 정리하세요.'
+policy:
+  allow_implicit_invocation: false

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { INTEGRATION_COMPONENT_TYPE, IntegrationIdSchema } from './integration.schema.js';
+import { SkillToolSchema } from './skill.schema.js';
 
 const ComponentIdSchema = z.string().regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, 'component id must be kebab-case');
 
@@ -7,7 +8,15 @@ export const IntegrationCatalogSkillComponentSchema = z
   .object({
     type: z.literal(INTEGRATION_COMPONENT_TYPE.SKILL),
     id: ComponentIdSchema,
-    tools: z.array(z.literal('codex')).min(1),
+    tools: z.array(SkillToolSchema).min(1),
+  })
+  .strict();
+
+export const IntegrationCatalogSubagentComponentSchema = z
+  .object({
+    type: z.literal(INTEGRATION_COMPONENT_TYPE.SUBAGENT),
+    id: ComponentIdSchema,
+    tools: z.array(SkillToolSchema).min(1),
   })
   .strict();
 
@@ -28,6 +37,7 @@ export const IntegrationCatalogReceiptConfigComponentSchema = z
 
 export const IntegrationCatalogComponentSchema = z.union([
   IntegrationCatalogSkillComponentSchema,
+  IntegrationCatalogSubagentComponentSchema,
   IntegrationCatalogCodexHookComponentSchema,
   IntegrationCatalogReceiptConfigComponentSchema,
 ]);
@@ -38,36 +48,7 @@ export const IntegrationCatalogEntrySchema = z
     description: z.string().min(1),
     components: z.array(IntegrationCatalogComponentSchema).min(1),
   })
-  .strict()
-  .superRefine((entry, ctx) => {
-    const hasSkill = entry.components.some((component) => component.type === INTEGRATION_COMPONENT_TYPE.SKILL);
-    const hasCodexHook = entry.components.some((component) => component.type === INTEGRATION_COMPONENT_TYPE.CODEX_HOOK);
-    const hasReceiptConfig = entry.components.some(
-      (component) => component.type === INTEGRATION_COMPONENT_TYPE.RECEIPT_CONFIG,
-    );
-
-    if (!hasSkill) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['components'],
-        message: `integration must declare a skill component: ${entry.id}`,
-      });
-    }
-    if (!hasCodexHook) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['components'],
-        message: `integration must declare a codex-hook component: ${entry.id}`,
-      });
-    }
-    if (!hasReceiptConfig) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['components'],
-        message: `integration must declare a receipt-config component: ${entry.id}`,
-      });
-    }
-  });
+  .strict();
 
 export const IntegrationCatalogSchema = z
   .object({

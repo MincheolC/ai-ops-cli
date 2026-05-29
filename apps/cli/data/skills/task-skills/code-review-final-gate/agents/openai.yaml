@@ -1,0 +1,6 @@
+interface:
+  display_name: 'code-review-final-gate'
+  short_description: 'Dedupe explicit review findings and format the final review response.'
+  default_prompt: '$code-review-final-gate를 사용해 finding을 dedupe하고 최종 리뷰 형식으로 정리하세요.'
+policy:
+  allow_implicit_invocation: false

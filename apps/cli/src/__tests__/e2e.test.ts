@@ -589,6 +589,193 @@ describe.skipIf(!distExists)('subagent subprocess', () => {
 });
 
 describe.skipIf(!distExists)('integration subprocess', () => {
+  it('code-review-gate install/status/diff/update/uninstall is hookless and Codex-only', () => {
+    const { dir, cleanup } = setup();
+    const userHome = mkdtempSync(join(tmpdir(), 'ai-ops-home-'));
+    const env = { ...process.env, AI_OPS_HOME: userHome };
+    delete env.HOME;
+    delete env.CODEX_HOME;
+    try {
+      const installResult = spawnSync(process.execPath, [BIN_PATH, 'integration', 'install', 'code-review-gate'], {
+        cwd: dir,
+        encoding: 'utf-8',
+        env,
+      });
+
+      expect(installResult.status).toBe(0);
+      expect(installResult.stdout).toContain('integration 설치 완료: code-review-gate');
+      expect(installResult.stdout).not.toContain('hook trust');
+      expect(existsSync(join(userHome, '.agents/skills/code-review-scope-map/SKILL.md'))).toBe(true);
+      expect(existsSync(join(userHome, '.agents/skills/code-review-final-gate/SKILL.md'))).toBe(true);
+      expect(existsSync(join(userHome, '.codex/agents/code-review-gate.toml'))).toBe(true);
+      expect(existsSync(join(userHome, '.codex/hooks.json'))).toBe(false);
+      expect(readFileSync(join(userHome, '.ai-ops/integrations-manifest.json'), 'utf-8')).toContain(
+        '"id": "code-review-gate"',
+      );
+      expect(readFileSync(join(userHome, '.ai-ops/integrations-manifest.json'), 'utf-8')).toContain(
+        '"type": "subagent"',
+      );
+      expect(readFileSync(join(userHome, '.ai-ops/integrations-manifest.json'), 'utf-8')).not.toContain(
+        '"type": "codex-hook"',
+      );
+      expect(readFileSync(join(userHome, '.ai-ops/integrations-manifest.json'), 'utf-8')).not.toContain(
+        '"type": "receipt-config"',
+      );
+      expect(existsSync(join(dir, '.agents'))).toBe(false);
+      expect(existsSync(join(dir, '.codex'))).toBe(false);
+      expect(existsSync(join(dir, '.ai-ops'))).toBe(false);
+
+      const statusResult = spawnSync(process.execPath, [BIN_PATH, 'integration', 'status', 'code-review-gate'], {
+        cwd: dir,
+        encoding: 'utf-8',
+        env,
+      });
+      expect(statusResult.status).toBe(0);
+      expect(statusResult.stdout).toContain('integration installed: yes');
+      expect(statusResult.stdout).toContain('skill installed: yes');
+      expect(statusResult.stdout).toContain('subagent installed: yes');
+      expect(statusResult.stdout).toContain('hook installed: n/a');
+      expect(statusResult.stdout).toContain('hooks file: n/a');
+
+      const diffResult = spawnSync(process.execPath, [BIN_PATH, 'integration', 'diff', 'code-review-gate'], {
+        cwd: dir,
+        encoding: 'utf-8',
+        env,
+      });
+      expect(diffResult.status).toBe(0);
+      expect(diffResult.stdout).toContain('skill:code-review-scope-map: up-to-date');
+      expect(diffResult.stdout).toContain('subagent:code-review-gate: up-to-date');
+
+      const updateResult = spawnSync(process.execPath, [BIN_PATH, 'integration', 'update', 'code-review-gate'], {
+        cwd: dir,
+        encoding: 'utf-8',
+        env,
+      });
+      expect(updateResult.status).toBe(0);
+      expect(existsSync(join(userHome, '.codex/agents/code-review-gate.toml'))).toBe(true);
+      expect(existsSync(join(userHome, '.codex/hooks.json'))).toBe(false);
+
+      const uninstallResult = spawnSync(process.execPath, [BIN_PATH, 'integration', 'uninstall', 'code-review-gate'], {
+        cwd: dir,
+        encoding: 'utf-8',
+        env,
+      });
+      expect(uninstallResult.status).toBe(0);
+      expect(existsSync(join(userHome, '.agents/skills/code-review-scope-map/SKILL.md'))).toBe(false);
+      expect(existsSync(join(userHome, '.codex/agents/code-review-gate.toml'))).toBe(false);
+      expect(existsSync(join(userHome, '.ai-ops/integrations-manifest.json'))).toBe(false);
+    } finally {
+      rmSync(userHome, { recursive: true, force: true });
+      cleanup();
+    }
+  });
+
+  it('code-review-gate update preserves pre-existing stale skills and status reports installed state only', () => {
+    const { dir, cleanup } = setup();
+    const userHome = mkdtempSync(join(tmpdir(), 'ai-ops-home-'));
+    const env = { ...process.env, AI_OPS_HOME: userHome };
+    delete env.HOME;
+    delete env.CODEX_HOME;
+    const integrationManifestPath = join(userHome, '.ai-ops/integrations-manifest.json');
+    const skillManifestPath = join(userHome, '.ai-ops/skills-manifest.json');
+    const scopeMapSkillPath = join(userHome, '.agents/skills/code-review-scope-map/SKILL.md');
+    type IntegrationManifestForTest = {
+      integrations: {
+        id: string;
+        components: { type: string; id: string; owned: boolean }[];
+      }[];
+    };
+    type SkillManifestForTest = {
+      skills: { id: string; sourceHash: string }[];
+      cliVersion?: string;
+      generatedAt: string;
+    };
+    const readScopeMapIntegrationComponent = (): { type: string; id: string; owned: boolean } | undefined => {
+      const manifest = JSON.parse(readFileSync(integrationManifestPath, 'utf-8')) as IntegrationManifestForTest;
+      return manifest.integrations
+        .find((integration) => integration.id === 'code-review-gate')
+        ?.components.find((component) => component.type === 'skill' && component.id === 'code-review-scope-map');
+    };
+    try {
+      const skillInstallResult = spawnSync(
+        process.execPath,
+        [BIN_PATH, 'skill', 'install', 'code-review-scope-map', '--tool', 'codex'],
+        {
+          cwd: dir,
+          encoding: 'utf-8',
+          env,
+        },
+      );
+      expect(skillInstallResult.status).toBe(0);
+
+      const integrationInstallResult = spawnSync(
+        process.execPath,
+        [BIN_PATH, 'integration', 'install', 'code-review-gate'],
+        {
+          cwd: dir,
+          encoding: 'utf-8',
+          env,
+        },
+      );
+      expect(integrationInstallResult.status).toBe(0);
+      expect(readScopeMapIntegrationComponent()?.owned).toBe(false);
+
+      writeFileSync(scopeMapSkillPath, 'manual stale skill\n', 'utf-8');
+      const skillManifest = JSON.parse(readFileSync(skillManifestPath, 'utf-8')) as SkillManifestForTest;
+      writeFileSync(
+        skillManifestPath,
+        JSON.stringify(
+          {
+            ...skillManifest,
+            skills: skillManifest.skills.map((skill) =>
+              skill.id === 'code-review-scope-map' ? { ...skill, sourceHash: '000000' } : skill,
+            ),
+          },
+          null,
+          2,
+        ) + '\n',
+        'utf-8',
+      );
+
+      const statusResult = spawnSync(process.execPath, [BIN_PATH, 'integration', 'status', 'code-review-gate'], {
+        cwd: dir,
+        encoding: 'utf-8',
+        env,
+      });
+      expect(statusResult.status).toBe(0);
+      expect(statusResult.stdout).toContain('skill installed: yes');
+      expect(statusResult.stdout).toContain('skill:code-review-scope-map installed: yes');
+
+      const diffResult = spawnSync(process.execPath, [BIN_PATH, 'integration', 'diff', 'code-review-gate'], {
+        cwd: dir,
+        encoding: 'utf-8',
+        env,
+      });
+      expect(diffResult.status).toBe(0);
+      expect(diffResult.stdout).toContain('skill:code-review-scope-map: changed');
+
+      const updateResult = spawnSync(process.execPath, [BIN_PATH, 'integration', 'update', 'code-review-gate'], {
+        cwd: dir,
+        encoding: 'utf-8',
+        env,
+      });
+      expect(updateResult.status).toBe(0);
+      expect(readScopeMapIntegrationComponent()?.owned).toBe(false);
+      expect(readFileSync(scopeMapSkillPath, 'utf-8')).toBe('manual stale skill\n');
+
+      const uninstallResult = spawnSync(process.execPath, [BIN_PATH, 'integration', 'uninstall', 'code-review-gate'], {
+        cwd: dir,
+        encoding: 'utf-8',
+        env,
+      });
+      expect(uninstallResult.status).toBe(0);
+      expect(existsSync(scopeMapSkillPath)).toBe(true);
+    } finally {
+      rmSync(userHome, { recursive: true, force: true });
+      cleanup();
+    }
+  });
+
   it('pc install/status/uninstall manages the skill, Codex hook, and integration manifest', () => {
     const { dir, cleanup } = setup();
     const userHome = mkdtempSync(join(tmpdir(), 'ai-ops-home-'));

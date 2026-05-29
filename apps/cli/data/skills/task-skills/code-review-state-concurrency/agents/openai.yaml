@@ -1,0 +1,6 @@
+interface:
+  display_name: 'code-review-state-concurrency'
+  short_description: 'Review async, retry, idempotency, transaction, and stale-state defects.'
+  default_prompt: '$code-review-state-concurrency를 사용해 state/concurrency finding 후보만 정리하세요.'
+policy:
+  allow_implicit_invocation: false

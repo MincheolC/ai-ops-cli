@@ -10,14 +10,29 @@ export type IntegrationInstallOptions = {
   commandWindows?: string;
 };
 
+type IntegrationSkillCatalogComponent = Extract<
+  IntegrationCatalogComponent,
+  { type: typeof INTEGRATION_COMPONENT_TYPE.SKILL }
+>;
+type IntegrationSubagentCatalogComponent = Extract<
+  IntegrationCatalogComponent,
+  { type: typeof INTEGRATION_COMPONENT_TYPE.SUBAGENT }
+>;
+type IntegrationHookCatalogComponent = Extract<
+  IntegrationCatalogComponent,
+  { type: typeof INTEGRATION_COMPONENT_TYPE.CODEX_HOOK }
+>;
+type IntegrationReceiptConfigCatalogComponent = Extract<
+  IntegrationCatalogComponent,
+  { type: typeof INTEGRATION_COMPONENT_TYPE.RECEIPT_CONFIG }
+>;
+
 export type IntegrationDefinition = IntegrationCatalogEntry & {
-  skillComponent: Extract<IntegrationCatalogComponent, { type: typeof INTEGRATION_COMPONENT_TYPE.SKILL }>;
-  hookComponent: Extract<IntegrationCatalogComponent, { type: typeof INTEGRATION_COMPONENT_TYPE.CODEX_HOOK }>;
-  receiptConfigComponents: Extract<
-    IntegrationCatalogComponent,
-    { type: typeof INTEGRATION_COMPONENT_TYPE.RECEIPT_CONFIG }
-  >[];
-  hookDefinition: CodexHookDefinition;
+  skillComponents: IntegrationSkillCatalogComponent[];
+  subagentComponents: IntegrationSubagentCatalogComponent[];
+  hookComponents: IntegrationHookCatalogComponent[];
+  receiptConfigComponents: IntegrationReceiptConfigCatalogComponent[];
+  hookDefinitions: CodexHookDefinition[];
 };
 
 export { resolvePersonalContextRoot } from '../../shared/command-paths.js';
@@ -44,21 +59,23 @@ const resolveCodexHookDefinition = (hookId: IntegrationId): CodexHookDefinition 
   return hookDefinition;
 };
 
-const resolveCatalogSkillComponent = (entry: IntegrationCatalogEntry): IntegrationDefinition['skillComponent'] => {
-  const component = entry.components.find((candidate) => candidate.type === INTEGRATION_COMPONENT_TYPE.SKILL);
-  if (!component || component.type !== INTEGRATION_COMPONENT_TYPE.SKILL) {
-    throw new Error(`Integration catalog entry must declare a skill component: ${entry.id}`);
-  }
-  return component;
-};
+const resolveCatalogSkillComponents = (entry: IntegrationCatalogEntry): IntegrationDefinition['skillComponents'] =>
+  entry.components.filter(
+    (component): component is IntegrationDefinition['skillComponents'][number] =>
+      component.type === INTEGRATION_COMPONENT_TYPE.SKILL,
+  );
 
-const resolveCatalogHookComponent = (entry: IntegrationCatalogEntry): IntegrationDefinition['hookComponent'] => {
-  const component = entry.components.find((candidate) => candidate.type === INTEGRATION_COMPONENT_TYPE.CODEX_HOOK);
-  if (!component || component.type !== INTEGRATION_COMPONENT_TYPE.CODEX_HOOK) {
-    throw new Error(`Integration catalog entry must declare a codex-hook component: ${entry.id}`);
-  }
-  return component;
-};
+const resolveCatalogSubagentComponents = (entry: IntegrationCatalogEntry): IntegrationDefinition['subagentComponents'] =>
+  entry.components.filter(
+    (component): component is IntegrationDefinition['subagentComponents'][number] =>
+      component.type === INTEGRATION_COMPONENT_TYPE.SUBAGENT,
+  );
+
+const resolveCatalogHookComponents = (entry: IntegrationCatalogEntry): IntegrationDefinition['hookComponents'] =>
+  entry.components.filter(
+    (component): component is IntegrationDefinition['hookComponents'][number] =>
+      component.type === INTEGRATION_COMPONENT_TYPE.CODEX_HOOK,
+  );
 
 const resolveCatalogReceiptConfigComponents = (
   entry: IntegrationCatalogEntry,
@@ -70,13 +87,14 @@ const resolveCatalogReceiptConfigComponents = (
 
 export const loadIntegrationDefinitions = (): IntegrationDefinition[] =>
   loadAllIntegrations(resolveIntegrationsDir()).map((entry) => {
-    const hookComponent = resolveCatalogHookComponent(entry);
+    const hookComponents = resolveCatalogHookComponents(entry);
     return {
       ...entry,
-      skillComponent: resolveCatalogSkillComponent(entry),
-      hookComponent,
+      skillComponents: resolveCatalogSkillComponents(entry),
+      subagentComponents: resolveCatalogSubagentComponents(entry),
+      hookComponents,
       receiptConfigComponents: resolveCatalogReceiptConfigComponents(entry),
-      hookDefinition: resolveCodexHookDefinition(hookComponent.id),
+      hookDefinitions: hookComponents.map((component) => resolveCodexHookDefinition(component.id)),
     };
   });
 

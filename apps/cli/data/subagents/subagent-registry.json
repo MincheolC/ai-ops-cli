@@ -1,6 +1,11 @@
 {
   "subagents": [
     {
+      "id": "code-review-gate",
+      "supported_tools": ["codex"],
+      "source_path": "code-review-gate"
+    },
+    {
       "id": "security-gate",
       "supported_tools": ["claude-code", "codex", "gemini"],
       "source_path": "security-gate"

@@ -1,6 +1,52 @@
 {
   "integrations": [
     {
+      "id": "code-review-gate",
+      "description": "Codex explicit-only code review gate integration",
+      "components": [
+        {
+          "type": "skill",
+          "id": "code-review-scope-map",
+          "tools": ["codex"]
+        },
+        {
+          "type": "skill",
+          "id": "code-review-correctness",
+          "tools": ["codex"]
+        },
+        {
+          "type": "skill",
+          "id": "code-review-security",
+          "tools": ["codex"]
+        },
+        {
+          "type": "skill",
+          "id": "code-review-state-concurrency",
+          "tools": ["codex"]
+        },
+        {
+          "type": "skill",
+          "id": "code-review-test-quality",
+          "tools": ["codex"]
+        },
+        {
+          "type": "skill",
+          "id": "code-review-architecture-ops",
+          "tools": ["codex"]
+        },
+        {
+          "type": "skill",
+          "id": "code-review-final-gate",
+          "tools": ["codex"]
+        },
+        {
+          "type": "subagent",
+          "id": "code-review-gate",
+          "tools": ["codex"]
+        }
+      ]
+    },
+    {
       "id": "context-promotion",
       "description": "Codex git-commit 후 context promotion review receipt를 요구하는 integration",
       "components": [

@@ -1,0 +1,6 @@
+interface:
+  display_name: 'code-review-scope-map'
+  short_description: 'Normalize an explicit review request into a concrete target and evidence surface.'
+  default_prompt: '$code-review-scope-map을 사용해 review target과 포함/제외 surface를 정리하세요.'
+policy:
+  allow_implicit_invocation: false

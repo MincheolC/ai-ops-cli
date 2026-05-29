@@ -1,10 +1,12 @@
 import type { Command } from 'commander';
 import {
+  integrationDiffCommand,
   integrationInstallCommand,
   integrationListCommand,
   integrationPostToolUseHookCommand,
   integrationStatusCommand,
   integrationUninstallCommand,
+  integrationUpdateCommand,
 } from './commands.js';
 
 export const registerIntegrationCommands = (program: Command): void => {
@@ -26,6 +28,18 @@ export const registerIntegrationCommands = (program: Command): void => {
     .command('status <integrationId>')
     .description('integration 설치 상태 확인')
     .action((integrationId) => integrationStatusCommand(integrationId));
+  command
+    .command('diff <integrationId>')
+    .description('integration 설치 상태와 catalog source 비교')
+    .action((integrationId) => integrationDiffCommand(integrationId));
+  command
+    .command('update <integrationId>')
+    .description('설치된 integration component 갱신')
+    .option('--command <command>', 'Codex hook에 저장할 실행 명령')
+    .option('--command-windows <command>', 'Windows에서 사용할 Codex hook 실행 명령')
+    .action((integrationId, opts: { command?: string; commandWindows?: string }) =>
+      integrationUpdateCommand(integrationId, opts),
+    );
   command
     .command('uninstall <integrationId>')
     .description('integration 제거')

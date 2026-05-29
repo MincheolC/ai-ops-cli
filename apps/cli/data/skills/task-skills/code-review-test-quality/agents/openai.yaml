@@ -1,0 +1,6 @@
+interface:
+  display_name: 'code-review-test-quality'
+  short_description: 'Review missing, weak, or misleading tests.'
+  default_prompt: '$code-review-test-quality를 사용해 test-quality finding 후보만 정리하세요.'
+policy:
+  allow_implicit_invocation: false

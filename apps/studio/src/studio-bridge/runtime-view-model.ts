@@ -2,7 +2,7 @@ import { isRecord, type StudioSnapshotEnvelope } from './studio-snapshot';
 
 // ----- types -----
 
-export const RUNTIME_COMPONENT_TYPES = ['skill', 'codex-hook', 'receipt-config'] as const;
+export const RUNTIME_COMPONENT_TYPES = ['skill', 'subagent', 'codex-hook', 'receipt-config'] as const;
 
 export type RuntimeComponentType = (typeof RUNTIME_COMPONENT_TYPES)[number];
 

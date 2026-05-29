@@ -445,7 +445,11 @@ update_when:
       const snapshot = buildSnapshotForTest({ dir, userHome, codexHome });
 
       expect(snapshot.runtime.available).toBe(true);
-      expect(snapshot.runtime.integrations.map((integration) => integration.id)).toEqual(['context-promotion', 'pc']);
+      expect(snapshot.runtime.integrations.map((integration) => integration.id)).toEqual([
+        'code-review-gate',
+        'context-promotion',
+        'pc',
+      ]);
       expect(snapshot.runtime.integrations.every((integration) => integration.installed === false)).toBe(true);
       expect(snapshot.runtime.skills.length).toBeGreaterThan(0);
       expect(snapshot.runtime.skills.every((skill) => skill.installed === false)).toBe(true);

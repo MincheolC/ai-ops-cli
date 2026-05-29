@@ -63,10 +63,14 @@ describe('loadSubagentCatalog', () => {
 });
 
 describe('loadAllSubagents', () => {
-  it('실제 data/subagents의 초기 subagent 2개를 로드한다', () => {
+  it('실제 data/subagents의 초기 subagent 3개를 로드한다', () => {
     const subagents = loadAllSubagents(resolve(dataDir, 'subagents'));
 
-    expect(subagents.map((subagent) => subagent.id)).toEqual(['security-gate', 'security-reviewer']);
+    expect(subagents.map((subagent) => subagent.id)).toEqual([
+      'code-review-gate',
+      'security-gate',
+      'security-reviewer',
+    ]);
   });
 
   it('필수 source 파일을 읽고 도구별 frontmatter를 검증한다', () => {

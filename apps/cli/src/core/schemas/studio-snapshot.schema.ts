@@ -104,6 +104,7 @@ export const StudioIntegrationComponentStatusSchema = z
   .object({
     type: z.union([
       z.literal(INTEGRATION_COMPONENT_TYPE.SKILL),
+      z.literal(INTEGRATION_COMPONENT_TYPE.SUBAGENT),
       z.literal(INTEGRATION_COMPONENT_TYPE.CODEX_HOOK),
       z.literal(INTEGRATION_COMPONENT_TYPE.RECEIPT_CONFIG),
     ]),

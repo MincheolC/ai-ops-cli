@@ -1,0 +1,6 @@
+interface:
+  display_name: 'code-review-correctness'
+  short_description: 'Review requirement, behavior, compatibility, and edge-case defects.'
+  default_prompt: '$code-review-correctness를 사용해 correctness finding 후보만 정리하세요.'
+policy:
+  allow_implicit_invocation: false

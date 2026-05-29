@@ -119,14 +119,19 @@ Integration lifecycle commands:
 
 ```bash
 ai-ops integration list
+ai-ops integration install code-review-gate
 ai-ops integration install context-promotion
 ai-ops integration install pc
+ai-ops integration diff code-review-gate
+ai-ops integration update code-review-gate
 ai-ops integration status pc
 ai-ops integration uninstall pc
 ai-ops pc status
 ai-ops pc done draft --cwd /path/to/product-repo
 ai-ops pc done apply --draft /path/to/draft.json
 ```
+
+`code-review-gate` installs a Codex-only, explicit-only review subagent plus focused review task skills. It does not install Codex hooks or receipt config, so install/status/diff/update/uninstall do not require `CODEX_HOME`.
 
 `context-promotion` installs the `context-promotion-review` Codex skill, a shared Codex `PostToolUse` hook workflow, and user-local receipt workflow for reusable operating knowledge review after `git commit`.
 
