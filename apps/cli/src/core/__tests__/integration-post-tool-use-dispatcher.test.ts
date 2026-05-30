@@ -112,6 +112,7 @@ describe('integration PostToolUse dispatcher', () => {
       expect(output?.decision).toBe('block');
       const reason = output?.reason ?? '';
       expect(reason).toContain('ai-ops pc done draft --from-hook --cwd');
+      expect(reason).toContain('ai-ops pc done fill --draft <draft-path>');
     } finally {
       rmSync(contextRoot, { recursive: true, force: true });
       cleanup();

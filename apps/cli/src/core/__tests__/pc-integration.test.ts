@@ -151,6 +151,7 @@ describe('pc integration preflight', () => {
       expect(output?.reason).toContain('$pc:done');
       expect(output?.reason).toContain('Do not create or initialize a new pc context');
       expect(output?.reason).toContain('ai-ops pc done draft --from-hook --cwd');
+      expect(output?.reason).toContain('ai-ops pc done fill --draft <draft-path>');
       expect(output?.reason).toContain('Do not create temporary JS scripts');
       expect(output?.reason).toContain('already records this HEAD as the last confirmed commit');
       expect(output?.reason).toContain(contextRoot);

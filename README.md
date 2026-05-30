@@ -127,12 +127,13 @@ ai-ops integration status pc
 ai-ops integration uninstall pc
 ai-ops pc status
 ai-ops pc done draft --cwd /path/to/product-repo
+ai-ops pc done fill --draft /path/to/draft.json --completed "..." --verification "..." --remaining "..." --next-action "..." --next-action-evidence "..." --apply
 ai-ops pc done apply --draft /path/to/draft.json
 ```
 
 `code-review-gate` installs a Codex-only, explicit-only review subagent plus focused review task skills. It does not install Codex hooks or receipt config, so install/status/diff/update/uninstall do not require `CODEX_HOME`.
 
-`pc` installs the `pc` Codex skill and a shared Codex `PostToolUse` hook runner. After a successful `git commit`, the hook asks Codex to continue into `$pc:done` only when `~/.personal-project-contexts/` already has a matching workspace, active workstream, and current repo scope. It does not create pc context for unprepared repositories. Handoff writes use `ai-ops pc done draft` -> AI fills JSON -> `ai-ops pc done apply`, so `ai-ops` owns context file updates and the context repo commit. Codex still requires non-managed hooks to be reviewed and trusted through `/hooks` before they run.
+`pc` installs the `pc` Codex skill and a shared Codex `PostToolUse` hook runner. After a successful `git commit`, the hook asks Codex to continue into `$pc:done` only when `~/.personal-project-contexts/` already has a matching workspace, active workstream, and current repo scope. It does not create pc context for unprepared repositories. Handoff writes use `ai-ops pc done draft` -> `ai-ops pc done fill --apply`, so `ai-ops` owns draft updates, context file updates, and the context repo commit without requiring Codex to patch-edit the draft JSON directly. Codex still requires non-managed hooks to be reviewed and trusted through `/hooks` before they run.
 
 Codex safe permissions can reduce repeated approval prompts for the narrow user-local work used by `pc`:
 

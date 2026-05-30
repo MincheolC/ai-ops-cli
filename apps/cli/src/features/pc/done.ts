@@ -4,6 +4,7 @@ import { normalizePath } from './markdown.js';
 import { getPcHandoffStatus, readGitHead, resolveGitRoot } from './status.js';
 import {
   assertFilledPcDoneDraft,
+  normalizePcDoneDraft,
   parsePcDoneDraft,
   PC_DONE_DRAFT_SCHEMA_VERSION,
   type PcDoneDraft,
@@ -18,11 +19,28 @@ import {
   buildPcDoneContextFileUpdates,
   buildPcDoneDraftMarkerUpdate,
 } from './done-markdown.logic.js';
-import { assertInside, assertProductHeadMatchesDraft, assertStatusMatchesDraft, pathsEqual } from './done-preflight.logic.js';
-import type { ApplyContext, ApplyPcDoneDraftResult, ContextFileContents, CreatePcDoneDraftResult } from './done-types.js';
+import {
+  assertInside,
+  assertProductHeadMatchesDraft,
+  assertStatusMatchesDraft,
+  pathsEqual,
+} from './done-preflight.logic.js';
+import type {
+  ApplyContext,
+  ApplyPcDoneDraftResult,
+  ContextFileContents,
+  CreatePcDoneDraftResult,
+  FillPcDoneDraftInput,
+  FillPcDoneDraftResult,
+} from './done-types.js';
 
 export { PC_DONE_DRAFT_SCHEMA_VERSION, type PcDoneDraft };
-export type { ApplyPcDoneDraftResult, CreatePcDoneDraftResult } from './done-types.js';
+export type {
+  ApplyPcDoneDraftResult,
+  CreatePcDoneDraftResult,
+  FillPcDoneDraftInput,
+  FillPcDoneDraftResult,
+} from './done-types.js';
 
 const ensureTrailingNewline = (content: string): string => `${content.trimEnd()}\n`;
 
@@ -62,6 +80,27 @@ const writePcDoneUpdates = (updates: readonly { readonly path: string; readonly 
     writeIfChanged(update.path, update.content);
   }
 };
+
+const hasFillInput = (input: FillPcDoneDraftInput): boolean =>
+  input.completed !== undefined ||
+  input.verification !== undefined ||
+  input.remaining !== undefined ||
+  input.nextAction !== undefined ||
+  input.nextActionEvidence !== undefined ||
+  input.blockers !== undefined ||
+  input.durableContextDelta !== undefined;
+
+const mergePcDoneDraftFillInput = (draft: PcDoneDraft, input: FillPcDoneDraftInput): PcDoneDraft =>
+  normalizePcDoneDraft({
+    ...draft,
+    ...(input.completed !== undefined ? { completed: [...input.completed] } : {}),
+    ...(input.verification !== undefined ? { verification: [...input.verification] } : {}),
+    ...(input.remaining !== undefined ? { remaining: [...input.remaining] } : {}),
+    ...(input.nextAction !== undefined ? { nextAction: input.nextAction } : {}),
+    ...(input.nextActionEvidence !== undefined ? { nextActionEvidence: input.nextActionEvidence } : {}),
+    ...(input.blockers !== undefined ? { blockers: [...input.blockers] } : {}),
+    ...(input.durableContextDelta !== undefined ? { durableContextDelta: input.durableContextDelta } : {}),
+  });
 
 export const createPcDoneDraft = (params: {
   cwd: string;
@@ -121,10 +160,32 @@ export const readPcDoneDraft = (draftPath: string): PcDoneDraft => {
   return parsePcDoneDraft(parsed);
 };
 
-export const applyPcDoneDraft = (params: {
+export const fillPcDoneDraft = (params: {
   draftPath: string;
   contextRoot: string;
-}): ApplyPcDoneDraftResult => {
+  input: FillPcDoneDraftInput;
+}): FillPcDoneDraftResult => {
+  const contextRoot = normalizePath(params.contextRoot);
+  const draftPath = normalizePath(params.draftPath);
+  assertInside({ parent: contextRoot, child: draftPath, label: 'draft path' });
+  if (!hasFillInput(params.input)) {
+    throw new Error('at least one draft field is required');
+  }
+
+  const draft = readPcDoneDraft(draftPath);
+  if (draft.appliedAt) {
+    throw new Error('draft is already applied');
+  }
+  if (normalizePath(draft.contextRoot) !== contextRoot) {
+    throw new Error(`context root mismatch: draft=${draft.contextRoot}, current=${contextRoot}`);
+  }
+
+  const nextDraft = mergePcDoneDraftFillInput(draft, params.input);
+  const changed = writeIfChanged(draftPath, JSON.stringify(nextDraft, null, 2));
+  return { draftPath, changed, draft: nextDraft };
+};
+
+export const applyPcDoneDraft = (params: { draftPath: string; contextRoot: string }): ApplyPcDoneDraftResult => {
   const contextRoot = normalizePath(params.contextRoot);
   const draftPath = normalizePath(params.draftPath);
   assertInside({ parent: contextRoot, child: draftPath, label: 'draft path' });

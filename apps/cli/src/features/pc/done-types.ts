@@ -5,6 +5,22 @@ export type CreatePcDoneDraftResult = {
   draft: PcDoneDraft;
 };
 
+export type FillPcDoneDraftInput = {
+  completed?: readonly string[];
+  verification?: readonly string[];
+  remaining?: readonly string[];
+  nextAction?: string;
+  nextActionEvidence?: string;
+  blockers?: readonly string[];
+  durableContextDelta?: string | null;
+};
+
+export type FillPcDoneDraftResult = {
+  draftPath: string;
+  changed: boolean;
+  draft: PcDoneDraft;
+};
+
 export type ApplyPcDoneDraftResult = {
   contextRoot: string;
   changedFiles: string[];

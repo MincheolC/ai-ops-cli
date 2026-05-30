@@ -92,7 +92,7 @@ Integration catalog source는 `apps/cli/data/integrations/integration-registry.j
 현재 integration:
 
 - `code-review-gate`: Codex-only, explicit-only code review subagent와 focused review task skill들을 설치한다. Codex hook이나 receipt config는 설치하지 않으므로 `CODEX_HOME` 없이 install/status/diff/update/uninstall이 가능하다.
-- `pc`: `pc` Codex skill과 같은 shared Codex `PostToolUse` hook runner를 묶어 성공적인 `git commit` 직후 `$pc:done` handoff 누락을 방지한다. hook은 `~/.personal-project-contexts/`에 matching workspace, active workstream, current repo scope가 준비된 경우에만 prompt를 내며, handoff 반영은 `ai-ops pc done draft` -> AI draft 작성 -> `ai-ops pc done apply` 순서로 처리한다.
+- `pc`: `pc` Codex skill과 같은 shared Codex `PostToolUse` hook runner를 묶어 성공적인 `git commit` 직후 `$pc:done` handoff 누락을 방지한다. hook은 `~/.personal-project-contexts/`에 matching workspace, active workstream, current repo scope가 준비된 경우에만 prompt를 내며, handoff 반영은 `ai-ops pc done draft` -> `ai-ops pc done fill --apply` 순서로 처리한다.
 
 Integration 설치 소유권은 user/global runtime home의 `.ai-ops/integrations-manifest.json`에 기록한다. Uninstall은 integration이 소유한 component만 제거하고 기존 수동 설치는 보존한다.
 
@@ -257,10 +257,11 @@ ai-ops integration uninstall pc
 ```bash
 ai-ops pc status
 ai-ops pc done draft --cwd /path/to/product-repo
+ai-ops pc done fill --draft /path/to/draft.json --completed "..." --verification "..." --remaining "..." --next-action "..." --next-action-evidence "..." --apply
 ai-ops pc done apply --draft /path/to/draft.json
 ```
 
-CLI는 LLM을 호출하지 않는다. Codex가 draft JSON의 AI 작성 필드를 채우고, `apply`가 schema/path/status/HEAD를 검증한 뒤 `~/.personal-project-contexts/`의 허용 context 파일만 갱신하고 context repo에서만 commit한다.
+CLI는 LLM을 호출하지 않는다. Codex가 AI 작성 필드를 `fill` 명령 인자로 제공하고, `apply`가 schema/path/status/HEAD를 검증한 뒤 `~/.personal-project-contexts/`의 허용 context 파일만 갱신하고 context repo에서만 commit한다.
 
 ## Deprecated old model
 

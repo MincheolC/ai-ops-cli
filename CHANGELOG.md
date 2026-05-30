@@ -5,6 +5,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- `feat(pc)`: add `ai-ops pc done fill --apply` so `$pc:done` handoff fields can be supplied through the CLI instead of direct draft JSON patch edits.
+
 ### Fixed
 
 - `fix(codex-permissions)`: `safe-local` no longer installs the removed `:project_roots` filesystem token and rewrites managed profiles to the documented `:workspace_roots` syntax.

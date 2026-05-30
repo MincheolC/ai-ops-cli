@@ -1,6 +1,7 @@
 import * as p from '@clack/prompts';
 import { resolveBasePath, resolvePersonalContextRoot } from '@/shared/command-paths.js';
-import { applyPcDoneDraft, createPcDoneDraft } from './done.js';
+import { applyPcDoneDraft, createPcDoneDraft, fillPcDoneDraft } from './done.js';
+import type { FillPcDoneDraftInput } from './done.js';
 import { getPcHandoffStatus, readGitHead, resolveGitRoot } from './status.js';
 
 export type PcStatusOptions = {
@@ -16,6 +17,19 @@ export type PcDoneApplyOptions = {
   draft?: string;
 };
 
+export type PcDoneFillOptions = {
+  draft?: string;
+  completed?: string[];
+  verification?: string[];
+  remaining?: string[];
+  nextAction?: string;
+  nextActionEvidence?: string;
+  blocker?: string[];
+  durableContextDelta?: string;
+  clearDurableContextDelta?: boolean;
+  apply?: boolean;
+};
+
 const reportPcError = (error: unknown): void => {
   const message = error instanceof Error ? error.message : 'unknown error';
   p.log.error(message);
@@ -23,6 +37,38 @@ const reportPcError = (error: unknown): void => {
 };
 
 const resolveCommandCwd = (cwd: string | undefined): string => cwd ?? resolveBasePath();
+
+const normalizeOptionList = (values: readonly string[] | undefined): string[] | undefined => {
+  if (values === undefined) {
+    return undefined;
+  }
+  return values.map((value) => value.trim()).filter((value) => value.length > 0);
+};
+
+const listInput = (values: readonly string[] | undefined): string[] | undefined => {
+  const normalized = normalizeOptionList(values);
+  return normalized && normalized.length > 0 ? normalized : undefined;
+};
+
+const buildFillInput = (opts: PcDoneFillOptions): FillPcDoneDraftInput => {
+  const completed = listInput(opts.completed);
+  const verification = listInput(opts.verification);
+  const remaining = listInput(opts.remaining);
+  const blockers = listInput(opts.blocker);
+  return {
+    ...(completed !== undefined ? { completed } : {}),
+    ...(verification !== undefined ? { verification } : {}),
+    ...(remaining !== undefined ? { remaining } : {}),
+    ...(opts.nextAction !== undefined ? { nextAction: opts.nextAction } : {}),
+    ...(opts.nextActionEvidence !== undefined ? { nextActionEvidence: opts.nextActionEvidence } : {}),
+    ...(blockers !== undefined ? { blockers } : {}),
+    ...(opts.clearDurableContextDelta
+      ? { durableContextDelta: null }
+      : opts.durableContextDelta !== undefined
+        ? { durableContextDelta: opts.durableContextDelta }
+        : {}),
+  };
+};
 
 export const pcStatusCommand = async (opts: PcStatusOptions = {}): Promise<void> => {
   p.intro('ai-ops pc status');
@@ -66,15 +112,53 @@ export const pcDoneDraftCommand = async (opts: PcDoneDraftOptions = {}): Promise
     p.log.info(
       [
         'AI fill protocol:',
-        '1. Open the draft JSON and fill completed, verification, remaining, nextAction, nextActionEvidence, blockers, and durableContextDelta only when durable context changed.',
-        '2. Do not create temporary JS scripts to edit ~/.personal-project-contexts directly.',
-        `3. Apply with: ai-ops pc done apply --draft ${result.draftPath}`,
+        '1. Fill the AI fields with ai-ops pc done fill --draft <draft-path>.',
+        '2. Do not edit the draft JSON directly when the CLI fill command can express the handoff.',
+        `3. Apply with: ai-ops pc done fill --draft ${result.draftPath} --apply ...`,
       ].join('\n'),
     );
   } catch (error) {
     reportPcError(error);
   }
   p.outro('ai-ops pc done draft 완료');
+};
+
+export const pcDoneFillCommand = async (opts: PcDoneFillOptions): Promise<void> => {
+  p.intro('ai-ops pc done fill');
+  try {
+    if (!opts.draft) {
+      throw new Error('--draft <draft-path> is required');
+    }
+    const contextRoot = resolvePersonalContextRoot();
+    const fillResult = fillPcDoneDraft({
+      draftPath: opts.draft,
+      contextRoot,
+      input: buildFillInput(opts),
+    });
+    p.log.success(`draft filled: ${fillResult.draftPath}`);
+    p.log.info(`changed: ${fillResult.changed ? 'yes' : 'no'}`);
+
+    if (opts.apply) {
+      const applyResult = applyPcDoneDraft({
+        draftPath: opts.draft,
+        contextRoot,
+      });
+      if (applyResult.committed) {
+        p.log.success(`context commit created: ${applyResult.commitHash ?? 'unknown'}`);
+      } else {
+        p.log.info('변경 없음: 같은 product HEAD handoff가 이미 반영되어 있습니다.');
+      }
+      p.log.info(
+        [
+          `context root: ${applyResult.contextRoot}`,
+          `changed files: ${applyResult.changedFiles.length > 0 ? applyResult.changedFiles.join(', ') : 'none'}`,
+        ].join('\n'),
+      );
+    }
+  } catch (error) {
+    reportPcError(error);
+  }
+  p.outro('ai-ops pc done fill 완료');
 };
 
 export const pcDoneApplyCommand = async (opts: PcDoneApplyOptions): Promise<void> => {

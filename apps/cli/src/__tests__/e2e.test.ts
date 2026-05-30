@@ -949,7 +949,7 @@ describe.skipIf(!distExists)('pc subprocess', () => {
     );
   };
 
-  it('runs pc done draft -> filled JSON -> apply through the built CLI', () => {
+  it('runs pc done draft -> fill --apply through the built CLI', () => {
     const product = setupGitRepo();
     const userHome = mkdtempSync(join(tmpdir(), 'pc-home-'));
     const contextRoot = join(userHome, '.personal-project-contexts');
@@ -979,35 +979,38 @@ describe.skipIf(!distExists)('pc subprocess', () => {
       expect(draftResult.status).toBe(0);
       const draftPath = /draft created:\s+(\S+pc-done-\S+\.json)/u.exec(draftResult.stdout)?.[1];
       expect(draftPath).toBeTruthy();
-      const parsedDraft = JSON.parse(readFileSync(draftPath ?? '', 'utf-8')) as Record<string, unknown>;
-      writeFileSync(
-        draftPath ?? '',
-        JSON.stringify(
-          {
-            ...parsedDraft,
-            completed: ['CLI draft/apply e2e 확인'],
-            verification: ['ai-ops pc status'],
-            remaining: ['실사용 hook smoke'],
-            nextAction: '실제 hook에서 draft/apply를 한 번 더 확인한다.',
-            nextActionEvidence: 'pc status가 ready이고 product HEAD가 draft와 일치한다.',
-            blockers: [],
-            durableContextDelta: null,
-          },
-          null,
-          2,
-        ) + '\n',
-        'utf-8',
+      const fillResult = spawnSync(
+        process.execPath,
+        [
+          BIN_PATH,
+          'pc',
+          'done',
+          'fill',
+          '--draft',
+          draftPath ?? '',
+          '--completed',
+          'CLI draft/fill/apply e2e 확인',
+          '--verification',
+          'ai-ops pc status',
+          '--remaining',
+          '실사용 hook smoke',
+          '--next-action',
+          '실제 hook에서 draft/fill/apply를 한 번 더 확인한다.',
+          '--next-action-evidence',
+          'pc status가 ready이고 product HEAD가 draft와 일치한다.',
+          '--apply',
+        ],
+        {
+          cwd: product.dir,
+          encoding: 'utf-8',
+          env,
+        },
       );
-
-      const applyResult = spawnSync(process.execPath, [BIN_PATH, 'pc', 'done', 'apply', '--draft', draftPath ?? ''], {
-        cwd: product.dir,
-        encoding: 'utf-8',
-        env,
-      });
-      expect(applyResult.status).toBe(0);
-      expect(applyResult.stdout).toContain('context commit created');
+      expect(fillResult.status).toBe(0);
+      expect(fillResult.stdout).toContain('draft filled');
+      expect(fillResult.stdout).toContain('context commit created');
       expect(readFileSync(join(contextRoot, 'workspaces/demo-workspace/workstreams/demo-work.md'), 'utf-8')).toContain(
-        'CLI draft/apply e2e 확인',
+        'CLI draft/fill/apply e2e 확인',
       );
       expect(execFileSync('git', ['status', '--short'], { cwd: product.dir, encoding: 'utf-8' }).trim()).toBe('');
 

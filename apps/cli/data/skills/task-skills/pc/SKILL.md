@@ -155,7 +155,8 @@ workstream이 이 skill의 핵심 작업 단위다.
 - `$pc:help`와 `$pc:todo`는 read-only다. 어떤 파일도 수정하지 않는다.
 - `$pc:init`, `$pc:add`, `$pc:do`, `$pc:done`은 `~/.personal-project-contexts/`만 수정한다.
 - `$pc:done` handoff 반영을 위해 임시 JS 파일, inline `node --input-type=module -e ...`, ad-hoc markdown replace script를 만들지 않는다.
-- `$pc:done`은 `ai-ops pc done draft`로 JSON draft를 만들고, AI가 draft를 채운 뒤, `ai-ops pc done apply --draft <draft-path>`로 반영한다.
+- `$pc:done`은 `ai-ops pc done draft`로 JSON draft를 만들고, AI 작성 필드는 `ai-ops pc done fill --draft <draft-path> ... --apply`로 채운다.
+- Codex가 draft JSON을 직접 편집하면 앱이 patch 적용 여부를 물을 수 있으므로, `fill` 명령으로 표현할 수 있는 handoff는 draft JSON 파일을 직접 수정하지 않는다.
 - context store를 수정한 뒤에는 해당 context repo에서만 commit한다.
 - 기존 context 파일의 사용자 기록을 삭제하지 않는다. 상태 변경은 append 또는 좁은 섹션 갱신으로 처리한다.
 - 작업 repo의 변경을 stage/commit/revert하지 않는다.
@@ -242,9 +243,9 @@ context가 없으면 파일을 만들지 말고 `$pc:init .` 또는 `$pc:init ./
 1. 현재 경로와 매칭되는 workspace와 active workstream을 찾는다. 없으면 쓰지 않고 `$pc:do <항목>`으로 진행중 workstream을 먼저 선택하라고 안내한다.
 2. `ai-ops pc status`로 현재 cwd 기준 workspace/workstream/current entry readiness와 마지막 확인 commit을 확인한다.
 3. `ai-ops pc done draft --cwd <현재 제품 repo 또는 경로>`를 실행한다. hook에서 이어진 경우 `ai-ops pc done draft --from-hook --cwd <project-git-root>`를 사용한다.
-4. 생성된 draft JSON을 연다. draft는 `~/.personal-project-contexts/workspaces/<workspace-id>/.ai-ops/drafts/pc-done-<timestamp>.json` 아래에 생긴다.
+4. 생성된 draft 경로를 확인한다. draft는 `~/.personal-project-contexts/workspaces/<workspace-id>/.ai-ops/drafts/pc-done-<timestamp>.json` 아래에 생긴다.
 5. 제품 repo의 commit log, diff summary, 테스트 결과, 사용자 대화, 참조 문서 phase/scope/제외 범위를 확인한다.
-6. draft의 AI 작성 필드만 채운다.
+6. `ai-ops pc done fill --draft <draft-path> ... --apply`로 draft의 AI 작성 필드를 채우고 바로 반영한다.
    - `completed`: 완료한 일
    - `verification`: 테스트/빌드/확인
    - `remaining`: 아직 남은 일
@@ -253,11 +254,10 @@ context가 없으면 파일을 만들지 말고 `$pc:init .` 또는 `$pc:init ./
    - `blockers`: 막힌 점 또는 확인 필요 사항
    - `durableContextDelta`: 장기 맥락이 실제로 바뀐 경우에만 작성. 없으면 `null` 유지
 7. 다음 첫 행동을 정하기 전에 `Next Action Quality Rules`를 적용한다. 오래된 `남은 일`을 그대로 쓰지 말고, 이미 완료된 일/제외된 일/현재 repo에 없는 테스트 체계를 걸러낸다.
-8. 직접 context markdown 파일을 편집하지 않는다. 큰 `replaceOnce` script나 임시 JS를 만들지 않는다.
-9. `ai-ops pc done apply --draft <draft-path>`를 실행한다.
-10. apply는 draft schema, draft path, 현재 pc status, workspace/workstream/current entry, product `HEAD`를 검증하고, 허용된 context 파일만 갱신한다.
-11. apply는 context repo에서만 stage/commit한다. product repo는 건드리지 않는다.
-12. apply가 실패하면 메시지의 mismatch 이유를 보고 draft를 재생성하거나 현재 context 상태를 먼저 정리한다.
+8. 직접 context markdown 파일이나 draft JSON 파일을 편집하지 않는다. 큰 `replaceOnce` script나 임시 JS를 만들지 않는다.
+9. `fill --apply`는 draft schema, draft path, 현재 pc status, workspace/workstream/current entry, product `HEAD`를 검증하고, 허용된 context 파일만 갱신한다.
+10. apply는 context repo에서만 stage/commit한다. product repo는 건드리지 않는다.
+11. apply가 실패하면 메시지의 mismatch 이유를 보고 draft를 재생성하거나 현재 context 상태를 먼저 정리한다.
 
 응답에는 context commit 요약, 오늘 완료한 일, entry별 확인 요약, 남은 일, 다음 첫 행동과 그 근거를 포함한다.
 

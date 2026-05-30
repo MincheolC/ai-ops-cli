@@ -7,6 +7,7 @@ import { createProgram } from '../../cli/program.js';
 import {
   applyPcDoneDraft,
   createPcDoneDraft,
+  fillPcDoneDraft,
   PC_DONE_DRAFT_SCHEMA_VERSION,
   readPcDoneDraft,
 } from '../../features/pc/core.js';
@@ -215,12 +216,14 @@ describe('pc done command help', () => {
     expect(pcHelp).toContain('done');
     expect(pcHelp).toContain('$pc:todo');
     expect(pcHelp).toContain('draft --cwd <product-repo>');
-    expect(pcHelp).toContain('AI fills the generated JSON draft');
+    expect(pcHelp).toContain('ai-ops pc done fill --draft');
 
     const doneHelp = helpFor(['pc', 'done', '--help']);
     expect(doneHelp).toContain('draft');
+    expect(doneHelp).toContain('fill');
     expect(doneHelp).toContain('apply');
     expect(doneHelp).toContain('durableContextDelta');
+    expect(doneHelp).toContain('--next-action-evidence');
     expect(doneHelp).toContain('ai-ops pc done apply --draft');
   });
 });
@@ -257,6 +260,48 @@ describe('pc done draft/apply', () => {
     }
   });
 
+  it('fills draft AI fields without editing context metadata', () => {
+    const product = setupGitRepo('pc-product-');
+    const context = setupContextRoot();
+    try {
+      writePcContext({ contextRoot: context.dir, workspaceRoot: product.dir });
+      const result = createPcDoneDraft({
+        cwd: product.dir,
+        contextRoot: context.dir,
+        generatedAt: new Date('2026-05-28T01:02:03.000Z'),
+      });
+
+      const filled = fillPcDoneDraft({
+        draftPath: result.draftPath,
+        contextRoot: context.dir,
+        input: {
+          completed: ['구현 완료', '문서 갱신'],
+          verification: ['npm test -- pc-done'],
+          remaining: ['실사용 hook smoke'],
+          nextAction: '실사용 hook에서 fill/apply를 확인한다.',
+          nextActionEvidence: 'product HEAD와 active workstream이 draft metadata와 일치한다.',
+          blockers: ['없음'],
+          durableContextDelta: null,
+        },
+      });
+
+      expect(filled.changed).toBe(true);
+      const raw = JSON.parse(readFileSync(result.draftPath, 'utf-8')) as Record<string, unknown>;
+      expect(raw.workspaceId).toBe('demo-workspace');
+      expect(raw.productHead).toBe(head(product.dir));
+      expect(raw.completed).toEqual(['구현 완료', '문서 갱신']);
+      expect(raw.verification).toEqual(['npm test -- pc-done']);
+      expect(raw.remaining).toEqual(['실사용 hook smoke']);
+      expect(raw.nextAction).toBe('실사용 hook에서 fill/apply를 확인한다.');
+      expect(raw.nextActionEvidence).toBe('product HEAD와 active workstream이 draft metadata와 일치한다.');
+      expect(raw.blockers).toEqual(['없음']);
+      expect(raw.durableContextDelta).toBeNull();
+    } finally {
+      product.cleanup();
+      context.cleanup();
+    }
+  });
+
   it('rejects invalid drafts, path escapes, product HEAD mismatch, and workspace mismatch', () => {
     const product = setupGitRepo('pc-product-');
     const context = setupContextRoot();
@@ -276,8 +321,9 @@ describe('pc done draft/apply', () => {
       );
       const symlinkDraftDir = join(context.dir, 'symlink-drafts');
       symlinkSync(outside, symlinkDraftDir, 'dir');
-      expect(() => applyPcDoneDraft({ draftPath: join(symlinkDraftDir, 'draft.json'), contextRoot: context.dir }))
-        .toThrow('draft path must be inside');
+      expect(() =>
+        applyPcDoneDraft({ draftPath: join(symlinkDraftDir, 'draft.json'), contextRoot: context.dir }),
+      ).toThrow('draft path must be inside');
 
       const draft = createPcDoneDraft({
         cwd: product.dir,
@@ -310,8 +356,9 @@ describe('pc done draft/apply', () => {
       fillDraft(workspaceDirMismatchDraft.draftPath, {
         workspaceDir: join(context.dir, 'workspaces', 'other-workspace'),
       });
-      expect(() => applyPcDoneDraft({ draftPath: workspaceDirMismatchDraft.draftPath, contextRoot: context.dir }))
-        .toThrow('workspace directory mismatch');
+      expect(() =>
+        applyPcDoneDraft({ draftPath: workspaceDirMismatchDraft.draftPath, contextRoot: context.dir }),
+      ).toThrow('workspace directory mismatch');
     } finally {
       rmSync(outside, { recursive: true, force: true });
       product.cleanup();
