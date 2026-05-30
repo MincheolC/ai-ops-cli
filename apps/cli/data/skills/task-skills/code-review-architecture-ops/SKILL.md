@@ -8,13 +8,25 @@ disable-model-invocation: true
 
 Use only when the `code-review-gate` subagent or user explicitly asks for this skill.
 
-Check whether the change erodes maintainable system boundaries:
+Check whether the change erodes maintainable system boundaries or operational safety.
 
-- public CLI/API contracts are split across unclear ownership boundaries
-- lifecycle code mixes catalog parsing, rendering, and state mutation in a risky way
-- migration/update/uninstall paths are incomplete
-- performance or repeated I/O costs grow without need
-- diagnostics do not explain operator-actionable failures
-- docs or runbooks become materially stale for changed behavior
+## Review lens
 
-Report architecture issues only when they create a concrete defect, migration risk, or operating risk.
+Check for:
+
+- structure erosion where public CLI/API contracts, schemas, or package data are split across unclear ownership boundaries
+- lifecycle ownership bugs where catalog parsing, rendering, installation, state mutation, and cleanup become coupled in a risky way
+- migration, update, rollback, or uninstall paths that leave old files, stale manifests, or incompatible generated assets
+- diagnostics that fail to explain operator-actionable recovery steps
+- repeated I/O, broad project scans, or expensive parsing that can slow common CLI workflows without need
+- docs, runbooks, or operating-layer templates that become materially stale for changed behavior
+- feature or module boundaries that make future review, audit, or installation behavior ambiguous
+
+## Evidence protocol
+
+1. Inspect the owning module boundaries and lifecycle path named by the scope map.
+2. Compare the changed contract with registry, schema, docs, diagnostics, and install/update/uninstall behavior.
+3. Report architecture issues only when they create a concrete defect, migration risk, or operating risk with file/line evidence.
+4. Apply no generic advice: do not recommend broad refactors unless the current change creates a merge-relevant operational problem.
+
+If there is no architecture/ops finding, mention the boundary or rollout surfaces inspected.

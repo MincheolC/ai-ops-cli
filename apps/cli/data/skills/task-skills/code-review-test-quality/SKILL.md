@@ -8,12 +8,25 @@ disable-model-invocation: true
 
 Use only when the `code-review-gate` subagent or user explicitly asks for this skill.
 
-Look for test coverage that would fail to catch the risky behavior:
+Look for tests that would fail to catch the risky behavior.
+
+## Review lens
+
+Check for:
 
 - plan acceptance criteria without a direct assertion
+- missing regression tests for requirement mismatch, business invariant, compatibility, edge case, or contract regression risks
 - only happy-path tests around error-prone behavior
-- mocks that bypass the contract being changed
-- snapshot or fixture churn that masks behavior
-- e2e gaps for CLI command, filesystem, manifest, or install lifecycle changes
+- weak assertions that verify existence but not behavior, output, ownership, or failure mode
+- mocks, fixtures, snapshots, or golden files that bypass the contract being changed
+- suspicious tests that can pass without exercising the changed code path
+- e2e gaps for CLI command, filesystem, manifest, hook, subagent, skill, or install lifecycle changes
+
+## Evidence protocol
+
+1. Start from the scope map and plan acceptance criteria.
+2. Link each missing or weak test concern to the production behavior it would fail to catch.
+3. Report with file/line evidence from the production code, test file, or missing test boundary.
+4. Apply no generic advice: do not ask for more coverage unless a merge-relevant behavior can currently regress unnoticed.
 
 Separate missing tests from tests that exist but assert the wrong thing.
