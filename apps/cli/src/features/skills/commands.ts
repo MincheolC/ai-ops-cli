@@ -2,6 +2,7 @@ import * as p from '@clack/prompts';
 import { rmSync } from 'node:fs';
 import type { InstalledSkill, Skill, ToolId } from '@/core/schemas/index.js';
 import { loadAllSkills } from '@/shared/catalog-loader.js';
+import { formatInstallStatusForTools } from '@/shared/install-status-format.js';
 import { getCliVersion } from '@/shared/source-hash.js';
 import { buildSkillInstallPlan } from './renderer.js';
 import { readSkillRegistry, resolveCanonicalSkillId, resolveSkillRegistryPath, writeSkillRegistry } from './registry-io.js';
@@ -113,7 +114,7 @@ export const skillListCommand = async (): Promise<void> => {
         .filter((skill) => skill.kind === kind)
         .map((skill) => {
           const installed = findInstalledSkill(installedSkills, skill.id);
-          const suffix = installed ? `installed for ${installed.tools.join(', ')}` : 'not installed';
+          const suffix = formatInstallStatusForTools(installed?.tools ?? null);
           return `- ${skill.id} - ${suffix}`;
         });
 

@@ -776,7 +776,7 @@ describe.skipIf(!distExists)('integration subprocess', () => {
         env,
       });
       expect(listResult.status).toBe(0);
-      expect(listResult.stdout).toContain('pc - not installed');
+      expect(listResult.stdout).toContain('pc - ○ not installed');
       expect(listResult.stdout).not.toContain('context-promotion');
 
       const installResult = spawnSync(process.execPath, [BIN_PATH, 'integration', 'install', 'pc'], {

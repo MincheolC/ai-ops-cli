@@ -7,6 +7,7 @@ import {
 } from './pack.logic.js';
 import { loadAllPacks } from './pack-source.logic.js';
 import type { ProjectLayerManifest } from '@/core/schemas/index.js';
+import { formatInstallStatus } from '@/shared/install-status-format.js';
 import { resolveBasePath, resolvePacksDir } from '../../shared/command-paths.js';
 import { readProjectLayerManifest } from './state-io.js';
 
@@ -37,7 +38,7 @@ export const packListCommand = async (): Promise<void> => {
   p.log.info(
     packs
       .map((pack) => {
-        const suffix = installedPackIds.has(pack.id) ? 'installed' : 'not installed';
+        const suffix = formatInstallStatus(installedPackIds.has(pack.id));
         return `- ${pack.id} - ${suffix}`;
       })
       .join('\n'),
