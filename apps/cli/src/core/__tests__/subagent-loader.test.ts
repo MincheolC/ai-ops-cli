@@ -8,6 +8,16 @@ import { loadAllSubagents, loadSubagentCatalog } from '../../shared/catalog-load
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const dataDir = resolve(__dirname, '../../../data');
 
+const codeReviewSkillNames = [
+  'code-review-scope-map',
+  'code-review-correctness',
+  'code-review-security',
+  'code-review-state-concurrency',
+  'code-review-test-quality',
+  'code-review-architecture-ops',
+  'code-review-final-gate',
+] as const;
+
 const setup = () => {
   const dir = mkdtempSync(join(tmpdir(), 'subagent-loader-test-'));
   return { dir, cleanup: () => rmSync(dir, { recursive: true, force: true }) };
@@ -63,10 +73,57 @@ describe('loadSubagentCatalog', () => {
 });
 
 describe('loadAllSubagents', () => {
-  it('실제 data/subagents의 초기 subagent 2개를 로드한다', () => {
+  it('실제 data/subagents의 초기 subagent 3개를 로드한다', () => {
     const subagents = loadAllSubagents(resolve(dataDir, 'subagents'));
 
-    expect(subagents.map((subagent) => subagent.id)).toEqual(['security-gate', 'security-reviewer']);
+    expect(subagents.map((subagent) => subagent.id)).toEqual([
+      'code-review-gate',
+      'security-gate',
+      'security-reviewer',
+    ]);
+  });
+
+  it('code-review-gate Codex frontmatter는 read-only sandbox와 모든 review skill을 선언한다', () => {
+    const subagents = loadAllSubagents(resolve(dataDir, 'subagents'));
+    const subagent = subagents.find((candidate) => candidate.id === 'code-review-gate');
+    if (!subagent) {
+      throw new Error('Missing code-review-gate subagent');
+    }
+
+    expect(subagent.frontmatter.codex.raw).toContain('sandbox_mode = "read-only"');
+    expect(subagent.frontmatter.codex.parsed.skill_names).toEqual([...codeReviewSkillNames]);
+  });
+
+  it('code-review-gate prompt는 explicit-only read-only scope-map-first 흐름을 포함한다', () => {
+    const subagents = loadAllSubagents(resolve(dataDir, 'subagents'));
+    const subagent = subagents.find((candidate) => candidate.id === 'code-review-gate');
+    if (!subagent) {
+      throw new Error('Missing code-review-gate subagent');
+    }
+
+    expect(subagent.prompt).toContain('explicit-only');
+    expect(subagent.prompt).toContain('read-only');
+    expect(subagent.prompt).toContain('Do not edit files');
+    expect(subagent.prompt).toContain('Do not stage');
+    expect(subagent.prompt).toContain('Do not commit');
+    expect(subagent.prompt).toContain('scope-map -> focused passes -> final-gate');
+    expect(subagent.prompt).toContain('scope-map-first');
+    expect(subagent.prompt).toContain('plan_current_changes');
+    expect(subagent.prompt).toContain('plan_head_commit');
+    expect(subagent.prompt).toContain('project_wide');
+    expect(subagent.prompt).toContain('diff_default');
+    expect(subagent.prompt).toContain('current changes');
+    expect(subagent.prompt).toContain('HEAD commit');
+    expect(subagent.prompt).toContain('plan-vs-implementation');
+    expect(subagent.prompt).toContain('project-wide');
+    expect(subagent.prompt).toContain('feature');
+    expect(subagent.prompt).toContain('module');
+    expect(subagent.prompt).toContain('target clarification');
+    expect(subagent.prompt).toContain('bare current changes/current diff review without a plan');
+    expect(subagent.prompt).toContain('If the scope map returns `ambiguity`, do not run focused review passes');
+    expect(subagent.prompt).toContain('do not claim complete coverage');
+    expect(subagent.prompt).toContain('Do not use the excluded surface as a finding source');
+    expect(subagent.prompt).toContain('directly connected shared auth/policy/schema/test helper code');
   });
 
   it('필수 source 파일을 읽고 도구별 frontmatter를 검증한다', () => {

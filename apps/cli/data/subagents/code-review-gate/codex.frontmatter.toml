@@ -1,0 +1,4 @@
+name = "code_review_gate"
+description = "Run an explicit read-only code review gate across focused review skills."
+sandbox_mode = "read-only"
+skill_names = ["code-review-scope-map", "code-review-correctness", "code-review-security", "code-review-state-concurrency", "code-review-test-quality", "code-review-architecture-ops", "code-review-final-gate"]

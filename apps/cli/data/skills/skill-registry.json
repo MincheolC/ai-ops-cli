@@ -99,6 +99,55 @@
       "source_path": "reference-skills/python-language"
     },
     {
+      "id": "code-review-scope-map",
+      "kind": "task",
+      "supported_tools": ["codex"],
+      "groups": ["code-review-gate"],
+      "source_path": "task-skills/code-review-scope-map"
+    },
+    {
+      "id": "code-review-correctness",
+      "kind": "task",
+      "supported_tools": ["codex"],
+      "groups": ["code-review-gate"],
+      "source_path": "task-skills/code-review-correctness"
+    },
+    {
+      "id": "code-review-security",
+      "kind": "task",
+      "supported_tools": ["codex"],
+      "groups": ["code-review-gate"],
+      "source_path": "task-skills/code-review-security"
+    },
+    {
+      "id": "code-review-state-concurrency",
+      "kind": "task",
+      "supported_tools": ["codex"],
+      "groups": ["code-review-gate"],
+      "source_path": "task-skills/code-review-state-concurrency"
+    },
+    {
+      "id": "code-review-test-quality",
+      "kind": "task",
+      "supported_tools": ["codex"],
+      "groups": ["code-review-gate"],
+      "source_path": "task-skills/code-review-test-quality"
+    },
+    {
+      "id": "code-review-architecture-ops",
+      "kind": "task",
+      "supported_tools": ["codex"],
+      "groups": ["code-review-gate"],
+      "source_path": "task-skills/code-review-architecture-ops"
+    },
+    {
+      "id": "code-review-final-gate",
+      "kind": "task",
+      "supported_tools": ["codex"],
+      "groups": ["code-review-gate"],
+      "source_path": "task-skills/code-review-final-gate"
+    },
+    {
       "id": "doc-impact-reviewer",
       "kind": "task",
       "supported_tools": ["claude-code", "codex", "gemini"],

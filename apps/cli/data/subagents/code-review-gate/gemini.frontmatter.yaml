@@ -1,0 +1,2 @@
+name: code-review-gate
+description: Run an explicit read-only code review gate across focused review skills.

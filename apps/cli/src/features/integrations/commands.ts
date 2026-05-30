@@ -1,7 +1,7 @@
 import * as p from '@clack/prompts';
 import { INTEGRATION_COMPONENT_TYPE, INTEGRATION_ID } from '@/core/schemas/index.js';
 import { getCliVersion } from '@/shared/source-hash.js';
-import { inspectCodexHook, resolveCodexHooksPath, uninstallCodexHook } from '../codex-hooks/core.js';
+import { resolveCodexHooksPath, uninstallCodexHook } from '../codex-hooks/core.js';
 import { getPcHandoffStatus } from '../pc/core.js';
 import {
   evaluateIntegrationPostToolUseWorkflows,
@@ -16,13 +16,9 @@ import {
 import { resolveBasePath, resolveUserBasePath } from '../../shared/command-paths.js';
 import {
   buildInstalledIntegration,
-  buildReceiptConfigComponents,
-  componentWasOwned,
-  ensureHookComponent,
-  ensureSkillComponent,
   formatComponentStatus,
-  hasInstalledCodexSkill,
   removeOwnedSkill,
+  removeOwnedSubagent,
 } from './components.js';
 import {
   loadIntegrationDefinitions,
@@ -32,6 +28,12 @@ import {
   resolvePersonalContextRoot,
 } from './definitions.js';
 import type { IntegrationInstallOptions } from './definitions.js';
+import {
+  buildIntegrationComponentStatusLines,
+  buildIntegrationDiffLines,
+  ensureIntegrationComponents,
+  resolveHookDefinitionForComponent,
+} from './lifecycle.js';
 import { readStdin, reportIntegrationError } from './stdio.js';
 
 export const integrationListCommand = async (): Promise<void> => {
@@ -61,33 +63,18 @@ export const integrationInstallCommand = async (
     const cliVersion = getCliVersion();
     const manifestPath = resolveIntegrationManifestPath(basePath);
     const previous = findInstalledIntegration(readIntegrationManifest(manifestPath)?.integrations ?? [], definition.id);
-    const skillComponent = ensureSkillComponent({
+    const components = ensureIntegrationComponents({
+      definition,
       basePath,
       cliVersion,
-      skillId: definition.skillComponent.id,
-      previouslyOwned: componentWasOwned({
-        previous,
-        type: INTEGRATION_COMPONENT_TYPE.SKILL,
-        id: definition.skillComponent.id,
-      }),
-    });
-    const hookComponent = ensureHookComponent({
-      hooksPath: resolveCodexHooksPath(resolveCodexHomePath()),
-      hookId: definition.hookComponent.id,
-      definition: definition.hookDefinition,
-      command: opts.command,
-      commandWindows: opts.commandWindows,
-      previouslyOwned: componentWasOwned({
-        previous,
-        type: INTEGRATION_COMPONENT_TYPE.CODEX_HOOK,
-        id: definition.hookComponent.id,
-      }),
+      previous,
+      opts,
     });
 
     const installedIntegration = buildInstalledIntegration({
       definition,
       previous,
-      components: [skillComponent, hookComponent, ...buildReceiptConfigComponents(definition.receiptConfigComponents)],
+      components,
     });
     writeUserIntegrationState({
       manifestPath,
@@ -97,7 +84,9 @@ export const integrationInstallCommand = async (
 
     p.log.success(`integration 설치 완료: ${definition.id}`);
     p.log.info(installedIntegration.components.map(formatComponentStatus).join('\n'));
-    p.log.info('hook trust: review configured non-managed hooks with /hooks in Codex before first run');
+    if (definition.hookComponents.length > 0) {
+      p.log.info('hook trust: review configured non-managed hooks with /hooks in Codex before first run');
+    }
   } catch (error) {
     reportIntegrationError(error);
   }
@@ -111,16 +100,9 @@ export const integrationStatusCommand = async (integrationId: string): Promise<v
     const basePath = resolveUserBasePath();
     const manifest = readIntegrationManifest(resolveIntegrationManifestPath(basePath));
     const installedIntegration = findInstalledIntegration(manifest?.integrations ?? [], definition.id);
-    const hookStatus = inspectCodexHook({
-      hooksPath: resolveCodexHooksPath(resolveCodexHomePath()),
-      definition: definition.hookDefinition,
-    });
     const lines = [
       `integration installed: ${installedIntegration ? 'yes' : 'no'}`,
-      `skill installed: ${hasInstalledCodexSkill({ basePath, skillId: definition.skillComponent.id }) ? 'yes' : 'no'}`,
-      `hook installed: ${hookStatus.installed ? 'yes' : 'no'}`,
-      `hooks file: ${hookStatus.hooksPath}`,
-      `hook trust: ${hookStatus.trustReviewHint ?? 'n/a'}`,
+      ...buildIntegrationComponentStatusLines({ definition, basePath }),
     ];
 
     if (definition.id === INTEGRATION_ID.PC) {
@@ -174,10 +156,13 @@ export const integrationUninstallCommand = async (integrationId: string): Promis
       if (component.type === INTEGRATION_COMPONENT_TYPE.SKILL) {
         removed.push(...removeOwnedSkill({ basePath, cliVersion, skillId: component.id }));
       }
+      if (component.type === INTEGRATION_COMPONENT_TYPE.SUBAGENT) {
+        removed.push(...removeOwnedSubagent({ basePath, cliVersion, subagentId: component.id }));
+      }
       if (component.type === INTEGRATION_COMPONENT_TYPE.CODEX_HOOK) {
         const result = uninstallCodexHook({
           hooksPath: resolveCodexHooksPath(resolveCodexHomePath()),
-          definition: definition.hookDefinition,
+          definition: resolveHookDefinitionForComponent(definition, component.id),
         });
         if (result.removed) {
           removed.push(result.hooksPath);
@@ -195,6 +180,66 @@ export const integrationUninstallCommand = async (integrationId: string): Promis
     reportIntegrationError(error);
   }
   p.outro('ai-ops integration uninstall 완료');
+};
+
+export const integrationDiffCommand = async (integrationId: string): Promise<void> => {
+  p.intro(`ai-ops integration diff ${integrationId}`);
+  try {
+    const definition = resolveIntegrationDefinition(integrationId);
+    const basePath = resolveUserBasePath();
+    const manifest = readIntegrationManifest(resolveIntegrationManifestPath(basePath));
+    const installedIntegration = findInstalledIntegration(manifest?.integrations ?? [], definition.id);
+    const lines = buildIntegrationDiffLines({ definition, basePath, installedIntegration });
+
+    p.log.info(lines.join('\n'));
+  } catch (error) {
+    reportIntegrationError(error);
+  }
+  p.outro('ai-ops integration diff 완료');
+};
+
+export const integrationUpdateCommand = async (
+  integrationId: string,
+  opts: IntegrationInstallOptions = {},
+): Promise<void> => {
+  p.intro(`ai-ops integration update ${integrationId}`);
+  try {
+    const definition = resolveIntegrationDefinition(integrationId);
+    const basePath = resolveUserBasePath();
+    const cliVersion = getCliVersion();
+    const manifestPath = resolveIntegrationManifestPath(basePath);
+    const previous = findInstalledIntegration(readIntegrationManifest(manifestPath)?.integrations ?? [], definition.id);
+
+    if (!previous) {
+      p.log.warn('갱신할 설치된 integration manifest entry를 찾지 못했습니다.');
+      p.outro('ai-ops integration update 완료');
+      return;
+    }
+
+    const installedIntegration = buildInstalledIntegration({
+      definition,
+      previous,
+      components: ensureIntegrationComponents({
+        definition,
+        previous,
+        basePath,
+        cliVersion,
+        opts,
+        mode: 'update',
+      }),
+    });
+    writeUserIntegrationState({
+      manifestPath,
+      cliVersion,
+      nextIntegration: installedIntegration,
+    });
+
+    p.log.success(`integration 갱신 완료: ${definition.id}`);
+    p.log.info(installedIntegration.components.map(formatComponentStatus).join('\n'));
+  } catch (error) {
+    reportIntegrationError(error);
+  }
+  p.outro('ai-ops integration update 완료');
 };
 
 export const integrationPostToolUseHookCommand = async (params: {

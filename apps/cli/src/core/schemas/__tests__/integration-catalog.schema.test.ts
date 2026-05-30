@@ -6,6 +6,15 @@ describe('IntegrationCatalogSchema', () => {
     const parsed = IntegrationCatalogSchema.parse({
       integrations: [
         {
+          id: 'code-review-gate',
+          description: 'Code review gate integration',
+          components: [
+            { type: 'skill', id: 'code-review-scope-map', tools: ['codex'] },
+            { type: 'skill', id: 'code-review-final-gate', tools: ['codex'] },
+            { type: 'subagent', id: 'code-review-gate', tools: ['codex'] },
+          ],
+        },
+        {
           id: 'context-promotion',
           description: 'Context promotion review integration',
           components: [
@@ -30,7 +39,7 @@ describe('IntegrationCatalogSchema', () => {
       ],
     });
 
-    expect(parsed.integrations).toHaveLength(2);
+    expect(parsed.integrations).toHaveLength(3);
   });
 
   it('rejects unknown integration ids and duplicate ids', () => {
@@ -76,20 +85,20 @@ describe('IntegrationCatalogSchema', () => {
     ).toThrow('duplicate integration id: pc');
   });
 
-  it('rejects catalog entries that omit receipt/config component metadata', () => {
-    expect(() =>
-      IntegrationCatalogSchema.parse({
-        integrations: [
-          {
-            id: 'pc',
-            description: 'Personal context handoff integration',
-            components: [
-              { type: 'skill', id: 'pc', tools: ['codex'] },
-              { type: 'codex-hook', id: 'pc' },
-            ],
-          },
-        ],
-      }),
-    ).toThrow('integration must declare a receipt-config component: pc');
+  it('accepts hookless catalog entries without receipt config metadata', () => {
+    const parsed = IntegrationCatalogSchema.parse({
+      integrations: [
+        {
+          id: 'code-review-gate',
+          description: 'Hookless code review gate integration',
+          components: [
+            { type: 'skill', id: 'code-review-scope-map', tools: ['codex'] },
+            { type: 'subagent', id: 'code-review-gate', tools: ['codex'] },
+          ],
+        },
+      ],
+    });
+
+    expect(parsed.integrations[0]?.id).toBe('code-review-gate');
   });
 });
