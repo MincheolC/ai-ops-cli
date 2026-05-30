@@ -36,6 +36,7 @@ type IntegrationComponentCardProps = {
 
 const COMPONENT_TYPE_LABELS = {
   skill: 'skill',
+  subagent: 'subagent',
   'codex-hook': 'codex-hook',
   'receipt-config': 'receipt-config',
 } as const satisfies Record<RuntimeComponentType, string>;

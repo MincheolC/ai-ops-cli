@@ -5,6 +5,17 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-05-30
+
+### Added
+
+- `feat(code-review-gate)`: Codex-only explicit review gate integration 추가. 소비자 프로젝트에서는 `ai-ops integration install code-review-gate`로 user/global runtime에 설치한 뒤, Codex에서 `code-review-gate`를 명시 호출해 current diff, HEAD commit, plan-vs-implementation, project-wide, feature, module 리뷰를 수행할 수 있다.
+- `feat(code-review-gate)`: `code-review-gate` subagent와 7개 focused review task skill을 추가해 scope mapping, correctness, security, state/concurrency, test quality, architecture/ops, final findings 렌즈를 제공한다. 이 integration은 read-only이며 Codex hook이나 receipt config를 설치하지 않는다.
+
+### Changed
+
+- `feat(integration)`: integration lifecycle이 subagent component, hookless integration, `integration diff`, `integration update`, pre-existing component ownership preservation을 지원하도록 확장.
+
 ## [1.5.7] - 2026-05-29
 
 ### Fixed
