@@ -21,6 +21,10 @@ Check for:
 - hook, receipt, or agent automation behavior that can run implicitly without an explicit user action
 - replay, rate limit, idempotency, or audit-log gaps when the change creates an external side effect
 
+## Scope compliance
+
+Use the scope map as a hard boundary. Report findings only inside the `included surface`. Do not turn the `excluded surface` into findings; if risk signals appear outside scope, record them only as `미실행/남은 확인`.
+
 ## Evidence protocol
 
 1. Identify whether the target crosses auth/authz, filesystem, command, network, hook, or credential boundaries.

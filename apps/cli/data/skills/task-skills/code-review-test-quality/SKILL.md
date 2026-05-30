@@ -22,6 +22,10 @@ Check for:
 - suspicious tests that can pass without exercising the changed code path
 - e2e gaps for CLI command, filesystem, manifest, hook, subagent, skill, or install lifecycle changes
 
+## Scope compliance
+
+Use the scope map as a hard boundary. Report findings only inside the `included surface`. Do not turn the `excluded surface` into findings; if risk signals appear outside scope, record them only as `미실행/남은 확인`.
+
 ## Evidence protocol
 
 1. Start from the scope map and plan acceptance criteria.

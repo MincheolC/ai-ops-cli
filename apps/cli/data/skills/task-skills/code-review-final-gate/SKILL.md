@@ -10,6 +10,10 @@ Use only when the `code-review-gate` subagent or user explicitly asks for this s
 
 Combine findings from the focused review passes into the final response. Keep only actionable, evidence-backed findings; drop duplicates, speculation, style-only notes, and no generic advice.
 
+## Scope compliance
+
+Respect the scope map. Drop findings outside the `included surface`, do not promote the `excluded surface` into findings, and record out-of-scope risk only under `미실행/남은 확인`. For `project_wide`, feature, and module reviews, mention the inspected and excluded surfaces briefly in `**검증**`.
+
 ## Final response contract
 
 Use these headings exactly:

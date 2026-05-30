@@ -107,6 +107,11 @@ describe('loadAllSubagents', () => {
     expect(subagent.prompt).toContain('Do not stage');
     expect(subagent.prompt).toContain('Do not commit');
     expect(subagent.prompt).toContain('scope-map -> focused passes -> final-gate');
+    expect(subagent.prompt).toContain('scope-map-first');
+    expect(subagent.prompt).toContain('plan_current_changes');
+    expect(subagent.prompt).toContain('plan_head_commit');
+    expect(subagent.prompt).toContain('project_wide');
+    expect(subagent.prompt).toContain('diff_default');
     expect(subagent.prompt).toContain('current changes');
     expect(subagent.prompt).toContain('HEAD commit');
     expect(subagent.prompt).toContain('plan-vs-implementation');
@@ -114,6 +119,11 @@ describe('loadAllSubagents', () => {
     expect(subagent.prompt).toContain('feature');
     expect(subagent.prompt).toContain('module');
     expect(subagent.prompt).toContain('target clarification');
+    expect(subagent.prompt).toContain('bare current changes/current diff review without a plan');
+    expect(subagent.prompt).toContain('If the scope map returns `ambiguity`, do not run focused review passes');
+    expect(subagent.prompt).toContain('do not claim complete coverage');
+    expect(subagent.prompt).toContain('Do not use the excluded surface as a finding source');
+    expect(subagent.prompt).toContain('directly connected shared auth/policy/schema/test helper code');
   });
 
   it('필수 source 파일을 읽고 도구별 frontmatter를 검증한다', () => {

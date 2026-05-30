@@ -1,3 +1,9 @@
+// These tests validate data files, but some SKILL.md text is also the runtime
+// contract for agent behavior. The targeted text assertions below guard against
+// quiet regressions where prompt/skill rewrites drop required review modes,
+// evidence commands, scope rules, or final output headings. Keep them focused
+// on behavior-shaping terms rather than general copy-editing preferences.
+
 import { describe, it, expect } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
@@ -62,6 +68,17 @@ const loadCodeReviewSkillRaw = (id: string): string => loadSkillRaw(findSkillEnt
 
 const loadOpenAiSkillMetadata = (sourcePath: string): z.infer<typeof OpenAiSkillMetadataSchema> =>
   OpenAiSkillMetadataSchema.parse(parse(readFileSync(resolve(skillsDir, sourcePath, 'agents/openai.yaml'), 'utf-8')));
+
+const getMarkdownSection = (raw: string, heading: string): string => {
+  const marker = `### \`${heading}\``;
+  const start = raw.indexOf(marker);
+  if (start < 0) {
+    throw new Error(`Missing markdown section: ${heading}`);
+  }
+
+  const next = raw.indexOf('\n### `', start + marker.length);
+  return raw.slice(start, next < 0 ? undefined : next);
+};
 
 describe('skill data files', () => {
   it('skill-registry.json이 SkillCatalogSchema를 통과한다', () => {
@@ -159,19 +176,66 @@ describe('skill data files', () => {
     }
   });
 
-  it('code-review-scope-map은 6개 target mode와 read-only evidence surface를 고정한다', () => {
+  it('code-review-scope-map은 6개 target mode별 trigger와 evidence protocol을 고정한다', () => {
+    const skillRaw = loadCodeReviewSkillRaw('code-review-scope-map');
+    const modeContracts = [
+      {
+        mode: 'plan_current_changes',
+        triggers: ['현재 변경사항은 [plan] 구현', 'current changes implement [plan]', 'this work implements [plan]'],
+        evidence: ['git status --short', 'git diff --stat', 'git diff --cached', 'git ls-files --others --exclude-standard'],
+      },
+      {
+        mode: 'plan_head_commit',
+        triggers: ['직전 커밋은 [계획 문서] 구현', 'HEAD commit implements [plan]', '직전 커밋', 'HEAD commit'],
+        evidence: ['git show --stat HEAD', 'git show --name-only HEAD', 'git show HEAD'],
+      },
+      {
+        mode: 'project_wide',
+        triggers: ['이 프로젝트 전체', 'project-wide'],
+        evidence: ['rg --files', 'registry/schema reads', 'docs/status reads'],
+      },
+      {
+        mode: 'feature',
+        triggers: ['기능', 'feature'],
+        evidence: ['rg -n', 'rg --files', 'direct reads of matched files'],
+      },
+      {
+        mode: 'module',
+        triggers: ['모듈', 'module'],
+        evidence: ['rg --files', 'targeted `rg -n` symbol/package search', 'path existence checks'],
+      },
+      {
+        mode: 'diff_default',
+        triggers: ['현재 변경사항', 'current changes', 'current diff', 'no plan, commit, feature, module, or project-wide target'],
+        evidence: ['git status --short', 'git diff --stat', 'git diff --cached', 'git ls-files --others --exclude-standard'],
+      },
+    ] as const;
+
+    for (const contract of modeContracts) {
+      const section = getMarkdownSection(skillRaw, contract.mode);
+
+      expect(section).toContain(contract.mode);
+      for (const trigger of contract.triggers) {
+        expect(section).toContain(trigger);
+      }
+      for (const evidence of contract.evidence) {
+        expect(section).toContain(evidence);
+      }
+    }
+  });
+
+  it('code-review-scope-map은 Phase 3 output fields와 ambiguity stop 조건을 고정한다', () => {
     const skillRaw = loadCodeReviewSkillRaw('code-review-scope-map');
 
-    expect(skillRaw).toContain('plan_current_changes');
-    expect(skillRaw).toContain('plan_head_commit');
-    expect(skillRaw).toContain('project_wide');
-    expect(skillRaw).toContain('feature');
-    expect(skillRaw).toContain('module');
-    expect(skillRaw).toContain('diff_default');
     expect(skillRaw).toContain('target mode');
+    expect(skillRaw).toContain('target identifier');
     expect(skillRaw).toContain('included surface');
     expect(skillRaw).toContain('excluded surface');
+    expect(skillRaw).toContain('required evidence');
+    expect(skillRaw).toContain('focused passes to run');
+    expect(skillRaw).toContain('ambiguity');
     expect(skillRaw).toContain('Ambiguity stop');
+    expect(skillRaw).toContain('Do not run focused review passes when `ambiguity` is present');
     expect(skillRaw).toContain('git status --short');
     expect(skillRaw).toContain('git diff --stat');
     expect(skillRaw).toContain('git diff');
@@ -186,6 +250,11 @@ describe('skill data files', () => {
   it('code-review-final-gate는 최종 출력 계약을 고정한다', () => {
     const skillRaw = loadCodeReviewSkillRaw('code-review-final-gate');
 
+    expect(skillRaw).toContain('included surface');
+    expect(skillRaw).toContain('excluded surface');
+    expect(skillRaw).toContain('project_wide');
+    expect(skillRaw).toContain('feature');
+    expect(skillRaw).toContain('module');
     expect(skillRaw).toContain('**Findings**');
     expect(skillRaw).toContain('[P0]');
     expect(skillRaw).toContain('[P1]');
@@ -204,6 +273,10 @@ describe('skill data files', () => {
 
       expect(skillRaw).toContain('file/line evidence');
       expect(skillRaw).toContain('no generic advice');
+      expect(skillRaw).toContain('Scope compliance');
+      expect(skillRaw).toContain('included surface');
+      expect(skillRaw).toContain('excluded surface');
+      expect(skillRaw).toContain('미실행/남은 확인');
     }
   });
 

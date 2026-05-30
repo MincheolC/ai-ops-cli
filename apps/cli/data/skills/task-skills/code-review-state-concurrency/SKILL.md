@@ -22,6 +22,10 @@ Check for:
 - install/update/uninstall ordering bugs, especially cleanup that races with ownership checks
 - async or concurrent execution where multiple commands can mutate the same state without a stable lock or read-only fallback
 
+## Scope compliance
+
+Use the scope map as a hard boundary. Report findings only inside the `included surface`. Do not turn the `excluded surface` into findings; if risk signals appear outside scope, record them only as `미실행/남은 확인`.
+
 ## Evidence protocol
 
 1. Trace the state transition from input through file/manifest writes and cleanup.

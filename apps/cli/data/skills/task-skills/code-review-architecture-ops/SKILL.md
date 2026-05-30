@@ -22,6 +22,10 @@ Check for:
 - docs, runbooks, or operating-layer templates that become materially stale for changed behavior
 - feature or module boundaries that make future review, audit, or installation behavior ambiguous
 
+## Scope compliance
+
+Use the scope map as a hard boundary. Report findings only inside the `included surface`. Do not turn the `excluded surface` into findings; if risk signals appear outside scope, record them only as `미실행/남은 확인`.
+
 ## Evidence protocol
 
 1. Inspect the owning module boundaries and lifecycle path named by the scope map.

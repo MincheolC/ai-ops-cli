@@ -21,6 +21,10 @@ Check for:
 - contract regression where an older supported command, file layout, or install/update behavior now changes
 - error handling that hides actionable failures or reports success after a failed branch
 
+## Scope compliance
+
+Use the scope map as a hard boundary. Report findings only inside the `included surface`. Do not turn the `excluded surface` into findings; if risk signals appear outside scope, record them only as `미실행/남은 확인`.
+
 ## Evidence protocol
 
 1. Read the scope map and the named plan or request.
