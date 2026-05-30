@@ -183,6 +183,12 @@ task-skills/skill-load-check/
 - 사용자 확인 전에는 편집하지 않습니다.
 - staging, commit, hook 설치를 직접 수행하지 않습니다.
 
+`ai-ops-project-owned-docs`는 프로젝트 전용 운영 메모를 사용자 확인 후 project-owned 문서에 배치하는 Codex 전용 task skill입니다.
+
+- 사용자가 준 메모를 project-owned 문서 target으로 분류합니다.
+- 편집 전에 target과 문구를 제안합니다.
+- 승인된 project-owned 문서와 필요한 status/index 파일만 수정합니다.
+
 `context-promotion-review`는 작업 커밋 직후 반복 운영 지식 승격 후보를 검토하는 Codex 전용 task skill입니다.
 
 - 기존 context layer를 먼저 cross-check합니다.

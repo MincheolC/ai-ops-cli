@@ -97,7 +97,7 @@
         "project_rule_changes"
       ],
       "path": "docs/agent/project-rules/routing-rules.md",
-      "contentHash": "5cf5c6"
+      "contentHash": "0f2f34"
     },
     {
       "status": "Active",
@@ -224,5 +224,5 @@
       "contentHash": "700a79"
     }
   ],
-  "generatedAt": "2026-05-29T10:05:25.578Z"
+  "generatedAt": "2026-05-30T08:55:27.870Z"
 }

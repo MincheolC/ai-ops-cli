@@ -1,0 +1,6 @@
+interface:
+  display_name: "ai-ops-project-owned-docs"
+  short_description: "Route project-local operating notes into project-owned docs after confirmation."
+  default_prompt: "Use $ai-ops-project-owned-docs to classify the user's note into the current project's project-owned operating docs, propose the target and text, and do not edit files until the user confirms."
+policy:
+  allow_implicit_invocation: false

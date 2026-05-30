@@ -127,6 +127,33 @@ describe('skill data files', () => {
     expect(openaiMetadata.policy.allow_implicit_invocation).toBe(false);
   });
 
+  it('ai-ops-project-owned-docs는 project-owned 문서 배치와 승인 후 편집 계약을 포함한다', () => {
+    const entry = findSkillEntry('ai-ops-project-owned-docs');
+    const skillRaw = readFileSync(resolve(skillsDir, 'task-skills/ai-ops-project-owned-docs/SKILL.md'), 'utf-8');
+    const openaiMetadata = OpenAiSkillMetadataSchema.parse(
+      parse(readFileSync(resolve(skillsDir, 'task-skills/ai-ops-project-owned-docs/agents/openai.yaml'), 'utf-8')),
+    );
+
+    expect(entry.kind).toBe('task');
+    expect(entry.supported_tools).toEqual(['codex']);
+    expect(entry.groups).toContain('agent-operating-layer');
+    expect(skillRaw).toContain('$ai-ops-project-owned-docs');
+    expect(skillRaw).toContain('project-owned docs placement and editing specialist');
+    expect(skillRaw).toContain('docs/agent/project-rules/*.md');
+    expect(skillRaw).toContain('docs/docs-status.md');
+    expect(skillRaw).toContain('.ai-ops/context-layer.json');
+    expect(skillRaw).toContain('managed baseline docs');
+    expect(skillRaw).toContain('AGENTS.md');
+    expect(skillRaw).toContain('docs/agent/rules/*');
+    expect(skillRaw).toContain('docs/agent/checks/*');
+    expect(skillRaw).not.toContain('docs/agent/rules/doc-update-rules.md');
+    expect(skillRaw).toContain('Do not edit files before the user confirms');
+    expect(skillRaw).toContain('ai-ops update');
+    expect(skillRaw).toContain('ai-ops audit');
+    expect(skillRaw).toContain('Do not stage, commit, amend, or resolve context-promotion receipts');
+    expect(openaiMetadata.policy.allow_implicit_invocation).toBe(false);
+  });
+
   it('context-promotion-review는 승격 검토와 receipt 계약을 포함한다', () => {
     const skillRaw = readFileSync(resolve(skillsDir, 'task-skills/context-promotion-review/SKILL.md'), 'utf-8');
     const openaiMetadata = OpenAiSkillMetadataSchema.parse(

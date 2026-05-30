@@ -155,6 +155,13 @@
       "source_path": "task-skills/doc-impact-reviewer"
     },
     {
+      "id": "ai-ops-project-owned-docs",
+      "kind": "task",
+      "supported_tools": ["codex"],
+      "groups": ["agent-operating-layer"],
+      "source_path": "task-skills/ai-ops-project-owned-docs"
+    },
+    {
       "id": "context-promotion-review",
       "kind": "task",
       "supported_tools": ["codex"],

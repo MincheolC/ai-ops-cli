@@ -183,6 +183,12 @@ task-skills/skill-load-check/
 - It does not edit before user confirmation.
 - It does not stage, commit, or install hooks by itself.
 
+`ai-ops-project-owned-docs` is a Codex-only task skill for routing project-local operating notes into project-owned docs after user confirmation.
+
+- It classifies user-supplied notes into project-owned doc targets.
+- It proposes the target and text before editing.
+- It only edits approved project-owned docs and required status/index files.
+
 `context-promotion-review` is a Codex-only task skill for reviewing reusable operating knowledge after a work commit.
 
 - It cross-checks the existing context layer before suggesting promotion.
