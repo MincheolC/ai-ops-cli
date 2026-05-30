@@ -43,7 +43,7 @@ git tag "v$NEW_VERSION"
 
 # ── 5. publish platform package, then cli ─────────────────────────────────────
 echo "▶ Publishing ai-ops-studio-darwin-arm64@$NEW_VERSION..."
-npm publish apps/studio-darwin-arm64
+npm publish ./apps/studio-darwin-arm64
 
 echo "▶ Publishing ai-ops-cli@$NEW_VERSION..."
 npm publish --workspace=apps/cli
