@@ -24,7 +24,7 @@
 
 ### Task Skill 사용
 
-반복되는 운영 절차는 task skill로 둡니다. 예를 들어 `doc-impact-reviewer`는 변경 완료 또는 커밋 직전에 diff를 확인하고, 갱신 후보 문서를 `required / recommended / not needed`로 제안한 뒤 사용자 승인 후 승인된 문서만 수정합니다.
+반복되는 운영 절차는 task skill로 둡니다. 예를 들어 `ai-ops-project-owned-docs`는 운영 메모, diff 영향, 대화에서 나온 운영 학습을 project-owned 문서로 배치하고 사용자 승인 후 승인된 문서만 수정합니다.
 
 승인이 필요한 task skill은 자동 호출을 막습니다.
 
@@ -35,8 +35,7 @@
 설치 예시:
 
 ```bash
-ai-ops skill install doc-impact-reviewer --tool codex
-ai-ops skill install context-promotion-review --tool codex
+ai-ops skill install ai-ops-project-owned-docs --tool codex
 ```
 
 ## 디렉터리 구조
@@ -176,23 +175,9 @@ task-skills/skill-load-check/
 
 ## 운영 Task Skill
 
-`doc-impact-reviewer`는 운영 문서 영향도를 수동으로 검토하는 task skill입니다.
+`ai-ops-project-owned-docs`는 프로젝트 전용 운영 메모, diff 영향, 대화에서 나온 운영 학습을 사용자 확인 후 project-owned 문서에 배치하는 Codex 전용 task skill입니다.
 
-- git status, diff, 변경 파일, 관련 operating-layer 문서를 읽습니다.
-- 편집 전에 문서 후보와 리스크를 보고합니다.
-- 사용자 확인 전에는 편집하지 않습니다.
-- staging, commit, hook 설치를 직접 수행하지 않습니다.
-
-`ai-ops-project-owned-docs`는 프로젝트 전용 운영 메모를 사용자 확인 후 project-owned 문서에 배치하는 Codex 전용 task skill입니다.
-
-- 사용자가 준 메모를 project-owned 문서 target으로 분류합니다.
+- 사용자가 준 메모, 현재 diff, 대화 학습을 project-owned 문서 target으로 분류합니다.
 - 편집 전에 target과 문구를 제안합니다.
 - 승인된 project-owned 문서와 필요한 status/index 파일만 수정합니다.
-
-`context-promotion-review`는 작업 커밋 직후 반복 운영 지식 승격 후보를 검토하는 Codex 전용 task skill입니다.
-
-- 기존 context layer를 먼저 cross-check합니다.
-- 후보를 core, project-local, global, no-promotion으로 분류합니다.
-- 최종 결정은 `ai-ops context-promotion resolve`로 기록합니다.
-- 승인된 승격 수정은 사용자 검사를 위해 커밋하지 않은 상태로 남깁니다.
-- 현재 `HEAD`에 대해 `ai-ops context-promotion status`로 receipt를 확인합니다.
+- staging, commit, hook 설치를 직접 수행하지 않습니다.

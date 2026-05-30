@@ -1,4 +1,3 @@
-import { join } from 'node:path';
 import type {
   CodexPermissionProfileSyntax,
   CodexPermissionProfileValidator,
@@ -91,7 +90,6 @@ const buildPermissionProfileBlock = (
     'glob_scan_max_depth = 3',
     '":minimal" = "read"',
     `${quoteTomlString(paths.personalContextRoot)} = "write"`,
-    `${quoteTomlString(join(paths.userBasePath, '.ai-ops', 'context-promotion'))} = "write"`,
     '',
     `[permissions.${SAFE_LOCAL_CODEX_PERMISSION_NAME}.filesystem.${quoteTomlString(syntax.workspaceRootToken)}]`,
     ...syntax.workspaceRules.map((rule) => `${quoteTomlString(rule.path)} = ${quoteTomlString(rule.access)}`),

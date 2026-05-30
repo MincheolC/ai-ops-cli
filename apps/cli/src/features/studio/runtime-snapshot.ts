@@ -2,12 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { COMPILER_DATA_DIR } from '@/shared/paths.js';
 import { loadAllIntegrations, loadAllSkills, loadAllSubagents } from '@/shared/catalog-loader.js';
-import {
-  CONTEXT_PROMOTION_CODEX_HOOK,
-  PC_CODEX_HOOK,
-  inspectCodexHook,
-  resolveCodexHooksPath,
-} from '../codex-hooks/core.js';
+import { PC_CODEX_HOOK, inspectCodexHook, resolveCodexHooksPath } from '../codex-hooks/core.js';
 import type { CodexHookDefinition } from '../codex-hooks/core.js';
 import {
   findInstalledIntegration,
@@ -50,7 +45,7 @@ const SKILLS_MANIFEST_FALLBACK_PATH = '.ai-ops/skills-manifest.json';
 const SUBAGENTS_MANIFEST_FALLBACK_PATH = '.ai-ops/subagents-manifest.json';
 const HOOKS_FALLBACK_PATH = '.codex/hooks.json';
 
-const KNOWN_CODEX_HOOK_DEFINITIONS = [CONTEXT_PROMOTION_CODEX_HOOK, PC_CODEX_HOOK] as const;
+const KNOWN_CODEX_HOOK_DEFINITIONS = [PC_CODEX_HOOK] as const;
 
 // ----- runtime snapshot -----
 

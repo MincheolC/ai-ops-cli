@@ -260,7 +260,6 @@ export const integrationPostToolUseHookCommand = async (params: {
     const output = evaluateIntegrationPostToolUseWorkflows({
       hookInput,
       workflows,
-      userBasePath: resolveUserBasePath(),
       contextRoot: workflows.includes(INTEGRATION_ID.PC) ? resolvePersonalContextRoot() : undefined,
     });
     if (output) {

@@ -4,7 +4,7 @@
 
 `ai-ops-cli`는 프로젝트/에이전트 작업에 필요한 operating layer와 global runtime integration을 설치하고 관리하는 CLI입니다.
 
-이 문서는 현재 구현된 breaking model을 설명합니다. 현재 CLI는 bundled user/global runtime workflow를 위한 `integration` 명령을 제공하고, skill, subagent, Codex hook, user-local receipt를 다루는 low-level component 명령도 계속 제공합니다. old rules + skills scaffolder 모델은 deprecated 문맥으로만 남깁니다.
+이 문서는 현재 구현된 breaking model을 설명합니다. 현재 CLI는 bundled user/global runtime workflow를 위한 `integration` 명령을 제공하고, skill과 subagent를 다루는 low-level component 명령도 계속 제공합니다. old rules + skills scaffolder 모델은 deprecated 문맥으로만 남깁니다.
 
 ## Current Breaking Model
 
@@ -19,8 +19,6 @@ flowchart TD
   skill["ai-ops skill ..."] --> skillComponent["Skill components"]
   subagent["ai-ops subagent ..."] --> subagentComponent["Subagent components"]
   integration["ai-ops integration ..."] --> integrationComponent["Runtime integration bundles"]
-  hook["ai-ops codex-hook ..."] --> hookComponent["Codex hook components"]
-  receipt["ai-ops context-promotion ..."] --> receiptComponent["User-local receipts"]
   pack["ai-ops pack ..."] --> docsSpecs["optional docs/specs/ pack"]
 ```
 
@@ -104,8 +102,6 @@ Commands:
   pack       Manage optional project operating layer packs
   studio    Launch ai-ops Studio or generate read-only Studio helpers
   integration Manage user/global runtime integrations
-  context-promotion Manage context promotion review receipts
-  codex-hook Manage Codex hook components
 ```
 
 `--tool`은 유지합니다. Codex, Claude Code, Gemini CLI가 서로 다른 discovery 위치와 adapter 파일을 사용하기 때문입니다.
@@ -132,7 +128,6 @@ Integration lifecycle 명령:
 ```bash
 ai-ops integration list
 ai-ops integration install code-review-gate
-ai-ops integration install context-promotion
 ai-ops integration install pc
 ai-ops integration diff code-review-gate
 ai-ops integration update code-review-gate
@@ -145,11 +140,7 @@ ai-ops pc done apply --draft /path/to/draft.json
 
 `code-review-gate`는 Codex-only explicit review subagent와 focused review task skill들을 묶습니다. Hookless integration이며 receipt config를 만들지 않습니다.
 
-`context-promotion`은 `context-promotion-review` Codex skill, shared Codex `PostToolUse` hook workflow, user-local receipt workflow를 묶습니다.
-
-`pc`는 `pc` Codex skill과 같은 shared Codex `PostToolUse` hook runner를 묶습니다. 성공적인 `git commit` 이후 `~/.personal-project-contexts/`에 matching workspace, active workstream, current repo scope가 이미 준비된 경우에만 Codex가 `$pc:done`으로 이어가게 합니다. Handoff 반영은 `ai-ops pc done draft` -> AI가 JSON 작성 -> `ai-ops pc done apply` 순서로 진행해, context 파일 갱신과 context repo commit은 CLI가 맡습니다.
-
-두 workflow가 함께 설치되면 `ai-ops`는 `--workflows context-promotion,pc`를 쓰는 하나의 `PostToolUse` command hook만 저장하고 continuation output을 병합합니다. Codex non-managed hook은 실행 전 `/hooks`에서 review/trust가 필요합니다.
+`pc`는 `pc` Codex skill과 shared Codex `PostToolUse` hook runner를 묶습니다. 성공적인 `git commit` 이후 `~/.personal-project-contexts/`에 matching workspace, active workstream, current repo scope가 이미 준비된 경우에만 Codex가 `$pc:done`으로 이어가게 합니다. Handoff 반영은 `ai-ops pc done draft` -> AI가 JSON 작성 -> `ai-ops pc done apply` 순서로 진행해, context 파일 갱신과 context repo commit은 CLI가 맡습니다. Codex non-managed hook은 실행 전 `/hooks`에서 review/trust가 필요합니다.
 
 Integration 소유권은 user/global runtime home의 `.ai-ops/integrations-manifest.json`에 기록합니다. Uninstall은 owned component만 제거하고 기존 수동 설치는 보존합니다.
 
@@ -158,36 +149,27 @@ Skill lifecycle 명령:
 ```bash
 ai-ops skill list
 ai-ops skill install skill-load-check --tool codex
-ai-ops skill install doc-impact-reviewer --tool codex
-ai-ops skill install context-promotion-review --tool codex
+ai-ops skill install ai-ops-project-owned-docs --tool codex
 ai-ops skill diff
 ai-ops skill update
 ai-ops skill uninstall skill-load-check
 ```
 
-`doc-impact-reviewer`는 변경 완료 또는 커밋 직전에 운영 문서 영향도를 확인하는 수동 task skill입니다. `$doc-impact-reviewer`로 호출하면 git status/diff를 보고 `required / recommended / not needed` 문서 후보와 미갱신 리스크를 제안합니다. 사용자 승인 전에는 문서를 수정하지 않고, 직접 staging/commit도 하지 않습니다.
+`ai-ops-project-owned-docs`는 운영 메모, 현재 diff 영향, 대화에서 나온 운영 학습을 project-owned 운영 문서로 배치하는 Codex 전용 task skill입니다. 수동으로 `$ai-ops-project-owned-docs`를 호출해 사용하며, 사용자 확인 전에는 문서를 수정하지 않고 직접 staging/commit도 하지 않습니다.
 
-`context-promotion-review`는 방금 만든 작업 커밋에서 core, project-local, global로 승격할 반복 운영 지식이 생겼는지 확인하는 Codex 전용 task skill입니다. Codex hook은 `git commit` 이후에 동작하며 작업 커밋을 막지 않습니다. hook 설치 시 Codex skill도 user/global runtime 위치에 함께 설치합니다. 승인된 승격 수정은 사용자 검사를 위해 커밋하지 않은 상태로 남기고, 최종 결정은 `ai-ops context-promotion resolve`로 receipt에 기록합니다.
+Low-level component 명령도 직접 skill과 subagent를 관리할 때 계속 사용할 수 있습니다.
 
-Low-level component 명령도 직접 skill, hook, receipt를 관리할 때 계속 사용할 수 있습니다.
-
-Context promotion과 Codex hook 명령:
+Codex permissions 명령:
 
 ```bash
-ai-ops context-promotion status
-ai-ops context-promotion resolve --decision no-promotion --summary "No reusable operating knowledge found"
-ai-ops context-promotion prune --max 50
-ai-ops codex-hook install context-promotion
-ai-ops codex-hook install context-promotion --command "/custom/bin/ai-ops integration hook post-tool-use"
-ai-ops codex-hook install context-promotion --command-windows "C:\tools\ai-ops.exe integration hook post-tool-use"
-ai-ops codex-hook status context-promotion
-ai-ops codex-hook uninstall context-promotion
 ai-ops codex-permissions install safe-local
 ai-ops codex-permissions status safe-local
 ai-ops codex-permissions uninstall safe-local
 ```
 
-`safe-local`은 `~/.codex/config.toml`에 `ai-ops-safe-local` user-level Codex permission profile을 관리합니다. `~/.personal-project-contexts`, `${AI_OPS_HOME:-$HOME}/.ai-ops/context-promotion`, active workspace root 아래 `.codex/plans`에는 write를 허용하고 `.git`은 read-only로 둡니다. 현재 Codex permission syntax인 `:workspace_roots`와 `deny` env-file carveout을 먼저 시도하고, generated profile을 installed Codex runtime으로 검증한 뒤 처음 통과한 Codex-compatible syntax를 설치합니다. Codex validation을 실행할 수 없으면 warning과 함께 portable compatibility syntax를 쓰고, Codex가 있지만 어떤 candidate도 통과하지 못하면 `config.toml`을 쓰지 않고 fail closed합니다. `PermissionRequest` hook이나 command allow rule은 설치하지 않습니다.
+설치된 `pc` hook command는 shared dispatcher 형태인 `ai-ops integration hook post-tool-use --workflows pc`입니다. Codex non-managed hook은 실행 전 `/hooks`에서 review/trust가 필요합니다.
+
+`safe-local`은 `~/.codex/config.toml`에 `ai-ops-safe-local` user-level Codex permission profile을 관리합니다. `~/.personal-project-contexts`와 active workspace root 아래 `.codex/plans`에는 write를 허용하고 `.git`은 read-only로 둡니다. 현재 Codex permission syntax인 `:workspace_roots`와 `deny` env-file carveout을 먼저 시도하고, generated profile을 installed Codex runtime으로 검증한 뒤 처음 통과한 Codex-compatible syntax를 설치합니다. Codex validation을 실행할 수 없으면 warning과 함께 portable compatibility syntax를 쓰고, Codex가 있지만 어떤 candidate도 통과하지 못하면 `config.toml`을 쓰지 않고 fail closed합니다. `PermissionRequest` hook이나 command allow rule은 설치하지 않습니다.
 
 ai-coding worker에서는 Codex subprocess를 run-scoped로 실행하고, commit/push/PR 생성은 orchestrator가 담당하게 합니다.
 

@@ -88,9 +88,8 @@ const writePcContext = (params: { contextRoot: string; workspaceRoot: string }):
 };
 
 describe('integration PostToolUse dispatcher', () => {
-  it('merges context-promotion and pc continuations in deterministic order', () => {
+  it('continues into pc handoff for successful git commits', () => {
     const { dir, cleanup } = setupGitRepo();
-    const userBasePath = mkdtempSync(join(tmpdir(), 'integration-dispatcher-home-'));
     const contextRoot = mkdtempSync(join(tmpdir(), 'integration-dispatcher-pc-'));
     try {
       writePcContext({ contextRoot, workspaceRoot: dir });
@@ -99,9 +98,8 @@ describe('integration PostToolUse dispatcher', () => {
       execFileSync('git', ['commit', '-m', 'work'], { cwd: dir, stdio: 'ignore' });
 
       const output = evaluateIntegrationPostToolUseWorkflows({
-        userBasePath,
         contextRoot,
-        workflows: [INTEGRATION_ID.CONTEXT_PROMOTION, INTEGRATION_ID.PC],
+        workflows: [INTEGRATION_ID.PC],
         hookInput: {
           hook_event_name: 'PostToolUse',
           cwd: dir,
@@ -113,12 +111,8 @@ describe('integration PostToolUse dispatcher', () => {
 
       expect(output?.decision).toBe('block');
       const reason = output?.reason ?? '';
-      expect(reason).toContain('Multiple ai-ops post-commit workflows');
-      expect(reason.indexOf('Context Promotion Review')).toBeLessThan(reason.indexOf('$pc:done'));
-      expect(reason).toContain('context-promotion-review');
       expect(reason).toContain('ai-ops pc done draft --from-hook --cwd');
     } finally {
-      rmSync(userBasePath, { recursive: true, force: true });
       rmSync(contextRoot, { recursive: true, force: true });
       cleanup();
     }

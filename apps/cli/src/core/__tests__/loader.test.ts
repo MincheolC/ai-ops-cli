@@ -13,18 +13,14 @@ describe('I/O', () => {
     expect(catalog.skills.length).toBeGreaterThan(0);
   });
 
-  it('loadAllSkills: 실제 data/skills/ 33개 로드', () => {
+  it('loadAllSkills: 실제 data/skills/ 32개 로드', () => {
     const skills = loadAllSkills(resolve(dataDir, 'skills'));
-    expect(skills).toHaveLength(33);
+    expect(skills).toHaveLength(32);
   });
 
   it('loadIntegrationCatalog: 실제 integration-registry.json 로드', () => {
     const catalog = loadIntegrationCatalog(resolve(dataDir, 'integrations'));
-    expect(catalog.integrations.map((integration) => integration.id)).toEqual([
-      'code-review-gate',
-      'context-promotion',
-      'pc',
-    ]);
+    expect(catalog.integrations.map((integration) => integration.id)).toEqual(['code-review-gate', 'pc']);
   });
 
   it('loadAllIntegrations: catalog를 id 순서로 로드한다', () => {
@@ -37,9 +33,9 @@ describe('I/O', () => {
       (integration) =>
         integration.components.find((component) => component.type === INTEGRATION_COMPONENT_TYPE.RECEIPT_CONFIG)?.id,
     );
-    expect(integrations.map((integration) => integration.id)).toEqual(['code-review-gate', 'context-promotion', 'pc']);
-    expect(skillIds).toEqual(['code-review-scope-map', 'context-promotion-review', 'pc']);
-    expect(receiptConfigIds).toEqual([undefined, 'context-promotion-receipts', 'personal-project-contexts']);
+    expect(integrations.map((integration) => integration.id)).toEqual(['code-review-gate', 'pc']);
+    expect(skillIds).toEqual(['code-review-scope-map', 'pc']);
+    expect(receiptConfigIds).toEqual([undefined, 'personal-project-contexts']);
   });
 
   it('spec lifecycle task skills는 preset에 자동 포함되지 않고 docs/specs 경로를 사용한다', () => {

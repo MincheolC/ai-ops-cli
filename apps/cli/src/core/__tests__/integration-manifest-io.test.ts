@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { describe, expect, it } from 'vitest';
@@ -56,6 +56,62 @@ describe('integration manifest IO', () => {
       });
 
       expect(readIntegrationManifest(manifestPath)).toBeNull();
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('ignores removed integration entries and cleans them on the next write', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'integration-manifest-'));
+    try {
+      const manifestPath = resolveIntegrationManifestPath(dir);
+      mkdirSync(join(dir, '.ai-ops'), { recursive: true });
+      writeFileSync(
+        manifestPath,
+        JSON.stringify(
+          {
+            schemaVersion: 1,
+            kind: 'ai-ops-integrations-manifest',
+            integrations: [
+              {
+                id: 'context-promotion',
+                components: [],
+                installedAt: '2026-05-19T00:00:00.000Z',
+                updatedAt: '2026-05-19T00:00:00.000Z',
+              },
+            ],
+            cliVersion: '1.2.3',
+            generatedAt: '2026-05-19T00:00:00.000Z',
+          },
+          null,
+          2,
+        ) + '\n',
+        'utf-8',
+      );
+
+      expect(readIntegrationManifest(manifestPath)?.integrations).toEqual([]);
+
+      writeUserIntegrationState({
+        manifestPath,
+        cliVersion: '1.2.3',
+        nextIntegration: {
+          id: INTEGRATION_ID.PC,
+          components: [
+            {
+              type: INTEGRATION_COMPONENT_TYPE.SKILL,
+              id: 'pc',
+              tools: ['codex'],
+              owned: true,
+            },
+          ],
+          installedAt: '2026-05-19T00:00:00.000Z',
+          updatedAt: '2026-05-19T00:00:00.000Z',
+        },
+      });
+
+      const raw = readFileSync(manifestPath, 'utf-8');
+      expect(raw).toContain('"id": "pc"');
+      expect(raw).not.toContain('context-promotion');
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

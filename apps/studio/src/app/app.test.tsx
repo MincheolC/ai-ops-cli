@@ -149,100 +149,72 @@ const snapshot = {
     },
     integrations: [
       {
-        id: 'context-promotion',
-        description: 'Codex git-commit 후 context promotion review receipt를 요구하는 integration',
+        id: 'pc',
+        description: 'Codex git-commit 후 $pc:done handoff를 요구하는 personal context integration',
         installed: true,
         installedAt: '2026-05-18T00:00:00.000Z',
         updatedAt: '2026-05-19T00:00:00.000Z',
         components: [
           {
             type: 'skill',
-            id: 'context-promotion-review',
+            id: 'pc',
             installed: true,
             owned: true,
             catalog: {
               type: 'skill',
-              id: 'context-promotion-review',
+              id: 'pc',
               tools: ['codex'],
             },
             installedComponent: {
               type: 'skill',
-              id: 'context-promotion-review',
+              id: 'pc',
               tools: ['codex'],
               owned: true,
             },
           },
           {
             type: 'codex-hook',
-            id: 'context-promotion',
+            id: 'pc',
             installed: true,
             owned: false,
             catalog: {
               type: 'codex-hook',
-              id: 'context-promotion',
+              id: 'pc',
             },
             installedComponent: {
               type: 'codex-hook',
-              id: 'context-promotion',
-              command: 'ai-ops context-promotion review',
+              id: 'pc',
+              command: 'ai-ops integration hook post-tool-use --workflows pc',
               owned: false,
             },
           },
           {
             type: 'receipt-config',
-            id: 'context-promotion-receipts',
+            id: 'personal-project-contexts',
             installed: true,
             owned: true,
             catalog: {
               type: 'receipt-config',
-              id: 'context-promotion-receipts',
-              storage_path: '.ai-ops/context-promotion/projects/*/receipts-index.json',
+              id: 'personal-project-contexts',
+              storage_path: '~/.personal-project-contexts',
             },
             installedComponent: {
               type: 'receipt-config',
-              id: 'context-promotion-receipts',
-              storagePath: '.ai-ops/context-promotion/projects/demo/receipts-index.json',
+              id: 'personal-project-contexts',
+              storagePath: '/Users/charles/.personal-project-contexts',
               owned: true,
             },
-          },
-        ],
-      },
-      {
-        id: 'pc',
-        description: 'Codex git-commit 후 $pc:done handoff를 요구하는 personal context integration',
-        installed: false,
-        installedAt: null,
-        updatedAt: null,
-        components: [
-          {
-            type: 'skill',
-            id: 'pc',
-            installed: false,
-            owned: null,
-            catalog: {
-              type: 'skill',
-              id: 'pc',
-              tools: ['codex'],
-            },
-            installedComponent: null,
           },
         ],
       },
     ],
     hooks: [
       {
-        id: 'context-promotion',
-        statusMessage: 'context-promotion hook active',
+        id: 'pc',
+        statusMessage: 'pc hook active',
         hooksPath: '/Users/charles/.codex/hooks.json',
         installed: true,
         error: null,
-      },
-      {
-        id: 'pc',
-        statusMessage: 'pc hook inactive',
-        hooksPath: '/Users/charles/.codex/hooks.json',
-        installed: false,
-        error: 'hook parse failure',
       },
     ],
     skills: [
@@ -258,9 +230,9 @@ const snapshot = {
         sourceHash: 'abc123',
       },
       {
-        id: 'doc-impact-reviewer',
+        id: 'ai-ops-project-owned-docs',
         kind: 'task',
-        description: 'Review document impact',
+        description: 'Route operating-layer notes into project-owned docs',
         supported_tools: ['codex'],
         groups: ['agent'],
         installed: false,
@@ -538,10 +510,10 @@ describe('App shell', () => {
 
     expect(screen.getByText('Runtime read surface / integrations')).toBeInTheDocument();
     expect(screen.getByText('Integrations manifest')).toBeInTheDocument();
-    expect(screen.getAllByText('context-promotion-review').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('pc').length).toBeGreaterThan(0);
     expect(screen.getByText('pre-existing')).toBeInTheDocument();
-    expect(screen.getByText('.ai-ops/context-promotion/projects/*/receipts-index.json')).toBeInTheDocument();
-    expect(screen.getByText('.ai-ops/context-promotion/projects/demo/receipts-index.json')).toBeInTheDocument();
+    expect(screen.getByText('~/.personal-project-contexts')).toBeInTheDocument();
+    expect(screen.getByText('/Users/charles/.personal-project-contexts')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^Install$/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^Update$/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^Uninstall$/i })).not.toBeInTheDocument();
@@ -570,20 +542,15 @@ describe('App shell', () => {
     expect(screen.queryByTestId('open-audit-document')).not.toBeInTheDocument();
   });
 
-  it('renders known Hook installed and error state with related integrations', async () => {
+  it('renders known Hook installed state with related integrations', async () => {
     const user = userEvent.setup();
     render(<App queryClient={createTestQueryClient()} snapshotLoader={async () => snapshot} />);
 
     await user.click(await screen.findByRole('button', { name: /Hooks/ }));
 
     expect(screen.getByText('Runtime read surface / hooks')).toBeInTheDocument();
-    expect(screen.getByText('context-promotion hook active')).toBeInTheDocument();
-    expect(screen.getAllByText('context-promotion').length).toBeGreaterThan(0);
-
-    await user.click(screen.getByRole('button', { name: /Select hooks pc/ }));
-
-    expect(screen.getByText('pc hook inactive')).toBeInTheDocument();
-    expect(screen.getByText('hook parse failure')).toBeInTheDocument();
+    expect(screen.getByText('pc hook active')).toBeInTheDocument();
+    expect(screen.getAllByText('pc').length).toBeGreaterThan(0);
   });
 
   it('opens Appearance as a real settings view with all bundled presets', async () => {

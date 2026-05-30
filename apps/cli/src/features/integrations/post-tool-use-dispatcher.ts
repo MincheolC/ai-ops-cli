@@ -1,7 +1,6 @@
 import { INTEGRATION_ID } from '@/core/schemas/index.js';
 import type { IntegrationId } from '@/core/schemas/index.js';
-import { evaluateContextPromotionSuccessfulGitCommitHook } from '../context-promotion/hook.js';
-import { parseSuccessfulGitCommitPostToolUseHook } from '../context-promotion/tool-use-hook.js';
+import { parseSuccessfulGitCommitPostToolUseHook } from '../codex-hooks/git-commit-hook.js';
 import { evaluatePcSuccessfulGitCommitHook } from '../pc/hook.js';
 
 type PostToolUseContinuationOutput = {
@@ -18,7 +17,7 @@ type WorkflowResult = {
   output: PostToolUseContinuationOutput;
 };
 
-const WORKFLOW_ORDER = [INTEGRATION_ID.CONTEXT_PROMOTION, INTEGRATION_ID.PC] as const;
+const WORKFLOW_ORDER = [INTEGRATION_ID.PC] as const;
 
 const isIntegrationWorkflow = (value: string): value is IntegrationId =>
   WORKFLOW_ORDER.includes(value as IntegrationId);
@@ -40,8 +39,7 @@ const parseWorkflowList = (workflows: string | undefined): IntegrationId[] => {
   return normalizeWorkflows(requested);
 };
 
-const workflowLabel = (workflow: IntegrationId): string =>
-  workflow === INTEGRATION_ID.CONTEXT_PROMOTION ? 'Context Promotion Review' : '$pc:done handoff';
+const workflowLabel = (_workflow: IntegrationId): string => '$pc:done handoff';
 
 const mergeWorkflowResults = (results: readonly WorkflowResult[]): PostToolUseContinuationOutput | null => {
   if (results.length === 0) {
@@ -89,7 +87,6 @@ export const parseIntegrationPostToolUseWorkflows = (params: {
 export const evaluateIntegrationPostToolUseWorkflows = (params: {
   hookInput: unknown;
   workflows: readonly IntegrationId[];
-  userBasePath: string;
   contextRoot?: string;
 }): PostToolUseContinuationOutput | null => {
   const gitCommitHook = parseSuccessfulGitCommitPostToolUseHook(params.hookInput);
@@ -99,15 +96,6 @@ export const evaluateIntegrationPostToolUseWorkflows = (params: {
 
   const workflows = normalizeWorkflows(params.workflows);
   const results: WorkflowResult[] = [];
-  if (workflows.includes(INTEGRATION_ID.CONTEXT_PROMOTION)) {
-    const output = evaluateContextPromotionSuccessfulGitCommitHook({
-      gitCommitHook,
-      userBasePath: params.userBasePath,
-    });
-    if (output) {
-      results.push({ workflow: INTEGRATION_ID.CONTEXT_PROMOTION, output });
-    }
-  }
   if (workflows.includes(INTEGRATION_ID.PC)) {
     if (!params.contextRoot) {
       throw new Error('pc workflow requires a personal context root');

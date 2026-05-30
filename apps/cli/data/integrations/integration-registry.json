@@ -47,26 +47,6 @@
       ]
     },
     {
-      "id": "context-promotion",
-      "description": "Codex git-commit 후 context promotion review receipt를 요구하는 integration",
-      "components": [
-        {
-          "type": "skill",
-          "id": "context-promotion-review",
-          "tools": ["codex"]
-        },
-        {
-          "type": "codex-hook",
-          "id": "context-promotion"
-        },
-        {
-          "type": "receipt-config",
-          "id": "context-promotion-receipts",
-          "storage_path": ".ai-ops/context-promotion/projects/*/receipts-index.json"
-        }
-      ]
-    },
-    {
       "id": "pc",
       "description": "Codex git-commit 후 $pc:done handoff를 요구하는 personal context integration",
       "components": [

@@ -16,13 +16,13 @@ describe('studio shell store', () => {
     useStudioShellStore.getState().setSelectedView('context-graph');
     useStudioShellStore.getState().setSelectedDocumentPath('docs/agent/workflow.md');
     useStudioShellStore.getState().setSelectedAuditIssueId('0:error:missing-file:file-system:AGENTS.md');
-    useStudioShellStore.getState().setSelectedRuntimeItemId('context-promotion');
+    useStudioShellStore.getState().setSelectedRuntimeItemId('pc');
 
     const state = useStudioShellStore.getState();
     expect(state.selectedView).toBe('context-graph');
     expect(state.selectedDocumentPath).toBe('docs/agent/workflow.md');
     expect(state.selectedAuditIssueId).toBe('0:error:missing-file:file-system:AGENTS.md');
-    expect(state.selectedRuntimeItemId).toBe('context-promotion');
+    expect(state.selectedRuntimeItemId).toBe('pc');
     expect(state).not.toHaveProperty('snapshot');
     expect(state).not.toHaveProperty('project');
     expect(state).not.toHaveProperty('runtime');

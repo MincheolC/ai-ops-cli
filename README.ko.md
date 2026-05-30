@@ -4,7 +4,7 @@
 
 `ai-ops-cli`의 다음 major breaking model을 설계하고 구현한 모노레포입니다. 제품 정의는 “프로젝트/에이전트 작업에 필요한 operating layer와 global runtime integration을 설치하고 관리한다”입니다.
 
-현재 repo 구현은 project operating layer 모델과 bundled user/global runtime workflow를 다루는 `ai-ops integration ...` 명령을 제공합니다. skill, subagent, Codex hook, user-local receipt를 다루는 low-level component 명령은 디버그와 개별 관리 용도로 계속 사용할 수 있습니다. old rules + skills scaffolder 모델은 deprecated 문맥으로만 남깁니다.
+현재 repo 구현은 project operating layer 모델과 bundled user/global runtime workflow를 다루는 `ai-ops integration ...` 명령을 제공합니다. skill과 subagent low-level component 명령은 디버그와 개별 관리 용도로 계속 사용할 수 있고, Codex hook과 user-local config는 integration 흐름에서 관리합니다. old rules + skills scaffolder 모델은 deprecated 문맥으로만 남깁니다.
 
 ## 목표 모델
 
@@ -22,7 +22,7 @@ flowchart LR
   integrations --> skills["skills"]
   integrations --> subagents["subagents"]
   integrations --> hooks["Codex hooks / runners"]
-  integrations --> receipts["user-local receipts / config"]
+  integrations --> config["user-local config"]
 ```
 
 ## 저장소 구조
@@ -33,7 +33,7 @@ flowchart LR
 │   ├── cli/
 │   │   ├── src/
 │   │   │   ├── bin/        # CLI entrypoint
-│   │   │   ├── commands/   # init/diff/audit/update/uninstall/skill/subagent/pack/integration/hooks
+│   │   │   ├── commands/   # init/diff/audit/update/uninstall/skill/subagent/pack/integration
 │   │   │   ├── core/       # schemas, loader, renderer, registry, project layer, integrations
 │   │   │   └── lib/        # integration component and legacy helper utilities
 │   │   ├── data/
@@ -101,7 +101,7 @@ flowchart LR
 
 ## ai-ops Integrations
 
-Integration은 여러 프로젝트에서 agent 작업을 돕는 user/global runtime 기능 단위입니다. skill, subagent, Codex hook, hook runner, user-local receipt/config 같은 component로 구성될 수 있습니다. 이 component들은 프로젝트에 복사하지 않고 project manifest에도 기록하지 않습니다.
+Integration은 여러 프로젝트에서 agent 작업을 돕는 user/global runtime 기능 단위입니다. skill, subagent, Codex hook, hook runner, user-local config 같은 component로 구성될 수 있습니다. 이 component들은 프로젝트에 복사하지 않고 project manifest에도 기록하지 않습니다.
 
 Integration component 명령은 `AI_OPS_HOME` 또는 `HOME`이 있어야 실행됩니다. 둘 다 없으면 cwd fallback 없이 실패합니다.
 
@@ -113,14 +113,13 @@ Integration component 명령은 `AI_OPS_HOME` 또는 `HOME`이 있어야 실행�
 - subagents
 - Codex hooks
 - Codex safe permissions
-- user-local context-promotion receipts
+- user-local integration config
 
 Integration lifecycle 명령:
 
 ```bash
 ai-ops integration list
 ai-ops integration install code-review-gate
-ai-ops integration install context-promotion
 ai-ops integration install pc
 ai-ops integration diff code-review-gate
 ai-ops integration update code-review-gate
@@ -133,13 +132,9 @@ ai-ops pc done apply --draft /path/to/draft.json
 
 `code-review-gate`는 Codex-only, explicit-only review subagent와 focused review task skill들을 설치합니다. Codex hook이나 receipt config를 설치하지 않기 때문에 install/status/diff/update/uninstall 경로에서 `CODEX_HOME`을 요구하지 않습니다.
 
-`context-promotion`은 `context-promotion-review` Codex skill, shared Codex `PostToolUse` hook workflow, user-local receipt workflow를 설치해 `git commit` 이후 재사용 가능한 운영 지식 승격 검토를 돕습니다.
+`pc`는 `pc` Codex skill과 shared Codex `PostToolUse` hook runner를 설치합니다. 성공적인 `git commit` 이후 `~/.personal-project-contexts/`에 matching workspace, active workstream, current repo scope가 준비된 경우에만 Codex가 `$pc:done`으로 이어가게 합니다. 준비되지 않은 repository에는 pc context를 새로 만들지 않습니다. Handoff 반영은 `ai-ops pc done draft` -> AI가 JSON 작성 -> `ai-ops pc done apply` 순서로 진행해, context 파일 갱신과 context repo commit은 CLI가 맡습니다. Codex non-managed hook은 실행 전 `/hooks`에서 review/trust가 필요합니다.
 
-`pc`는 `pc` Codex skill과 같은 shared Codex `PostToolUse` hook runner를 설치합니다. 성공적인 `git commit` 이후 `~/.personal-project-contexts/`에 matching workspace, active workstream, current repo scope가 준비된 경우에만 Codex가 `$pc:done`으로 이어가게 합니다. 준비되지 않은 repository에는 pc context를 새로 만들지 않습니다. Handoff 반영은 `ai-ops pc done draft` -> AI가 JSON 작성 -> `ai-ops pc done apply` 순서로 진행해, context 파일 갱신과 context repo commit은 CLI가 맡습니다.
-
-두 workflow가 함께 설치되면 `ai-ops`는 `--workflows context-promotion,pc`를 쓰는 하나의 `PostToolUse` command hook만 저장하고 continuation output을 병합합니다. Codex non-managed hook은 실행 전 `/hooks`에서 review/trust가 필요합니다.
-
-Codex safe permissions는 `pc`와 `context-promotion-review`가 쓰는 좁은 user-local 작업에서 반복 approval prompt를 줄입니다.
+Codex safe permissions는 `pc`가 쓰는 좁은 user-local 작업에서 반복 approval prompt를 줄입니다.
 
 ```bash
 ai-ops codex-permissions install safe-local
@@ -147,7 +142,7 @@ ai-ops codex-permissions status safe-local
 ai-ops codex-permissions uninstall safe-local
 ```
 
-`safe-local`은 `~/.codex/config.toml`에 `ai-ops-safe-local` user-level Codex permission profile을 upsert합니다. `~/.personal-project-contexts`, `${AI_OPS_HOME:-$HOME}/.ai-ops/context-promotion`, active workspace root 아래 `.codex/plans`에는 write를 허용하고 `.git`은 read-only로 둡니다. 현재 Codex permission syntax인 `:workspace_roots`와 `deny` env-file carveout을 먼저 시도하고, generated profile을 installed Codex runtime으로 검증한 뒤 처음 통과한 Codex-compatible syntax를 설치합니다. Codex validation을 실행할 수 없으면 warning과 함께 portable compatibility syntax를 쓰고, Codex가 있지만 어떤 candidate도 통과하지 못하면 `config.toml`을 쓰지 않고 fail closed합니다. `PermissionRequest` hook이나 command allow rule은 설치하지 않습니다.
+`safe-local`은 `~/.codex/config.toml`에 `ai-ops-safe-local` user-level Codex permission profile을 upsert합니다. `~/.personal-project-contexts`와 active workspace root 아래 `.codex/plans`에는 write를 허용하고 `.git`은 read-only로 둡니다. 현재 Codex permission syntax인 `:workspace_roots`와 `deny` env-file carveout을 먼저 시도하고, generated profile을 installed Codex runtime으로 검증한 뒤 처음 통과한 Codex-compatible syntax를 설치합니다. Codex validation을 실행할 수 없으면 warning과 함께 portable compatibility syntax를 쓰고, Codex가 있지만 어떤 candidate도 통과하지 못하면 `config.toml`을 쓰지 않고 fail closed합니다. `PermissionRequest` hook이나 command allow rule은 설치하지 않습니다.
 
 ai-coding worker에서는 Codex subprocess를 run-scoped로 실행하고, commit/push/PR 생성은 orchestrator가 담당하게 합니다.
 
@@ -180,14 +175,13 @@ Skill lifecycle 명령:
 ```bash
 ai-ops skill list
 ai-ops skill install skill-load-check --tool codex
-ai-ops skill install doc-impact-reviewer --tool codex
-ai-ops skill install context-promotion-review --tool codex
+ai-ops skill install ai-ops-project-owned-docs --tool codex
 ai-ops skill diff
 ai-ops skill update
 ai-ops skill uninstall skill-load-check
 ```
 
-`doc-impact-reviewer`는 변경 완료 또는 커밋 직전에 diff를 보고 갱신해야 할 운영 문서 후보를 판정하는 task skill입니다. 수동으로 `$doc-impact-reviewer`를 호출해 사용하며, 사용자 확인 전에는 문서를 수정하지 않고 직접 staging/commit도 하지 않습니다.
+`ai-ops-project-owned-docs`는 운영 메모, 현재 diff 영향, 대화에서 나온 운영 학습을 project-owned 운영 문서로 배치하는 Codex 전용 task skill입니다. 수동으로 `$ai-ops-project-owned-docs`를 호출해 사용하며, 사용자 확인 전에는 문서를 수정하지 않고 직접 staging/commit도 하지 않습니다.
 
 Subagent lifecycle 명령:
 
@@ -206,7 +200,7 @@ ai-ops subagent uninstall security-gate
 - Gemini CLI: `.gemini/agents/<id>.md`
 - 상태 파일: `.ai-ops/subagents-manifest.json`
 
-Low-level component 명령도 계속 사용할 수 있습니다. 단일 skill 설치, Codex hook 점검, context-promotion receipt 직접 관리가 필요할 때 사용합니다.
+Low-level component 명령도 계속 사용할 수 있습니다. 단일 skill 설치, subagent 점검, integration 직접 관리가 필요할 때 사용합니다.
 
 ## Optional Specs Pack
 

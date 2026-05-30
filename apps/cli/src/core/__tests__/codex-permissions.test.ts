@@ -48,7 +48,6 @@ const writeLegacySafeLocalFiles = (paths: ReturnType<typeof setup>): void => {
       'writable_roots = [',
       '  # ai-ops:safe-permissions:writable-roots:start',
       `  "${paths.personalContextRoot}",`,
-      `  "${join(paths.userBasePath, '.ai-ops', 'context-promotion')}",`,
       '  # ai-ops:safe-permissions:writable-roots:end',
       ']',
       '',
@@ -61,7 +60,7 @@ const writeLegacySafeLocalFiles = (paths: ReturnType<typeof setup>): void => {
       'prefix_rule(pattern = ["keep"], decision = "prompt")',
       '',
       '# ai-ops:safe-permissions:start',
-      'prefix_rule(pattern = ["ai-ops", "context-promotion", "status"], decision = "allow")',
+      'prefix_rule(pattern = ["ai-ops", "pc", "done"], decision = "allow")',
       '# ai-ops:safe-permissions:end',
       '',
     ].join('\n'),
@@ -134,7 +133,7 @@ describe('Codex safe permissions profile config', () => {
       expect(config).toContain(`[permissions.${SAFE_LOCAL_CODEX_PERMISSION_NAME}]`);
       expect(config).toContain('":minimal" = "read"');
       expect(config).toContain(`"${paths.personalContextRoot}" = "write"`);
-      expect(config).toContain(`"${join(paths.userBasePath, '.ai-ops', 'context-promotion')}" = "write"`);
+      expect(config).not.toContain('context-promotion');
       expect(config).toContain('[permissions.ai-ops-safe-local.filesystem.":project_roots"]');
       expect(config).toContain('glob_scan_max_depth = 3');
       expect(config).toContain('"." = "write"');

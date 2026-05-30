@@ -15,19 +15,6 @@ describe('IntegrationCatalogSchema', () => {
           ],
         },
         {
-          id: 'context-promotion',
-          description: 'Context promotion review integration',
-          components: [
-            { type: 'skill', id: 'context-promotion-review', tools: ['codex'] },
-            { type: 'codex-hook', id: 'context-promotion' },
-            {
-              type: 'receipt-config',
-              id: 'context-promotion-receipts',
-              storage_path: '.ai-ops/context-promotion/projects/*/receipts-index.json',
-            },
-          ],
-        },
-        {
           id: 'pc',
           description: 'Personal context handoff integration',
           components: [
@@ -39,7 +26,7 @@ describe('IntegrationCatalogSchema', () => {
       ],
     });
 
-    expect(parsed.integrations).toHaveLength(3);
+    expect(parsed.integrations).toHaveLength(2);
   });
 
   it('rejects unknown integration ids and duplicate ids', () => {

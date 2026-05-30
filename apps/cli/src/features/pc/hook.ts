@@ -1,6 +1,6 @@
 import { readGitHead, resolveGitRoot } from './status.js';
-import { parseSuccessfulGitCommitPostToolUseHook } from '../context-promotion/tool-use-hook.js';
-import type { SuccessfulGitCommitPostToolUse } from '../context-promotion/tool-use-hook.js';
+import { parseSuccessfulGitCommitPostToolUseHook } from '../codex-hooks/git-commit-hook.js';
+import type { SuccessfulGitCommitPostToolUse } from '../codex-hooks/git-commit-hook.js';
 import type { PcHandoffStatus, PcPostToolUseHookOutput } from './types.js';
 import { getPcHandoffStatus } from './status.js';
 import { pathContains } from './markdown.js';
