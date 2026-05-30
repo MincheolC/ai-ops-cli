@@ -5,6 +5,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.7.1] - 2026-05-31
+
 ### Added
 
 - `feat(pc)`: add `ai-ops pc done fill --apply` so `$pc:done` handoff fields can be supplied through the CLI instead of direct draft JSON patch edits.
