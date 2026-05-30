@@ -1,5 +1,6 @@
 import * as p from '@clack/prompts';
 import { INTEGRATION_COMPONENT_TYPE, INTEGRATION_ID } from '@/core/schemas/index.js';
+import { formatInstallStatus } from '@/shared/install-status-format.js';
 import { getCliVersion } from '@/shared/source-hash.js';
 import { resolveCodexHooksPath, uninstallCodexHook } from '../codex-hooks/core.js';
 import { getPcHandoffStatus } from '../pc/core.js';
@@ -42,7 +43,7 @@ export const integrationListCommand = async (): Promise<void> => {
     const manifest = readIntegrationManifest(resolveIntegrationManifestPath(resolveUserBasePath()));
     const installed = new Set((manifest?.integrations ?? []).map((integration) => integration.id));
     const lines = loadIntegrationDefinitions().map((definition) => {
-      const suffix = installed.has(definition.id) ? 'installed' : 'not installed';
+      const suffix = formatInstallStatus(installed.has(definition.id));
       return `- ${definition.id} - ${suffix} - ${definition.description}`;
     });
     p.log.info(lines.join('\n'));
@@ -260,7 +261,6 @@ export const integrationPostToolUseHookCommand = async (params: {
     const output = evaluateIntegrationPostToolUseWorkflows({
       hookInput,
       workflows,
-      userBasePath: resolveUserBasePath(),
       contextRoot: workflows.includes(INTEGRATION_ID.PC) ? resolvePersonalContextRoot() : undefined,
     });
     if (output) {

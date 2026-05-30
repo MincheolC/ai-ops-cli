@@ -187,13 +187,13 @@ describe.skipIf(!distExists)('skill subprocess', () => {
     }
   });
 
-  it('doc-impact-reviewer installs only under global AI_OPS_HOME', () => {
+  it('ai-ops-project-owned-docs installs only under global AI_OPS_HOME', () => {
     const { dir, cleanup } = setup();
     const userHome = mkdtempSync(join(tmpdir(), 'ai-ops-home-'));
     try {
       const result = spawnSync(
         process.execPath,
-        [BIN_PATH, 'skill', 'install', 'doc-impact-reviewer', '--tool', 'codex'],
+        [BIN_PATH, 'skill', 'install', 'ai-ops-project-owned-docs', '--tool', 'codex'],
         {
           cwd: dir,
           encoding: 'utf-8',
@@ -202,11 +202,11 @@ describe.skipIf(!distExists)('skill subprocess', () => {
       );
 
       expect(result.status).toBe(0);
-      expect(existsSync(join(userHome, '.agents/skills/doc-impact-reviewer/SKILL.md'))).toBe(true);
-      expect(existsSync(join(userHome, '.agents/skills/doc-impact-reviewer/agents/openai.yaml'))).toBe(true);
+      expect(existsSync(join(userHome, '.agents/skills/ai-ops-project-owned-docs/SKILL.md'))).toBe(true);
+      expect(existsSync(join(userHome, '.agents/skills/ai-ops-project-owned-docs/agents/openai.yaml'))).toBe(true);
 
       const registryRaw = readFileSync(join(userHome, '.ai-ops/skills-manifest.json'), 'utf-8');
-      expect(registryRaw).toContain('"id": "doc-impact-reviewer"');
+      expect(registryRaw).toContain('"id": "ai-ops-project-owned-docs"');
       expect(existsSync(join(dir, '.agents'))).toBe(false);
       expect(existsSync(join(dir, '.ai-ops'))).toBe(false);
       expect(existsSync(join(dir, '.codex'))).toBe(false);
@@ -214,104 +214,6 @@ describe.skipIf(!distExists)('skill subprocess', () => {
       expect(existsSync(join(dir, '.gemini'))).toBe(false);
     } finally {
       rmSync(userHome, { recursive: true, force: true });
-      cleanup();
-    }
-  });
-
-  it('context-promotion-review installs only under global AI_OPS_HOME', () => {
-    const { dir, cleanup } = setup();
-    const userHome = mkdtempSync(join(tmpdir(), 'ai-ops-home-'));
-    try {
-      const result = spawnSync(
-        process.execPath,
-        [BIN_PATH, 'skill', 'install', 'context-promotion-review', '--tool', 'codex'],
-        {
-          cwd: dir,
-          encoding: 'utf-8',
-          env: { ...process.env, AI_OPS_HOME: userHome },
-        },
-      );
-
-      expect(result.status).toBe(0);
-      expect(existsSync(join(userHome, '.agents/skills/context-promotion-review/SKILL.md'))).toBe(true);
-      expect(existsSync(join(userHome, '.agents/skills/context-promotion-review/agents/openai.yaml'))).toBe(true);
-
-      const registryRaw = readFileSync(join(userHome, '.ai-ops/skills-manifest.json'), 'utf-8');
-      expect(registryRaw).toContain('"id": "context-promotion-review"');
-      expect(existsSync(join(dir, '.agents'))).toBe(false);
-      expect(existsSync(join(dir, '.ai-ops'))).toBe(false);
-      expect(existsSync(join(dir, '.codex'))).toBe(false);
-      expect(existsSync(join(dir, '.claude'))).toBe(false);
-      expect(existsSync(join(dir, '.gemini'))).toBe(false);
-    } finally {
-      rmSync(userHome, { recursive: true, force: true });
-      cleanup();
-    }
-  });
-});
-
-describe.skipIf(!distExists)('codex hook subprocess', () => {
-  it('context-promotion install writes portable hook and installs the Codex skill under AI_OPS_HOME', () => {
-    const { dir, cleanup } = setup();
-    const userHome = mkdtempSync(join(tmpdir(), 'ai-ops-home-'));
-    const codexHome = mkdtempSync(join(tmpdir(), 'codex-home-'));
-    try {
-      const env = { ...process.env, AI_OPS_HOME: userHome, CODEX_HOME: codexHome };
-      const installResult = spawnSync(process.execPath, [BIN_PATH, 'codex-hook', 'install', 'context-promotion'], {
-        cwd: dir,
-        encoding: 'utf-8',
-        env,
-      });
-
-      expect(installResult.status).toBe(0);
-      const hooksRaw = readFileSync(join(codexHome, 'hooks.json'), 'utf-8');
-      expect(hooksRaw).toContain('"command": "ai-ops integration hook post-tool-use --workflows context-promotion"');
-      expect(hooksRaw).not.toContain(BIN_PATH);
-      expect(hooksRaw).not.toContain(process.execPath);
-      expect(existsSync(join(userHome, '.agents/skills/context-promotion-review/SKILL.md'))).toBe(true);
-      expect(existsSync(join(userHome, '.agents/skills/context-promotion-review/agents/openai.yaml'))).toBe(true);
-      expect(existsSync(join(dir, '.agents'))).toBe(false);
-      expect(existsSync(join(dir, '.codex'))).toBe(false);
-
-      const statusResult = spawnSync(process.execPath, [BIN_PATH, 'codex-hook', 'status', 'context-promotion'], {
-        cwd: dir,
-        encoding: 'utf-8',
-        env,
-      });
-      expect(statusResult.status).toBe(0);
-      expect(statusResult.stdout).toContain('hook installed: yes');
-      expect(statusResult.stdout).toContain('skill installed: yes');
-      expect(statusResult.stdout).toContain('hook trust: configured; review and trust');
-    } finally {
-      rmSync(userHome, { recursive: true, force: true });
-      rmSync(codexHome, { recursive: true, force: true });
-      cleanup();
-    }
-  });
-
-  it('context-promotion install accepts a custom hook command', () => {
-    const { dir, cleanup } = setup();
-    const userHome = mkdtempSync(join(tmpdir(), 'ai-ops-home-'));
-    const codexHome = mkdtempSync(join(tmpdir(), 'codex-home-'));
-    try {
-      const customCommand = '/custom/bin/ai-ops integration hook post-tool-use';
-      const result = spawnSync(
-        process.execPath,
-        [BIN_PATH, 'codex-hook', 'install', 'context-promotion', '--command', customCommand],
-        {
-          cwd: dir,
-          encoding: 'utf-8',
-          env: { ...process.env, AI_OPS_HOME: userHome, CODEX_HOME: codexHome },
-        },
-      );
-
-      expect(result.status).toBe(0);
-      expect(readFileSync(join(codexHome, 'hooks.json'), 'utf-8')).toContain(
-        `"command": "${customCommand} --workflows context-promotion"`,
-      );
-    } finally {
-      rmSync(userHome, { recursive: true, force: true });
-      rmSync(codexHome, { recursive: true, force: true });
       cleanup();
     }
   });
@@ -352,7 +254,7 @@ describe.skipIf(!distExists)('codex permissions subprocess', () => {
       expect(configRaw).toContain('default_permissions = "ai-ops-safe-local"');
       expect(configRaw).toContain('[permissions.ai-ops-safe-local]');
       expect(configRaw).toContain(`"${join(home, '.personal-project-contexts')}" = "write"`);
-      expect(configRaw).toContain(`"${join(userHome, '.ai-ops/context-promotion')}" = "write"`);
+      expect(configRaw).not.toContain('context-promotion');
       expect(configRaw).toContain('glob_scan_max_depth = 3');
       expect(configRaw).toContain('".codex/plans" = "write"');
       expect(configRaw).toContain('".git" = "read"');
@@ -837,25 +739,35 @@ describe.skipIf(!distExists)('integration subprocess', () => {
     }
   });
 
-  it('context-promotion integration wraps the existing skill and hook components', () => {
+  it('ignores and cleans removed context-promotion manifest entries on integration commands', () => {
     const { dir, cleanup } = setup();
     const userHome = mkdtempSync(join(tmpdir(), 'ai-ops-home-'));
     const codexHome = mkdtempSync(join(tmpdir(), 'codex-home-'));
+    const manifestPath = join(userHome, '.ai-ops/integrations-manifest.json');
     const env = { ...process.env, AI_OPS_HOME: userHome, HOME: userHome, CODEX_HOME: codexHome };
     try {
-      const installResult = spawnSync(process.execPath, [BIN_PATH, 'integration', 'install', 'context-promotion'], {
-        cwd: dir,
-        encoding: 'utf-8',
-        env,
-      });
-
-      expect(installResult.status).toBe(0);
-      expect(existsSync(join(userHome, '.agents/skills/context-promotion-review/SKILL.md'))).toBe(true);
-      expect(readFileSync(join(codexHome, 'hooks.json'), 'utf-8')).toContain(
-        '"command": "ai-ops integration hook post-tool-use --workflows context-promotion"',
-      );
-      expect(readFileSync(join(userHome, '.ai-ops/integrations-manifest.json'), 'utf-8')).toContain(
-        '"id": "context-promotion"',
+      mkdirSync(join(userHome, '.ai-ops'), { recursive: true });
+      writeFileSync(
+        manifestPath,
+        JSON.stringify(
+          {
+            schemaVersion: 1,
+            kind: 'ai-ops-integrations-manifest',
+            integrations: [
+              {
+                id: 'context-promotion',
+                components: [],
+                installedAt: '2026-05-19T00:00:00.000Z',
+                updatedAt: '2026-05-19T00:00:00.000Z',
+              },
+            ],
+            cliVersion: '1.2.3',
+            generatedAt: '2026-05-19T00:00:00.000Z',
+          },
+          null,
+          2,
+        ) + '\n',
+        'utf-8',
       );
 
       const listResult = spawnSync(process.execPath, [BIN_PATH, 'integration', 'list'], {
@@ -864,72 +776,17 @@ describe.skipIf(!distExists)('integration subprocess', () => {
         env,
       });
       expect(listResult.status).toBe(0);
-      expect(listResult.stdout).toContain('context-promotion - installed');
-      expect(listResult.stdout).toContain('pc - not installed');
+      expect(listResult.stdout).toContain('pc - ○ not installed');
+      expect(listResult.stdout).not.toContain('context-promotion');
 
-      const pcInstallResult = spawnSync(process.execPath, [BIN_PATH, 'integration', 'install', 'pc'], {
+      const installResult = spawnSync(process.execPath, [BIN_PATH, 'integration', 'install', 'pc'], {
         cwd: dir,
         encoding: 'utf-8',
         env,
       });
-      expect(pcInstallResult.status).toBe(0);
-      const mergedHooksRaw = readFileSync(join(codexHome, 'hooks.json'), 'utf-8');
-      expect(mergedHooksRaw.match(/integration hook post-tool-use/g)?.length).toBe(1);
-      expect(mergedHooksRaw).toContain('--workflows context-promotion,pc');
-
-      const pcUninstallResult = spawnSync(process.execPath, [BIN_PATH, 'integration', 'uninstall', 'pc'], {
-        cwd: dir,
-        encoding: 'utf-8',
-        env,
-      });
-      expect(pcUninstallResult.status).toBe(0);
-      const contextOnlyHooksRaw = readFileSync(join(codexHome, 'hooks.json'), 'utf-8');
-      expect(contextOnlyHooksRaw).toContain('--workflows context-promotion');
-      expect(contextOnlyHooksRaw).not.toContain('--workflows context-promotion,pc');
-    } finally {
-      rmSync(userHome, { recursive: true, force: true });
-      rmSync(codexHome, { recursive: true, force: true });
-      cleanup();
-    }
-  });
-
-  it('context-promotion-only shared hook does not require HOME for pc context', () => {
-    const { dir, cleanup } = setup();
-    const userHome = mkdtempSync(join(tmpdir(), 'ai-ops-home-'));
-    const codexHome = mkdtempSync(join(tmpdir(), 'codex-home-'));
-    const env = { ...process.env, AI_OPS_HOME: userHome, CODEX_HOME: codexHome };
-    delete env.HOME;
-    try {
-      execFileSync('git', ['init'], { cwd: dir, stdio: 'ignore' });
-      execFileSync('git', ['config', 'user.email', 'test@example.com'], { cwd: dir });
-      execFileSync('git', ['config', 'user.name', 'Test User'], { cwd: dir });
-      mkdirSync(join(dir, '.ai-ops'), { recursive: true });
-      writeFileSync(join(dir, '.ai-ops/context-layer.json'), '{"schemaVersion":1}\n', 'utf-8');
-      writeFileSync(join(dir, 'tracked.txt'), 'initial\n', 'utf-8');
-      execFileSync('git', ['add', '.'], { cwd: dir });
-      execFileSync('git', ['commit', '-m', 'init'], { cwd: dir, stdio: 'ignore' });
-
-      const result = spawnSync(
-        process.execPath,
-        [BIN_PATH, 'integration', 'hook', 'post-tool-use', '--workflows', 'context-promotion'],
-        {
-          cwd: dir,
-          encoding: 'utf-8',
-          env,
-          input: JSON.stringify({
-            hook_event_name: 'PostToolUse',
-            cwd: dir,
-            tool_name: 'Bash',
-            tool_input: { command: 'git commit -m work' },
-            tool_response: '[main 1234567] work\n 1 file changed, 1 insertion(+)\n',
-          }),
-        },
-      );
-
-      expect(result.status).toBe(0);
-      expect(result.stdout).not.toContain('systemMessage');
-      expect(result.stdout).not.toContain('HOME is required for pc integration commands');
-      expect(result.stdout).toContain('context-promotion-review');
+      expect(installResult.status).toBe(0);
+      expect(readFileSync(manifestPath, 'utf-8')).toContain('"id": "pc"');
+      expect(readFileSync(manifestPath, 'utf-8')).not.toContain('context-promotion');
     } finally {
       rmSync(userHome, { recursive: true, force: true });
       rmSync(codexHome, { recursive: true, force: true });
@@ -943,19 +800,19 @@ describe.skipIf(!distExists)('integration subprocess', () => {
     const codexHome = mkdtempSync(join(tmpdir(), 'codex-home-'));
     const env = { ...process.env, AI_OPS_HOME: userHome, HOME: userHome, CODEX_HOME: codexHome };
     try {
-      mkdirSync(join(userHome, '.agents/skills/context-promotion-review'), { recursive: true });
+      mkdirSync(join(userHome, '.agents/skills/pc'), { recursive: true });
       mkdirSync(join(userHome, '.ai-ops'), { recursive: true });
-      writeFileSync(join(userHome, '.agents/skills/context-promotion-review/SKILL.md'), 'stale skill\n', 'utf-8');
+      writeFileSync(join(userHome, '.agents/skills/pc/SKILL.md'), 'stale skill\n', 'utf-8');
       writeFileSync(
         join(userHome, '.ai-ops/skills-manifest.json'),
         JSON.stringify(
           {
             skills: [
               {
-                id: 'context-promotion-review',
+                id: 'pc',
                 kind: 'task',
                 tools: ['codex'],
-                installed_paths: ['.agents/skills/context-promotion-review'],
+                installed_paths: ['.agents/skills/pc'],
                 sourceHash: '000000',
               },
             ],
@@ -968,16 +825,14 @@ describe.skipIf(!distExists)('integration subprocess', () => {
         'utf-8',
       );
 
-      const installResult = spawnSync(process.execPath, [BIN_PATH, 'integration', 'install', 'context-promotion'], {
+      const installResult = spawnSync(process.execPath, [BIN_PATH, 'integration', 'install', 'pc'], {
         cwd: dir,
         encoding: 'utf-8',
         env,
       });
 
       expect(installResult.status).toBe(0);
-      expect(readFileSync(join(userHome, '.agents/skills/context-promotion-review/SKILL.md'), 'utf-8')).toContain(
-        'context-promotion-review',
-      );
+      expect(readFileSync(join(userHome, '.agents/skills/pc/SKILL.md'), 'utf-8')).toContain('pc');
       expect(readFileSync(join(userHome, '.ai-ops/skills-manifest.json'), 'utf-8')).not.toContain(
         '"sourceHash": "000000"',
       );

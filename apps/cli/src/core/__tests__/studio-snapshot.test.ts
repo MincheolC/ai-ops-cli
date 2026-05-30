@@ -445,11 +445,7 @@ update_when:
       const snapshot = buildSnapshotForTest({ dir, userHome, codexHome });
 
       expect(snapshot.runtime.available).toBe(true);
-      expect(snapshot.runtime.integrations.map((integration) => integration.id)).toEqual([
-        'code-review-gate',
-        'context-promotion',
-        'pc',
-      ]);
+      expect(snapshot.runtime.integrations.map((integration) => integration.id)).toEqual(['code-review-gate', 'pc']);
       expect(snapshot.runtime.integrations.every((integration) => integration.installed === false)).toBe(true);
       expect(snapshot.runtime.skills.length).toBeGreaterThan(0);
       expect(snapshot.runtime.skills.every((skill) => skill.installed === false)).toBe(true);
@@ -498,26 +494,26 @@ update_when:
         kind: 'ai-ops-integrations-manifest',
         integrations: [
           {
-            id: 'context-promotion',
+            id: 'pc',
             installedAt: GENERATED_AT,
             updatedAt: GENERATED_AT,
             components: [
               {
                 type: 'skill',
-                id: 'context-promotion-review',
+                id: 'pc',
                 tools: ['codex'],
                 owned: true,
               },
               {
                 type: 'codex-hook',
-                id: 'context-promotion',
-                command: 'ai-ops integration hook post-tool-use --workflows context-promotion',
+                id: 'pc',
+                command: 'ai-ops integration hook post-tool-use --workflows pc',
                 owned: true,
               },
               {
                 type: 'receipt-config',
-                id: 'context-promotion-receipts',
-                storagePath: '.ai-ops/context-promotion/projects/demo/receipts-index.json',
+                id: 'personal-project-contexts',
+                storagePath: '~/.personal-project-contexts',
                 owned: true,
               },
             ],
@@ -538,7 +534,7 @@ update_when:
         snapshot.runtime.subagents.find((subagent) => subagent.id === 'security-gate')?.installedPaths[0]?.exists,
       ).toBe(true);
       expect(
-        snapshot.runtime.integrations.find((integration) => integration.id === 'context-promotion')?.installed,
+        snapshot.runtime.integrations.find((integration) => integration.id === 'pc')?.installed,
       ).toBe(true);
       expect(listFiles(dir)).toEqual(beforeProject);
       expect(listFiles(userHome)).toEqual(beforeRuntime);

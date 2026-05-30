@@ -4,7 +4,7 @@
 
 `ai-ops-cli` is the monorepo for designing and implementing the next major breaking model of `ai-ops-cli`. The product definition is: install and manage the operating layer and global runtime integrations needed for project/agent work.
 
-The current implementation follows the project operating layer model and exposes `ai-ops integration ...` for bundled user/global runtime workflows. Low-level component commands for skills, subagents, Codex hooks, and user-local receipts remain available for debugging and direct management. The old rules + skills scaffolder model remains only as deprecated context.
+The current implementation follows the project operating layer model and exposes `ai-ops integration ...` for bundled user/global runtime workflows. Low-level component commands remain available for skills and subagents; Codex hooks and user-local config are managed through integrations. The old rules + skills scaffolder model remains only as deprecated context.
 
 ## Target Model
 
@@ -22,7 +22,7 @@ flowchart LR
   integrations --> skills["skills"]
   integrations --> subagents["subagents"]
   integrations --> hooks["Codex hooks / runners"]
-  integrations --> receipts["user-local receipts / config"]
+  integrations --> config["user-local config"]
 ```
 
 ## Repository Layout
@@ -33,7 +33,7 @@ flowchart LR
 │   ├── cli/
 │   │   ├── src/
 │   │   │   ├── bin/        # CLI entrypoint
-│   │   │   ├── commands/   # init/diff/audit/update/uninstall/skill/subagent/pack/integration/hooks
+│   │   │   ├── commands/   # init/diff/audit/update/uninstall/skill/subagent/pack/integration
 │   │   │   ├── core/       # schemas, loader, renderer, registry, project layer, integrations
 │   │   │   └── lib/        # integration component and legacy helper utilities
 │   │   ├── data/
@@ -101,7 +101,7 @@ Use `docs/agent/project-rules/*.md`. Files in this directory are project-owned c
 
 ## ai-ops Integrations
 
-Integrations are user/global runtime features that help agent work happen across projects. They can be composed from skills, subagents, Codex hooks, hook runners, and user-local receipts/config. These components are not copied into the project repo and are not recorded in the project manifest.
+Integrations are user/global runtime features that help agent work happen across projects. They can be composed from skills, subagents, Codex hooks, hook runners, and user-local config. These components are not copied into the project repo and are not recorded in the project manifest.
 
 Integration component commands require `AI_OPS_HOME` or `HOME`. If neither exists, they fail closed instead of falling back to the current working directory.
 
@@ -113,14 +113,13 @@ Maintained runtime surfaces:
 - subagents
 - Codex hooks
 - Codex safe permissions
-- user-local context-promotion receipts
+- user-local integration config
 
 Integration lifecycle commands:
 
 ```bash
 ai-ops integration list
 ai-ops integration install code-review-gate
-ai-ops integration install context-promotion
 ai-ops integration install pc
 ai-ops integration diff code-review-gate
 ai-ops integration update code-review-gate
@@ -133,13 +132,9 @@ ai-ops pc done apply --draft /path/to/draft.json
 
 `code-review-gate` installs a Codex-only, explicit-only review subagent plus focused review task skills. It does not install Codex hooks or receipt config, so install/status/diff/update/uninstall do not require `CODEX_HOME`.
 
-`context-promotion` installs the `context-promotion-review` Codex skill, a shared Codex `PostToolUse` hook workflow, and user-local receipt workflow for reusable operating knowledge review after `git commit`.
+`pc` installs the `pc` Codex skill and a shared Codex `PostToolUse` hook runner. After a successful `git commit`, the hook asks Codex to continue into `$pc:done` only when `~/.personal-project-contexts/` already has a matching workspace, active workstream, and current repo scope. It does not create pc context for unprepared repositories. Handoff writes use `ai-ops pc done draft` -> AI fills JSON -> `ai-ops pc done apply`, so `ai-ops` owns context file updates and the context repo commit. Codex still requires non-managed hooks to be reviewed and trusted through `/hooks` before they run.
 
-`pc` installs the `pc` Codex skill and the same shared Codex `PostToolUse` hook runner. After a successful `git commit`, the hook asks Codex to continue into `$pc:done` only when `~/.personal-project-contexts/` already has a matching workspace, active workstream, and current repo scope. It does not create pc context for unprepared repositories. Handoff writes use `ai-ops pc done draft` -> AI fills JSON -> `ai-ops pc done apply`, so `ai-ops` owns context file updates and the context repo commit.
-
-When both workflows are installed, `ai-ops` stores one `PostToolUse` command hook with `--workflows context-promotion,pc` and merges continuation output instead of installing competing `decision: "block"` hooks. Codex still requires non-managed hooks to be reviewed and trusted through `/hooks` before they run.
-
-Codex safe permissions can reduce repeated approval prompts for the narrow user-local work used by `pc` and `context-promotion-review`:
+Codex safe permissions can reduce repeated approval prompts for the narrow user-local work used by `pc`:
 
 ```bash
 ai-ops codex-permissions install safe-local
@@ -147,7 +142,7 @@ ai-ops codex-permissions status safe-local
 ai-ops codex-permissions uninstall safe-local
 ```
 
-`safe-local` upserts a user-level Codex permission profile named `ai-ops-safe-local` in `~/.codex/config.toml`. It grants write access to `~/.personal-project-contexts`, `${AI_OPS_HOME:-$HOME}/.ai-ops/context-promotion`, and `.codex/plans` under active workspace roots while keeping `.git` read-only. It prefers the current Codex permission syntax (`:workspace_roots` plus `deny` env-file carveouts), validates the generated profile against the installed Codex runtime, and chooses the first accepted syntax. If Codex validation is unavailable, it uses a portable compatibility syntax with a warning; if Codex is available but no candidate validates, it fails closed without writing `config.toml`. It does not install `PermissionRequest` hooks or command allow rules.
+`safe-local` upserts a user-level Codex permission profile named `ai-ops-safe-local` in `~/.codex/config.toml`. It grants write access to `~/.personal-project-contexts` and `.codex/plans` under active workspace roots while keeping `.git` read-only. It prefers the current Codex permission syntax (`:workspace_roots` plus `deny` env-file carveouts), validates the generated profile against the installed Codex runtime, and chooses the first accepted syntax. If Codex validation is unavailable, it uses a portable compatibility syntax with a warning; if Codex is available but no candidate validates, it fails closed without writing `config.toml`. It does not install `PermissionRequest` hooks or command allow rules.
 
 For an ai-coding worker, keep Codex subprocesses run-scoped and let the orchestrator own commits, pushes, and PR creation:
 
@@ -180,14 +175,13 @@ Skill lifecycle commands:
 ```bash
 ai-ops skill list
 ai-ops skill install skill-load-check --tool codex
-ai-ops skill install doc-impact-reviewer --tool codex
-ai-ops skill install context-promotion-review --tool codex
+ai-ops skill install ai-ops-project-owned-docs --tool codex
 ai-ops skill diff
 ai-ops skill update
 ai-ops skill uninstall skill-load-check
 ```
 
-`doc-impact-reviewer` is a task skill that reviews diffs near the end of work or before commit and classifies operating-document update candidates. It is invoked manually with `$doc-impact-reviewer`; it does not edit documents, stage files, or commit before user approval.
+`ai-ops-project-owned-docs` is a Codex-only task skill that routes operating notes, current diff impact, or conversation learnings into project-owned operating docs. It is invoked manually with `$ai-ops-project-owned-docs`; it does not edit documents, stage files, or commit before user approval.
 
 Subagent lifecycle commands:
 
@@ -206,7 +200,7 @@ Tool-specific install paths:
 - Gemini CLI: `.gemini/agents/<id>.md`
 - State file: `.ai-ops/subagents-manifest.json`
 
-Low-level component commands remain available. Use them when you need to install a single skill, inspect a Codex hook, or manage context-promotion receipts directly.
+Low-level component commands remain available. Use them when you need to install a single skill, inspect subagents, or manage integrations directly.
 
 ## Optional Specs Pack
 

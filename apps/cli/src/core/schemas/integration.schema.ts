@@ -3,7 +3,6 @@ import { SkillToolSchema } from './skill.schema.js';
 
 export const INTEGRATION_ID = {
   CODE_REVIEW_GATE: 'code-review-gate',
-  CONTEXT_PROMOTION: 'context-promotion',
   PC: 'pc',
 } as const;
 
@@ -16,7 +15,6 @@ export const INTEGRATION_COMPONENT_TYPE = {
 
 export const IntegrationIdSchema = z.union([
   z.literal(INTEGRATION_ID.CODE_REVIEW_GATE),
-  z.literal(INTEGRATION_ID.CONTEXT_PROMOTION),
   z.literal(INTEGRATION_ID.PC),
 ]);
 

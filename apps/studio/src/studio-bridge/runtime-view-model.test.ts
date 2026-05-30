@@ -50,82 +50,61 @@ const runtime = {
   },
   integrations: [
     {
-      id: 'context-promotion',
-      description: 'Context promotion review integration',
+      id: 'pc',
+      description: 'Personal context integration',
       installed: true,
       installedAt: '2026-05-18T00:00:00.000Z',
       updatedAt: '2026-05-19T00:00:00.000Z',
       components: [
         {
           type: 'skill',
-          id: 'context-promotion-review',
+          id: 'pc',
           installed: true,
           owned: true,
           catalog: {
             type: 'skill',
-            id: 'context-promotion-review',
+            id: 'pc',
             tools: ['codex'],
           },
           installedComponent: {
             type: 'skill',
-            id: 'context-promotion-review',
+            id: 'pc',
             tools: ['codex'],
             owned: true,
           },
         },
         {
           type: 'codex-hook',
-          id: 'context-promotion',
+          id: 'pc',
           installed: true,
           owned: false,
           catalog: {
             type: 'codex-hook',
-            id: 'context-promotion',
+            id: 'pc',
           },
           installedComponent: {
             type: 'codex-hook',
-            id: 'context-promotion',
-            command: 'ai-ops context-promotion review',
+            id: 'pc',
+            command: 'ai-ops integration hook post-tool-use --workflows pc',
             owned: false,
           },
         },
         {
           type: 'receipt-config',
-          id: 'context-promotion-receipts',
+          id: 'personal-project-contexts',
           installed: true,
           owned: true,
           catalog: {
             type: 'receipt-config',
-            id: 'context-promotion-receipts',
-            storage_path: '.ai-ops/context-promotion/projects/*/receipts-index.json',
+            id: 'personal-project-contexts',
+            storage_path: '~/.personal-project-contexts',
           },
           installedComponent: {
             type: 'receipt-config',
-            id: 'context-promotion-receipts',
-            storagePath: '.ai-ops/context-promotion/projects/demo/receipts-index.json',
+            id: 'personal-project-contexts',
+            storagePath: '/Users/test/.personal-project-contexts',
             owned: true,
           },
-        },
-      ],
-    },
-    {
-      id: 'pc',
-      description: 'Personal context integration',
-      installed: false,
-      installedAt: null,
-      updatedAt: null,
-      components: [
-        {
-          type: 'skill',
-          id: 'pc',
-          installed: false,
-          owned: null,
-          catalog: {
-            type: 'skill',
-            id: 'pc',
-            tools: ['codex'],
-          },
-          installedComponent: null,
         },
       ],
     },
@@ -143,9 +122,9 @@ const runtime = {
       sourceHash: 'abc123',
     },
     {
-      id: 'doc-impact-reviewer',
+      id: 'ai-ops-project-owned-docs',
       kind: 'task',
-      description: 'Review document impact',
+      description: 'Route operating-layer notes into project-owned docs',
       supported_tools: ['codex'],
       groups: ['agent'],
       installed: false,
@@ -170,18 +149,11 @@ const runtime = {
   ],
   hooks: [
     {
-      id: 'context-promotion',
-      statusMessage: 'context-promotion hook active',
+      id: 'pc',
+      statusMessage: 'pc hook active',
       hooksPath: '/Users/test/.codex/hooks.json',
       installed: true,
       error: null,
-    },
-    {
-      id: 'pc',
-      statusMessage: 'pc hook inactive',
-      hooksPath: '/Users/test/.codex/hooks.json',
-      installed: false,
-      error: 'hook parse failure',
     },
   ],
 } as const;
@@ -190,21 +162,15 @@ describe('runtime view model', () => {
   it('normalizes installed and not installed integrations with component health', () => {
     const viewModel = buildRuntimeViewModel(createSnapshot(runtime));
 
-    expect(viewModel.counts.integrations).toEqual({ installed: 1, total: 2 });
+    expect(viewModel.counts.integrations).toEqual({ installed: 1, total: 1 });
     expect(viewModel.integrations.map((integration) => [integration.id, integration.installed])).toEqual([
-      ['context-promotion', true],
-      ['pc', false],
+      ['pc', true],
     ]);
     expect(viewModel.integrations[0]?.components.map((component) => component.ownership)).toEqual([
       'owned',
       'pre-existing',
       'owned',
     ]);
-    expect(viewModel.integrations[1]?.components[0]).toMatchObject({
-      installed: false,
-      ownership: 'not-installed',
-      catalogId: 'pc',
-    });
   });
 
   it('keeps receipt config catalog and installed storage paths separate', () => {
@@ -214,8 +180,8 @@ describe('runtime view model', () => {
     );
 
     expect(receiptConfig).toMatchObject({
-      catalogStoragePath: '.ai-ops/context-promotion/projects/*/receipts-index.json',
-      installedStoragePath: '.ai-ops/context-promotion/projects/demo/receipts-index.json',
+      catalogStoragePath: '~/.personal-project-contexts',
+      installedStoragePath: '/Users/test/.personal-project-contexts',
     });
   });
 
@@ -266,14 +232,9 @@ describe('runtime view model', () => {
     const viewModel = buildRuntimeViewModel(createSnapshot(runtime));
 
     expect(viewModel.hooks[0]).toMatchObject({
-      id: 'context-promotion',
-      installed: true,
-      relatedIntegrationIds: ['context-promotion'],
-    });
-    expect(viewModel.hooks[1]).toMatchObject({
       id: 'pc',
-      error: 'hook parse failure',
-      relatedIntegrationIds: [],
+      installed: true,
+      relatedIntegrationIds: ['pc'],
     });
   });
 
@@ -319,8 +280,8 @@ describe('runtime view model', () => {
     );
 
     expect(viewModel.available).toBe(false);
-    expect(viewModel.integrations.map((integration) => integration.id)).toEqual(['context-promotion', 'pc']);
-    expect(viewModel.skills.map((skill) => skill.id)).toEqual(['typescript-language', 'doc-impact-reviewer']);
+    expect(viewModel.integrations.map((integration) => integration.id)).toEqual(['pc']);
+    expect(viewModel.skills.map((skill) => skill.id)).toEqual(['typescript-language', 'ai-ops-project-owned-docs']);
     expect(viewModel.subagents.map((subagent) => subagent.id)).toEqual(['security-gate']);
     expect(viewModel.manifestStates.map((state) => state.state)).toEqual([
       'unavailable',
@@ -334,6 +295,6 @@ describe('runtime view model', () => {
     const viewModel = buildRuntimeViewModel(createSnapshot(runtime));
 
     expect(selectRuntimeItem(viewModel.integrations, 'pc')?.id).toBe('pc');
-    expect(selectRuntimeItem(viewModel.integrations, null)?.id).toBe('context-promotion');
+    expect(selectRuntimeItem(viewModel.integrations, null)?.id).toBe('pc');
   });
 });

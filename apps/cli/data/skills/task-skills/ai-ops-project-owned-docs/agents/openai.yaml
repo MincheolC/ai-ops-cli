@@ -1,0 +1,6 @@
+interface:
+  display_name: "ai-ops-project-owned-docs"
+  short_description: "Route operating notes, diff impact, or conversation learnings into project-owned docs after confirmation."
+  default_prompt: "Use $ai-ops-project-owned-docs to classify the user's note, current diff impact, or conversation learning into the current project's project-owned operating docs, propose the target and text, and do not edit files until the user confirms."
+policy:
+  allow_implicit_invocation: false

@@ -1,12 +1,51 @@
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { IntegrationManifestSchema } from '@/core/schemas/index.js';
+import { z } from 'zod';
+import { INTEGRATION_ID, InstalledIntegrationSchema, IntegrationManifestSchema } from '@/core/schemas/index.js';
 import type { InstalledIntegration, IntegrationId, IntegrationManifest } from '@/core/schemas/index.js';
 
 export const INTEGRATION_MANIFEST_FILENAME = 'integrations-manifest.json';
 
-export const parseIntegrationManifest = (json: string): IntegrationManifest =>
-  IntegrationManifestSchema.parse(JSON.parse(json));
+const RawIntegrationManifestSchema = z
+  .object({
+    schemaVersion: z.literal(1),
+    kind: z.literal('ai-ops-integrations-manifest'),
+    integrations: z.array(z.unknown()),
+    cliVersion: z.string().min(1),
+    generatedAt: z.string().min(1),
+  })
+  .strict();
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const isCurrentIntegrationId = (value: unknown): value is IntegrationId =>
+  value === INTEGRATION_ID.CODE_REVIEW_GATE || value === INTEGRATION_ID.PC;
+
+const parseCurrentInstalledIntegrations = (entries: readonly unknown[]): InstalledIntegration[] => {
+  const integrations: InstalledIntegration[] = [];
+  for (const entry of entries) {
+    if (isRecord(entry) && typeof entry.id === 'string' && !isCurrentIntegrationId(entry.id)) {
+      continue;
+    }
+    integrations.push(InstalledIntegrationSchema.parse(entry));
+  }
+  return integrations;
+};
+
+export const parseIntegrationManifest = (json: string): IntegrationManifest => {
+  const parsed: unknown = JSON.parse(json);
+  const current = IntegrationManifestSchema.safeParse(parsed);
+  if (current.success) {
+    return current.data;
+  }
+
+  const raw = RawIntegrationManifestSchema.parse(parsed);
+  return {
+    ...raw,
+    integrations: parseCurrentInstalledIntegrations(raw.integrations),
+  };
+};
 
 export const serializeIntegrationManifest = (manifest: IntegrationManifest): string =>
   JSON.stringify(manifest, null, 2) + '\n';

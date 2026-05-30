@@ -2,6 +2,7 @@ import * as p from '@clack/prompts';
 import { existsSync, rmSync } from 'node:fs';
 import type { InstalledSubagent, Subagent, ToolId } from '@/core/schemas/index.js';
 import { loadAllSubagents } from '@/shared/catalog-loader.js';
+import { formatInstallStatusForTools } from '@/shared/install-status-format.js';
 import { getCliVersion } from '@/shared/source-hash.js';
 import { readSubagentManifest, resolveSubagentManifestPath, writeSubagentManifest } from './manifest-io.js';
 import { buildSubagentInstallPlan } from './renderer.js';
@@ -118,7 +119,7 @@ export const subagentListCommand = async (): Promise<void> => {
   p.intro('ai-ops subagent list');
   const lines = allSubagents.map((subagent) => {
     const installed = findInstalledSubagent(installedSubagents, subagent.id);
-    const suffix = installed ? `installed for ${installed.tools.join(', ')}` : 'not installed';
+    const suffix = formatInstallStatusForTools(installed?.tools ?? null);
     return `- ${subagent.id} - ${suffix}`;
   });
 

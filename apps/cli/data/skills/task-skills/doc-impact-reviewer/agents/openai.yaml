@@ -1,6 +1,0 @@
-interface:
-  display_name: 'doc-impact-reviewer'
-  short_description: '변경 완료 또는 커밋 직전 운영 문서 영향도를 검토합니다.'
-  default_prompt: '$doc-impact-reviewer를 사용해 현재 git status와 diff를 확인하고, 갱신이 필요한 운영 문서를 required/recommended/not-needed로 분류한 뒤, 리스크를 보고하고 사용자 승인 전에는 문서를 수정하지 마세요.'
-policy:
-  allow_implicit_invocation: false

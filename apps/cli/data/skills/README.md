@@ -24,7 +24,7 @@ A `task skill` is a procedural workflow.
 
 ### Task Skill Usage
 
-Keep repeatable operating procedures as task skills. For example, `doc-impact-reviewer` checks the diff when work is finished or just before commit, classifies document update candidates as `required / recommended / not needed`, and edits only the documents the user approves.
+Keep repeatable operating procedures as task skills. For example, `ai-ops-project-owned-docs` routes operating notes, diff impact, or conversation learnings into project-owned docs and edits only the documents the user approves.
 
 Disable automatic invocation for task skills that require explicit approval.
 
@@ -35,8 +35,7 @@ Disable automatic invocation for task skills that require explicit approval.
 Install example:
 
 ```bash
-ai-ops skill install doc-impact-reviewer --tool codex
-ai-ops skill install context-promotion-review --tool codex
+ai-ops skill install ai-ops-project-owned-docs --tool codex
 ```
 
 ## Directory Shape
@@ -176,17 +175,9 @@ task-skills/skill-load-check/
 
 ## Operating Task Skills
 
-`doc-impact-reviewer` is a task skill for manually reviewing operating-document impact.
+`ai-ops-project-owned-docs` is a Codex-only task skill for routing project-local operating notes, diff impact, or conversation learnings into project-owned docs after user confirmation.
 
-- It reads git status, diffs, changed files, and related operating-layer documents.
-- It reports document candidates and risk before editing.
-- It does not edit before user confirmation.
+- It classifies user-supplied notes, current diffs, and conversation learnings into project-owned doc targets.
+- It proposes the target and text before editing.
+- It only edits approved project-owned docs and required status/index files.
 - It does not stage, commit, or install hooks by itself.
-
-`context-promotion-review` is a Codex-only task skill for reviewing reusable operating knowledge after a work commit.
-
-- It cross-checks the existing context layer before suggesting promotion.
-- It classifies candidates as core, project-local, global, or no-promotion.
-- It records the final decision with `ai-ops context-promotion resolve`.
-- It leaves approved promotion edits uncommitted for user inspection.
-- It confirms the receipt with `ai-ops context-promotion status` for the current `HEAD`.

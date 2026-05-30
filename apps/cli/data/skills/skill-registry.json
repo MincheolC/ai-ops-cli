@@ -148,18 +148,11 @@
       "source_path": "task-skills/code-review-final-gate"
     },
     {
-      "id": "doc-impact-reviewer",
-      "kind": "task",
-      "supported_tools": ["claude-code", "codex", "gemini"],
-      "groups": ["agent-operating-layer"],
-      "source_path": "task-skills/doc-impact-reviewer"
-    },
-    {
-      "id": "context-promotion-review",
+      "id": "ai-ops-project-owned-docs",
       "kind": "task",
       "supported_tools": ["codex"],
       "groups": ["agent-operating-layer"],
-      "source_path": "task-skills/context-promotion-review"
+      "source_path": "task-skills/ai-ops-project-owned-docs"
     },
     {
       "id": "pc",

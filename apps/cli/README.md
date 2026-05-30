@@ -4,7 +4,7 @@
 
 `ai-ops-cli` installs and manages the operating layer and global runtime integrations needed for project/agent work.
 
-This document describes the currently implemented breaking model. The current CLI exposes `integration` commands for bundled user/global runtime workflows and keeps low-level component commands for skills, subagents, Codex hooks, and user-local receipts. The old rules + skills scaffolder model remains only as deprecated context.
+This document describes the currently implemented breaking model. The current CLI exposes `integration` commands for bundled user/global runtime workflows and keeps low-level component commands for skills and subagents. The old rules + skills scaffolder model remains only as deprecated context.
 
 ## Current Breaking Model
 
@@ -19,8 +19,6 @@ flowchart TD
   skill["ai-ops skill ..."] --> skillComponent["Skill components"]
   subagent["ai-ops subagent ..."] --> subagentComponent["Subagent components"]
   integration["ai-ops integration ..."] --> integrationComponent["Runtime integration bundles"]
-  hook["ai-ops codex-hook ..."] --> hookComponent["Codex hook components"]
-  receipt["ai-ops context-promotion ..."] --> receiptComponent["User-local receipts"]
   pack["ai-ops pack ..."] --> docsSpecs["optional docs/specs/ pack"]
 ```
 
@@ -104,8 +102,6 @@ Commands:
   pack       Manage optional project operating layer packs
   studio    Launch ai-ops Studio or generate read-only Studio helpers
   integration Manage user/global runtime integrations
-  context-promotion Manage context promotion review receipts
-  codex-hook Manage Codex hook components
 ```
 
 `--tool` remains because Codex, Claude Code, and Gemini CLI use different discovery locations and adapter files.
@@ -132,7 +128,6 @@ Integration lifecycle commands:
 ```bash
 ai-ops integration list
 ai-ops integration install code-review-gate
-ai-ops integration install context-promotion
 ai-ops integration install pc
 ai-ops integration diff code-review-gate
 ai-ops integration update code-review-gate
@@ -145,9 +140,7 @@ ai-ops pc done apply --draft /path/to/draft.json
 
 `code-review-gate` bundles a Codex-only explicit review subagent and focused review task skills. It is hookless and does not create receipt config.
 
-`context-promotion` bundles the `context-promotion-review` Codex skill, a shared Codex `PostToolUse` hook workflow, and user-local receipt workflow.
-
-`pc` bundles the `pc` Codex skill and the same shared Codex `PostToolUse` hook runner. It prompts Codex to run `$pc:done` after a successful `git commit` only when `~/.personal-project-contexts/` already has a matching workspace, active workstream, and current repo scope. Handoff writes use `ai-ops pc done draft` -> AI fills JSON -> `ai-ops pc done apply`, so the CLI owns context file updates and the context repo commit.
+`pc` bundles the `pc` Codex skill and a shared Codex `PostToolUse` hook runner. It prompts Codex to run `$pc:done` after a successful `git commit` only when `~/.personal-project-contexts/` already has a matching workspace, active workstream, and current repo scope. Handoff writes use `ai-ops pc done draft` -> AI fills JSON -> `ai-ops pc done apply`, so the CLI owns context file updates and the context repo commit.
 
 Integration ownership is tracked in `.ai-ops/integrations-manifest.json` under the user/global runtime home. Uninstall removes only owned components and preserves pre-existing manual installs.
 
@@ -156,38 +149,27 @@ Skill lifecycle commands:
 ```bash
 ai-ops skill list
 ai-ops skill install skill-load-check --tool codex
-ai-ops skill install doc-impact-reviewer --tool codex
-ai-ops skill install context-promotion-review --tool codex
+ai-ops skill install ai-ops-project-owned-docs --tool codex
 ai-ops skill diff
 ai-ops skill update
 ai-ops skill uninstall skill-load-check
 ```
 
-`doc-impact-reviewer` is a manual task skill for checking operating-document impact near the end of work or before commit. Invoking `$doc-impact-reviewer` reads git status/diff and reports document update candidates as `required / recommended / not needed`. It does not edit documents, stage files, or commit before user approval.
+`ai-ops-project-owned-docs` is a Codex-only task skill for routing operating notes, current diff impact, or conversation learnings into project-owned operating docs. It is invoked manually with `$ai-ops-project-owned-docs`; it does not edit documents, stage files, or commit before user approval.
 
-`context-promotion-review` is a Codex-only task skill for checking whether the just-created work commit produced reusable operating knowledge that should be promoted to core, project-local, or global context. The shared Codex hook workflow runs after `git commit`, never blocks the work commit, and any approved promotion edits stay uncommitted until the user reviews them. Installing the hook also installs the Codex skill into the user/global runtime location. It records the final decision with `ai-ops context-promotion resolve`.
+Low-level component commands remain available for direct skill and subagent management.
 
-Low-level component commands remain available for direct skill, hook, and receipt management.
-
-Context promotion and Codex hook commands:
+Codex permissions commands:
 
 ```bash
-ai-ops context-promotion status
-ai-ops context-promotion resolve --decision no-promotion --summary "No reusable operating knowledge found"
-ai-ops context-promotion prune --max 50
-ai-ops codex-hook install context-promotion
-ai-ops codex-hook install context-promotion --command "/custom/bin/ai-ops integration hook post-tool-use"
-ai-ops codex-hook install context-promotion --command-windows "C:\tools\ai-ops.exe integration hook post-tool-use"
-ai-ops codex-hook status context-promotion
-ai-ops codex-hook uninstall context-promotion
 ai-ops codex-permissions install safe-local
 ai-ops codex-permissions status safe-local
 ai-ops codex-permissions uninstall safe-local
 ```
 
-The installed hook command is the shared dispatcher form `ai-ops integration hook post-tool-use --workflows ...`. If multiple workflows such as `context-promotion` and `pc` are installed, ai-ops keeps one Codex `PostToolUse` command hook and merges continuation output. Review and trust the configured non-managed hook with Codex `/hooks` before expecting it to run.
+The installed `pc` hook command is the shared dispatcher form `ai-ops integration hook post-tool-use --workflows pc`. Review and trust the configured non-managed hook with Codex `/hooks` before expecting it to run.
 
-`safe-local` manages a user-level Codex permission profile named `ai-ops-safe-local` in `~/.codex/config.toml`. It grants write access to `~/.personal-project-contexts`, `${AI_OPS_HOME:-$HOME}/.ai-ops/context-promotion`, and `.codex/plans` under active workspace roots while keeping `.git` read-only. It prefers the current Codex permission syntax (`:workspace_roots` plus `deny` env-file carveouts), validates the generated profile against the installed Codex runtime, and chooses the first accepted syntax. If Codex validation is unavailable, it uses a portable compatibility syntax with a warning; if Codex is available but no candidate validates, it fails closed without writing `config.toml`. It does not install `PermissionRequest` hooks or command allow rules.
+`safe-local` manages a user-level Codex permission profile named `ai-ops-safe-local` in `~/.codex/config.toml`. It grants write access to `~/.personal-project-contexts` and `.codex/plans` under active workspace roots while keeping `.git` read-only. It prefers the current Codex permission syntax (`:workspace_roots` plus `deny` env-file carveouts), validates the generated profile against the installed Codex runtime, and chooses the first accepted syntax. If Codex validation is unavailable, it uses a portable compatibility syntax with a warning; if Codex is available but no candidate validates, it fails closed without writing `config.toml`. It does not install `PermissionRequest` hooks or command allow rules.
 
 For an ai-coding worker, keep Codex subprocesses run-scoped and let the orchestrator own commits, pushes, and PR creation:
 

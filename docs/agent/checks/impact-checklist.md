@@ -1,5 +1,5 @@
 <!-- ai-ops:start -->
-<!-- sourceHash: c2028f | generatedAt: 2026-05-29T10:05:25.578Z -->
+<!-- sourceHash: c2028f | generatedAt: 2026-05-30T08:55:27.870Z -->
 
 ---
 status: Active
@@ -19,7 +19,6 @@ update_when:
 - auth, permission, privacy, billing, credential, audit log에 영향이 있는가?
 - external integration, webhook, cron, queue, cache, background job에 영향이 있는가?
 - project-owned 문서, specs, runbook, operator guide, `docs/docs-status.md`, context-layer 갱신이 필요한가?
-- Studio snapshot/runtime view/UI에 노출되는 계약이 바뀌는가? 예: registry, component type, CLI status/list output, schema field.
 
 ## 유지보수 점검 신호
 

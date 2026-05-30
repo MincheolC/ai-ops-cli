@@ -4,7 +4,7 @@
 
 `ai-ops`는 프로젝트/에이전트 작업에 필요한 operating layer와 global runtime integration을 설치하고 관리하는 bash CLI다. 프로젝트에는 에이전트가 항상 읽어야 하는 운영 문서와 상태 인덱스를 두고, 재사용 가능한 runtime 기능은 사용자 환경의 integration으로 설치한다.
 
-이 문서는 다음 major breaking release의 기준 계약이다. 현재 repo 구현은 project operating layer, optional packs, 그리고 integration을 이루는 low-level component 명령(skill, subagent, Codex hook, user-local receipt)을 기준으로 동작한다. old rules + skills scaffolder 모델은 deprecated 문맥으로만 남긴다.
+이 문서는 다음 major breaking release의 기준 계약이다. 현재 repo 구현은 project operating layer, optional packs, 그리고 `ai-ops integration ...` 상위 명령을 기준으로 동작한다. `skill`, `subagent` 같은 low-level component 명령은 디버그와 개별 component 관리 용도로 유지하고, Codex hook과 user-local config component는 integration 설치/갱신/제거 흐름에서 관리한다. old rules + skills scaffolder 모델은 deprecated 문맥으로만 남긴다.
 
 ```text
 Project repo
@@ -23,7 +23,7 @@ User/global runtime
       skills/*
       subagents/*
       hooks/*
-      receipts/config/*
+      config/*
 ```
 
 ## 제품 정의
@@ -32,7 +32,7 @@ User/global runtime
 
 - project scope: agent operating layer 문서와 `.ai-ops/*` 상태 파일
 - integration scope: agent runtime workflow를 제공하는 user/global 설치 단위
-- component scope: integration을 이루는 skill, subagent, Codex hook, hook runner, user-local receipt/config
+- component scope: integration을 이루는 skill, subagent, Codex hook, hook runner, user-local config
 - adapter scope: `GEMINI.md`, `CLAUDE.md`처럼 도구가 요구하는 얇은 진입 파일
 
 이 경계를 통해 프로젝트별 지식은 repository에 남기고, 재사용 가능한 실행 능력과 hook 기반 workflow는 사용자 환경에 둔다.
@@ -81,17 +81,17 @@ Integration은 사용자가 설치하고 싶은 agent runtime 기능 단위다. 
 - subagents
 - Codex hooks
 - hook runners
-- user-local receipts/config
+- user-local config
 
 Component는 프로젝트 운영 문서가 아니다. CLI는 각 도구의 global 또는 user-level discovery 규칙에 맞춰 설치하고, project manifest에는 기록하지 않는다.
 
 Integration catalog source는 `apps/cli/data/integrations/integration-registry.json`이다. Catalog는 integration id, 설명, 그리고 component list를 선언한다. v1 component model은 `skill`, `codex-hook`, `receipt-config`를 명시하고, 실제 설치 소유권은 별도 user/global manifest에 기록한다.
 
-현재 구현은 `ai-ops integration ...` 상위 명령을 제공한다. `skill`, `subagent`, `codex-hook`, `context-promotion` 같은 low-level component 명령은 디버그와 개별 component 관리 용도로 유지한다.
+현재 구현은 `ai-ops integration ...` 상위 명령을 제공한다. `skill`, `subagent` 같은 low-level component 명령은 디버그와 개별 component 관리 용도로 유지한다.
 
 현재 integration:
 
-- `context-promotion`: `context-promotion-review` Codex skill, shared Codex `PostToolUse` hook workflow, user-local receipt를 묶어 git commit 이후 운영 지식 승격 검토를 돕는다.
+- `code-review-gate`: Codex-only, explicit-only code review subagent와 focused review task skill들을 설치한다. Codex hook이나 receipt config는 설치하지 않으므로 `CODEX_HOME` 없이 install/status/diff/update/uninstall이 가능하다.
 - `pc`: `pc` Codex skill과 같은 shared Codex `PostToolUse` hook runner를 묶어 성공적인 `git commit` 직후 `$pc:done` handoff 누락을 방지한다. hook은 `~/.personal-project-contexts/`에 matching workspace, active workstream, current repo scope가 준비된 경우에만 prompt를 내며, handoff 반영은 `ai-ops pc done draft` -> AI draft 작성 -> `ai-ops pc done apply` 순서로 처리한다.
 
 Integration 설치 소유권은 user/global runtime home의 `.ai-ops/integrations-manifest.json`에 기록한다. Uninstall은 integration이 소유한 component만 제거하고 기존 수동 설치는 보존한다.
@@ -168,7 +168,7 @@ project operating layer 설치 상태를 기록한다.
 
 - project scope는 operating layer 문서만 관리한다.
 - integration scope는 user/global runtime 기능만 관리한다.
-- skills, subagents, hooks, receipts/config는 integration component로 취급한다.
+- skills, subagents, hooks, config는 integration component로 취급한다.
 - `skill` 명령은 project-local 설치 옵션을 제공하지 않는다.
 - `skill` 명령에서 `--project`, `--global`, `--scope` 공개 옵션은 제거한다.
 - `--tool`은 유지한다. 각 도구의 component discovery 위치가 다르기 때문이다.
@@ -235,27 +235,20 @@ integration component인 skill lifecycle만 관리한다. 현재 구현의 low-l
 
 integration component인 subagent lifecycle만 관리한다. Phase 3에서 도입했다.
 
-### `ai-ops context-promotion ...`
-
-`context-promotion` integration이 사용하는 user-local promotion review receipt를 관리한다. receipt는 source of truth가 아니며 프로젝트 repo의 `.ai-ops/*`에는 기록하지 않는다.
-
-### `ai-ops codex-hook ...`
-
-Codex 전용 opt-in hook component를 설치, 조회, 제거한다. hook은 npm global `ai-ops integration hook post-tool-use --workflows ...` dispatcher command를 user-level `PostToolUse`에 저장한다. `context-promotion` workflow는 `git commit` 이후 `context-promotion-review` skill 사용을 안내하고, `pc` workflow와 함께 설치되면 하나의 handler에서 continuation output을 병합한다. 설치 시 Codex skill도 user/global runtime 위치에 보장 설치한다. 작업 커밋은 막지 않고, non-managed hook 실행 여부는 Codex `/hooks` review/trust가 authoritative 하다.
-
 ### `ai-ops integration ...`
 
 Integration 단위로 관련 component를 함께 설치, 조회, 제거한다.
 
 ```bash
 ai-ops integration list
-ai-ops integration install context-promotion
+ai-ops integration install code-review-gate
+ai-ops integration status code-review-gate
 ai-ops integration install pc
 ai-ops integration status pc
 ai-ops integration uninstall pc
 ```
 
-현재 v1은 `context-promotion`과 `pc`를 지원한다. Integration manifest는 user/global runtime home의 `.ai-ops/integrations-manifest.json`이며 project operating layer uninstall 대상이 아니다.
+현재 v1은 `code-review-gate`와 `pc`를 지원한다. Integration manifest는 user/global runtime home의 `.ai-ops/integrations-manifest.json`이며 project operating layer uninstall 대상이 아니다.
 
 ### `ai-ops pc ...`
 

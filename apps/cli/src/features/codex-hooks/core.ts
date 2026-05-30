@@ -25,7 +25,7 @@ export type CodexHookUninstallResult = {
   workflows: CodexHookWorkflow[];
 };
 
-export type CodexHookWorkflow = 'context-promotion' | 'pc';
+export type CodexHookWorkflow = 'pc';
 
 export type CodexHookCommandConfig = {
   command: string;
@@ -44,11 +44,6 @@ type JsonRecord = Record<string, unknown>;
 
 // ----- constants -----
 
-export const CONTEXT_PROMOTION_HOOK_ID = 'context-promotion';
-export const CONTEXT_PROMOTION_HOOK_COMMAND_MARKER = 'context-promotion hook post-tool-use';
-export const CONTEXT_PROMOTION_LEGACY_HOOK_COMMAND_MARKER = 'context-promotion hook pre-tool-use';
-export const CONTEXT_PROMOTION_DEFAULT_HOOK_COMMAND = `ai-ops ${CONTEXT_PROMOTION_HOOK_COMMAND_MARKER}`;
-
 export const PC_HOOK_ID = 'pc';
 export const PC_HOOK_COMMAND_MARKER = 'integration hook post-tool-use pc';
 export const PC_DEFAULT_HOOK_COMMAND = `ai-ops ${PC_HOOK_COMMAND_MARKER}`;
@@ -63,14 +58,6 @@ const POST_TOOL_USE_EVENT = 'PostToolUse';
 const BASH_MATCHER = '^Bash$';
 const SHARED_POST_TOOL_USE_STATUS_MESSAGE = 'Checking ai-ops post-commit workflows';
 
-export const CONTEXT_PROMOTION_CODEX_HOOK: CodexHookDefinition = {
-  id: CONTEXT_PROMOTION_HOOK_ID,
-  commandMarker: CONTEXT_PROMOTION_HOOK_COMMAND_MARKER,
-  legacyCommandMarkers: [CONTEXT_PROMOTION_LEGACY_HOOK_COMMAND_MARKER],
-  defaultCommand: CONTEXT_PROMOTION_DEFAULT_HOOK_COMMAND,
-  statusMessage: 'Checking context promotion review',
-} as const;
-
 export const PC_CODEX_HOOK: CodexHookDefinition = {
   id: PC_HOOK_ID,
   commandMarker: PC_HOOK_COMMAND_MARKER,
@@ -79,8 +66,8 @@ export const PC_CODEX_HOOK: CodexHookDefinition = {
   statusMessage: 'Checking pc handoff',
 } as const;
 
-export const CODEX_HOOK_WORKFLOW_ORDER = [CONTEXT_PROMOTION_HOOK_ID, PC_HOOK_ID] as const;
-const CODEX_HOOK_DEFINITIONS = [CONTEXT_PROMOTION_CODEX_HOOK, PC_CODEX_HOOK] as const;
+export const CODEX_HOOK_WORKFLOW_ORDER = [PC_HOOK_ID] as const;
+const CODEX_HOOK_DEFINITIONS = [PC_CODEX_HOOK] as const;
 
 // ----- JSON helpers -----
 
@@ -408,12 +395,6 @@ export const buildCodexHookCommands = (params: {
   });
 };
 
-export const buildContextPromotionHookCommand = (overrideCommand?: string): string =>
-  buildCodexHookCommands({
-    definition: CONTEXT_PROMOTION_CODEX_HOOK,
-    overrideCommand,
-  }).command;
-
 export const quoteShellArg = (value: string): string => `'${value.replace(/'/g, "'\\''")}'`;
 
 export const inspectCodexHook = (params: {
@@ -427,10 +408,6 @@ export const inspectCodexHook = (params: {
     trustReviewHint: installed ? CODEX_HOOK_TRUST_REVIEW_HINT : null,
   };
 };
-
-export const inspectContextPromotionHook = (hooksPath: string): CodexHookStatusResult => ({
-  ...inspectCodexHook({ hooksPath, definition: CONTEXT_PROMOTION_CODEX_HOOK }),
-});
 
 export const installCodexHook = (params: {
   hooksPath: string;
@@ -467,18 +444,6 @@ export const installCodexHook = (params: {
   };
 };
 
-export const installContextPromotionHook = (params: {
-  hooksPath: string;
-  command?: string;
-  commandWindows?: string;
-}): CodexHookInstallResult =>
-  installCodexHook({
-    hooksPath: params.hooksPath,
-    definition: CONTEXT_PROMOTION_CODEX_HOOK,
-    command: params.command,
-    commandWindows: params.commandWindows,
-  });
-
 export const uninstallCodexHook = (params: {
   hooksPath: string;
   definition: CodexHookDefinition;
@@ -513,9 +478,3 @@ export const uninstallCodexHook = (params: {
     workflows,
   };
 };
-
-export const uninstallContextPromotionHook = (hooksPath: string): CodexHookUninstallResult =>
-  uninstallCodexHook({
-    hooksPath,
-    definition: CONTEXT_PROMOTION_CODEX_HOOK,
-  });
