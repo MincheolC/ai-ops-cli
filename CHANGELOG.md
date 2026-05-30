@@ -5,6 +5,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- `fix(codex-permissions)`: `safe-local` no longer installs the removed `:project_roots` filesystem token and rewrites managed profiles to the documented `:workspace_roots` syntax.
+
 ## [1.7.0] - 2026-05-31
 
 ### Breaking

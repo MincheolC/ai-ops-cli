@@ -25,6 +25,9 @@ const firstErrorLines = (stderr: string): string =>
     .slice(0, 3)
     .join(' ');
 
+const hasIgnoredFilesystemPathWarning = (stderr: string): boolean =>
+  stderr.includes('Configured filesystem path') && stderr.includes('not recognized by this version of Codex');
+
 export const createCodexRuntimePermissionProfileValidator = (): CodexPermissionProfileValidator => (
   candidate,
 ): CodexPermissionProfileValidationResult => {
@@ -49,7 +52,8 @@ export const createCodexRuntimePermissionProfileValidator = (): CodexPermissionP
         message: code ? `codex validation failed to run: ${code}` : 'codex validation failed to run',
       };
     }
-    if (result.status === 0) {
+    const stderr = typeof result.stderr === 'string' ? result.stderr : '';
+    if (result.status === 0 && !hasIgnoredFilesystemPathWarning(stderr)) {
       return {
         available: true,
         valid: true,
@@ -57,7 +61,6 @@ export const createCodexRuntimePermissionProfileValidator = (): CodexPermissionP
       };
     }
 
-    const stderr = typeof result.stderr === 'string' ? result.stderr : '';
     return {
       available: true,
       valid: false,

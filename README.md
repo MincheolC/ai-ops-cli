@@ -142,7 +142,7 @@ ai-ops codex-permissions status safe-local
 ai-ops codex-permissions uninstall safe-local
 ```
 
-`safe-local` upserts a user-level Codex permission profile named `ai-ops-safe-local` in `~/.codex/config.toml`. It grants write access to `~/.personal-project-contexts` and `.codex/plans` under active workspace roots while keeping `.git` read-only. It prefers the current Codex permission syntax (`:workspace_roots` plus `deny` env-file carveouts), validates the generated profile against the installed Codex runtime, and chooses the first accepted syntax. If Codex validation is unavailable, it uses a portable compatibility syntax with a warning; if Codex is available but no candidate validates, it fails closed without writing `config.toml`. It does not install `PermissionRequest` hooks or command allow rules.
+`safe-local` upserts a user-level Codex permission profile named `ai-ops-safe-local` in `~/.codex/config.toml`. It grants write access to `~/.personal-project-contexts` and `.codex/plans` under active workspace roots while keeping `.git` read-only. It uses the current Codex permission syntax (`:workspace_roots` plus `deny` env-file carveouts), validates the generated profile against the installed Codex runtime, and fails closed without writing `config.toml` when validation rejects the profile. If Codex validation is unavailable, it writes the documented syntax with a warning. It does not install `PermissionRequest` hooks or command allow rules.
 
 For an ai-coding worker, keep Codex subprocesses run-scoped and let the orchestrator own commits, pushes, and PR creation:
 

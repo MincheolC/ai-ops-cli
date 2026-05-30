@@ -142,7 +142,7 @@ ai-ops codex-permissions status safe-local
 ai-ops codex-permissions uninstall safe-local
 ```
 
-`safe-local`은 `~/.codex/config.toml`에 `ai-ops-safe-local` user-level Codex permission profile을 upsert합니다. `~/.personal-project-contexts`와 active workspace root 아래 `.codex/plans`에는 write를 허용하고 `.git`은 read-only로 둡니다. 현재 Codex permission syntax인 `:workspace_roots`와 `deny` env-file carveout을 먼저 시도하고, generated profile을 installed Codex runtime으로 검증한 뒤 처음 통과한 Codex-compatible syntax를 설치합니다. Codex validation을 실행할 수 없으면 warning과 함께 portable compatibility syntax를 쓰고, Codex가 있지만 어떤 candidate도 통과하지 못하면 `config.toml`을 쓰지 않고 fail closed합니다. `PermissionRequest` hook이나 command allow rule은 설치하지 않습니다.
+`safe-local`은 `~/.codex/config.toml`에 `ai-ops-safe-local` user-level Codex permission profile을 upsert합니다. `~/.personal-project-contexts`와 active workspace root 아래 `.codex/plans`에는 write를 허용하고 `.git`은 read-only로 둡니다. 현재 Codex permission syntax인 `:workspace_roots`와 `deny` env-file carveout을 사용하고, generated profile을 installed Codex runtime으로 검증하며, validation이 profile을 reject하면 `config.toml`을 쓰지 않고 fail closed합니다. Codex validation을 실행할 수 없으면 warning과 함께 documented syntax를 씁니다. `PermissionRequest` hook이나 command allow rule은 설치하지 않습니다.
 
 ai-coding worker에서는 Codex subprocess를 run-scoped로 실행하고, commit/push/PR 생성은 orchestrator가 담당하게 합니다.
 

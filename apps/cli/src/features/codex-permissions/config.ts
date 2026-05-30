@@ -10,7 +10,6 @@ import {
   CONFIG_CONFLICT_EXISTING_PROFILE,
   CONFIG_CONFLICT_NO_VALID_PROFILE,
   CONFIG_CONFLICT_SANDBOX,
-  CONFIG_WARNING_COMPAT_PROFILE_SELECTED,
   CONFIG_WARNING_VALIDATOR_UNAVAILABLE,
   LEGACY_CONFIG_BLOCK_END,
   LEGACY_CONFIG_BLOCK_START,
@@ -41,33 +40,15 @@ const SAFE_LOCAL_BASE_WORKSPACE_RULES = [
   { path: '.codex/plans', access: 'write' },
 ] as const;
 
-const SAFE_LOCAL_EXACT_ENV_NONE_RULES = [
-  { path: '.env', access: 'none' },
-  { path: '.env.local', access: 'none' },
-  { path: '.env.development', access: 'none' },
-  { path: '.env.test', access: 'none' },
-  { path: '.env.production', access: 'none' },
-] as const;
-
-const SAFE_LOCAL_FALLBACK_PROFILE_SYNTAX: CodexPermissionProfileSyntax = {
-  id: CODEX_PERMISSION_PROFILE_SYNTAX.CODEX_0_130_PROJECT_ROOTS_EXACT_ENV_NONE,
-  workspaceRootToken: ':project_roots',
-  workspaceRules: [...SAFE_LOCAL_BASE_WORKSPACE_RULES, ...SAFE_LOCAL_EXACT_ENV_NONE_RULES],
-};
-
 const SAFE_LOCAL_PROFILE_SYNTAX_CANDIDATES: readonly CodexPermissionProfileSyntax[] = [
   {
     id: CODEX_PERMISSION_PROFILE_SYNTAX.DOCS_WORKSPACE_ROOTS_DENY,
     workspaceRootToken: ':workspace_roots',
     workspaceRules: [...SAFE_LOCAL_BASE_WORKSPACE_RULES, { path: '**/*.env', access: 'deny' }],
   },
-  SAFE_LOCAL_FALLBACK_PROFILE_SYNTAX,
-  {
-    id: CODEX_PERMISSION_PROFILE_SYNTAX.CODEX_0_130_PROJECT_ROOTS_GLOB_ENV_NONE,
-    workspaceRootToken: ':project_roots',
-    workspaceRules: [...SAFE_LOCAL_BASE_WORKSPACE_RULES, { path: '**/*.env', access: 'none' }],
-  },
 ] as const;
+
+const SAFE_LOCAL_FALLBACK_PROFILE_SYNTAX = SAFE_LOCAL_PROFILE_SYNTAX_CANDIDATES[0];
 
 export const unavailableCodexPermissionProfileValidator: CodexPermissionProfileValidator = () => ({
   available: false,
@@ -176,10 +157,7 @@ const selectPermissionProfileSyntax = (
     if (validation.valid) {
       return {
         syntax,
-        warning:
-          syntax.id === CODEX_PERMISSION_PROFILE_SYNTAX.DOCS_WORKSPACE_ROOTS_DENY
-            ? null
-            : CONFIG_WARNING_COMPAT_PROFILE_SELECTED,
+        warning: null,
         conflict: null,
       };
     }

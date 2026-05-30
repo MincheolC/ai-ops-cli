@@ -23,17 +23,12 @@ const setup = () => {
 };
 
 const hasCodexPermissionEnvRule = (raw: string): boolean => {
-  const hasDocsSyntax =
+  return (
     raw.includes('[permissions.ai-ops-safe-local.filesystem.":workspace_roots"]') &&
-    raw.includes('"**/*.env" = "deny"');
-  const hasExactCompatibilitySyntax =
-    raw.includes('[permissions.ai-ops-safe-local.filesystem.":project_roots"]') &&
-    raw.includes('".env" = "none"') &&
-    raw.includes('".env.local" = "none"') &&
-    !raw.includes('"**/*.env" = "none"');
-  const hasLegacyCompatibilitySyntax =
-    raw.includes('[permissions.ai-ops-safe-local.filesystem.":project_roots"]') && raw.includes('"**/*.env" = "none"');
-  return hasDocsSyntax || hasExactCompatibilitySyntax || hasLegacyCompatibilitySyntax;
+    raw.includes('"**/*.env" = "deny"') &&
+    !raw.includes('[permissions.ai-ops-safe-local.filesystem.":project_roots"]') &&
+    !raw.includes(' = "none"')
+  );
 };
 
 const readSpawnErrorCode = (error: unknown): string | null => {

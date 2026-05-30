@@ -5,10 +5,11 @@ import { describe, expect, it } from 'vitest';
 import {
   CODEX_PERMISSION_PROFILE_SYNTAX,
   CONFIG_CONFLICT_NO_VALID_PROFILE,
-  CONFIG_WARNING_COMPAT_PROFILE_SELECTED,
   CONFIG_WARNING_VALIDATOR_UNAVAILABLE,
   inspectCodexSafePermissions,
   installCodexSafePermissions,
+  PROFILE_BLOCK_END,
+  PROFILE_BLOCK_START,
   resolveCodexConfigPath,
   resolveCodexHooksPathForPermissions,
   resolveCodexRulesPath,
@@ -112,38 +113,31 @@ const docsSyntaxOptions = {
   validateProfileCandidate: createSyntaxValidator(CODEX_PERMISSION_PROFILE_SYNTAX.DOCS_WORKSPACE_ROOTS_DENY),
 };
 
-const fallbackSyntaxOptions = {
-  validateProfileCandidate: createSyntaxValidator(
-    CODEX_PERMISSION_PROFILE_SYNTAX.CODEX_0_130_PROJECT_ROOTS_EXACT_ENV_NONE,
-  ),
-};
-
 describe('Codex safe permissions profile config', () => {
   it('installs a safe-local permission profile into missing Codex files idempotently', () => {
     const paths = setup();
     try {
-      const result = installCodexSafePermissions(paths, fallbackSyntaxOptions);
-      const second = installCodexSafePermissions(paths, fallbackSyntaxOptions);
+      const result = installCodexSafePermissions(paths, docsSyntaxOptions);
+      const second = installCodexSafePermissions(paths, docsSyntaxOptions);
       const config = readFileSync(resolveCodexConfigPath(paths.codexHomePath), 'utf-8');
 
       expect(result.config.changed).toBe(true);
-      expect(result.config.warning).toBe(CONFIG_WARNING_COMPAT_PROFILE_SELECTED);
+      expect(result.config.warning).toBe(null);
       expect(second.config.changed).toBe(false);
       expect(config).toContain(`default_permissions = "${SAFE_LOCAL_CODEX_PERMISSION_NAME}"`);
       expect(config).toContain(`[permissions.${SAFE_LOCAL_CODEX_PERMISSION_NAME}]`);
       expect(config).toContain('":minimal" = "read"');
       expect(config).toContain(`"${paths.personalContextRoot}" = "write"`);
       expect(config).not.toContain('context-promotion');
-      expect(config).toContain('[permissions.ai-ops-safe-local.filesystem.":project_roots"]');
+      expect(config).toContain('[permissions.ai-ops-safe-local.filesystem.":workspace_roots"]');
       expect(config).toContain('glob_scan_max_depth = 3');
       expect(config).toContain('"." = "write"');
       expect(config).toContain('".git" = "read"');
       expect(config).toContain('".codex" = "read"');
       expect(config).toContain('".codex/plans" = "write"');
-      expect(config).toContain('".env" = "none"');
-      expect(config).toContain('".env.local" = "none"');
-      expect(config).not.toContain('"**/*.env" = "none"');
-      expect(config).not.toContain('"**/*.env" = "deny"');
+      expect(config).toContain('"**/*.env" = "deny"');
+      expect(config).not.toContain('[permissions.ai-ops-safe-local.filesystem.":project_roots"]');
+      expect(config).not.toContain(' = "none"');
       expect(config).toContain('enabled = false');
       expect(config).not.toContain('sandbox_mode');
       expect(existsSync(resolveCodexRulesPath(paths.codexHomePath))).toBe(false);
@@ -186,7 +180,7 @@ describe('Codex safe permissions profile config', () => {
     }
   });
 
-  it('uses the compatibility syntax with a warning when Codex validation is unavailable', () => {
+  it('uses the documented workspace_roots syntax with a warning when Codex validation is unavailable', () => {
     const paths = setup();
     try {
       const result = installCodexSafePermissions(paths, {
@@ -195,11 +189,10 @@ describe('Codex safe permissions profile config', () => {
       const config = readFileSync(resolveCodexConfigPath(paths.codexHomePath), 'utf-8');
 
       expect(result.config.warning).toBe(CONFIG_WARNING_VALIDATOR_UNAVAILABLE);
-      expect(config).toContain('[permissions.ai-ops-safe-local.filesystem.":project_roots"]');
-      expect(config).toContain('".env" = "none"');
-      expect(config).toContain('".env.local" = "none"');
-      expect(config).not.toContain('"**/*.env" = "none"');
-      expect(config).not.toContain('"**/*.env" = "deny"');
+      expect(config).toContain('[permissions.ai-ops-safe-local.filesystem.":workspace_roots"]');
+      expect(config).toContain('"**/*.env" = "deny"');
+      expect(config).not.toContain('[permissions.ai-ops-safe-local.filesystem.":project_roots"]');
+      expect(config).not.toContain(' = "none"');
     } finally {
       paths.cleanup();
     }
@@ -222,7 +215,7 @@ describe('Codex safe permissions profile config', () => {
         'utf-8',
       );
 
-      const result = installCodexSafePermissions(paths, fallbackSyntaxOptions);
+      const result = installCodexSafePermissions(paths, docsSyntaxOptions);
       const config = readFileSync(resolveCodexConfigPath(paths.codexHomePath), 'utf-8');
 
       expect(result.config.conflict).toBe(null);
@@ -249,7 +242,7 @@ describe('Codex safe permissions profile config', () => {
     try {
       mkdirSync(sandboxMode.codexHomePath, { recursive: true });
       writeFileSync(resolveCodexConfigPath(sandboxMode.codexHomePath), 'sandbox_mode = "workspace-write"\n', 'utf-8');
-      expect(installCodexSafePermissions(sandboxMode, fallbackSyntaxOptions).config.conflict).toContain(
+      expect(installCodexSafePermissions(sandboxMode, docsSyntaxOptions).config.conflict).toContain(
         'sandbox_mode',
       );
 
@@ -259,7 +252,7 @@ describe('Codex safe permissions profile config', () => {
         ['[sandbox_workspace_write]', 'writable_roots = ["/tmp/example"]', ''].join('\n'),
         'utf-8',
       );
-      expect(installCodexSafePermissions(sandboxWorkspace, fallbackSyntaxOptions).config.conflict).toContain(
+      expect(installCodexSafePermissions(sandboxWorkspace, docsSyntaxOptions).config.conflict).toContain(
         'sandbox_mode',
       );
 
@@ -269,7 +262,7 @@ describe('Codex safe permissions profile config', () => {
         'default_permissions = "project-edit"\n',
         'utf-8',
       );
-      expect(installCodexSafePermissions(otherProfile, fallbackSyntaxOptions).config.conflict).toContain(
+      expect(installCodexSafePermissions(otherProfile, docsSyntaxOptions).config.conflict).toContain(
         'default_permissions',
       );
 
@@ -285,7 +278,7 @@ describe('Codex safe permissions profile config', () => {
         ].join('\n'),
         'utf-8',
       );
-      const matchingProfileResult = installCodexSafePermissions(matchingUserProfile, fallbackSyntaxOptions);
+      const matchingProfileResult = installCodexSafePermissions(matchingUserProfile, docsSyntaxOptions);
       expect(matchingProfileResult.config.conflict).toContain('permissions.ai-ops-safe-local');
       expect(readFileSync(resolveCodexConfigPath(matchingUserProfile.codexHomePath), 'utf-8')).not.toContain(
         'ai-ops:safe-permissions:profile',
@@ -302,7 +295,7 @@ describe('Codex safe permissions profile config', () => {
     const paths = setup();
     try {
       writeLegacySafeLocalFiles(paths);
-      const result = installCodexSafePermissions(paths, fallbackSyntaxOptions);
+      const result = installCodexSafePermissions(paths, docsSyntaxOptions);
       const config = readFileSync(resolveCodexConfigPath(paths.codexHomePath), 'utf-8');
       const rules = readFileSync(resolveCodexRulesPath(paths.codexHomePath), 'utf-8');
       const hooks = readFileSync(resolveCodexHooksPathForPermissions(paths.codexHomePath), 'utf-8');
@@ -324,10 +317,55 @@ describe('Codex safe permissions profile config', () => {
     }
   });
 
+  it('rewrites a managed project_roots profile to workspace_roots syntax', () => {
+    const paths = setup();
+    try {
+      mkdirSync(paths.codexHomePath, { recursive: true });
+      writeFileSync(
+        resolveCodexConfigPath(paths.codexHomePath),
+        [
+          PROFILE_BLOCK_START,
+          `default_permissions = "${SAFE_LOCAL_CODEX_PERMISSION_NAME}"`,
+          '',
+          `[permissions.${SAFE_LOCAL_CODEX_PERMISSION_NAME}]`,
+          '',
+          `[permissions.${SAFE_LOCAL_CODEX_PERMISSION_NAME}.filesystem]`,
+          'glob_scan_max_depth = 3',
+          '":minimal" = "read"',
+          `"${paths.personalContextRoot}" = "write"`,
+          '',
+          `[permissions.${SAFE_LOCAL_CODEX_PERMISSION_NAME}.filesystem.":project_roots"]`,
+          '"." = "write"',
+          '".git" = "read"',
+          '".codex" = "read"',
+          '".codex/plans" = "write"',
+          '".env" = "none"',
+          '',
+          `[permissions.${SAFE_LOCAL_CODEX_PERMISSION_NAME}.network]`,
+          'enabled = false',
+          PROFILE_BLOCK_END,
+          '',
+        ].join('\n'),
+        'utf-8',
+      );
+
+      const result = installCodexSafePermissions(paths, docsSyntaxOptions);
+      const config = readFileSync(resolveCodexConfigPath(paths.codexHomePath), 'utf-8');
+
+      expect(result.config.changed).toBe(true);
+      expect(config).toContain(`[permissions.${SAFE_LOCAL_CODEX_PERMISSION_NAME}.filesystem.":workspace_roots"]`);
+      expect(config).toContain('"**/*.env" = "deny"');
+      expect(config).not.toContain(':project_roots');
+      expect(config).not.toContain(' = "none"');
+    } finally {
+      paths.cleanup();
+    }
+  });
+
   it('uninstalls only ai-ops managed profile and legacy cleanup blocks', () => {
     const paths = setup();
     try {
-      installCodexSafePermissions(paths, fallbackSyntaxOptions);
+      installCodexSafePermissions(paths, docsSyntaxOptions);
       const result = uninstallCodexSafePermissions(paths);
       const config = readFileSync(resolveCodexConfigPath(paths.codexHomePath), 'utf-8');
 
@@ -349,7 +387,7 @@ describe('Codex safe permissions profile config', () => {
         'utf-8',
       );
 
-      installCodexSafePermissions(paths, fallbackSyntaxOptions);
+      installCodexSafePermissions(paths, docsSyntaxOptions);
       let config = readFileSync(resolveCodexConfigPath(paths.codexHomePath), 'utf-8');
       expect(config.match(/default_permissions/g)?.length).toBe(1);
       expect(config).toContain(`[permissions.${SAFE_LOCAL_CODEX_PERMISSION_NAME}]`);
@@ -365,9 +403,9 @@ describe('Codex safe permissions profile config', () => {
   it('reports status without mutating files', () => {
     const paths = setup();
     try {
-      installCodexSafePermissions(paths, fallbackSyntaxOptions);
+      installCodexSafePermissions(paths, docsSyntaxOptions);
       const before = readFileSync(resolveCodexConfigPath(paths.codexHomePath), 'utf-8');
-      const status = inspectCodexSafePermissions(paths, fallbackSyntaxOptions);
+      const status = inspectCodexSafePermissions(paths, docsSyntaxOptions);
       const after = readFileSync(resolveCodexConfigPath(paths.codexHomePath), 'utf-8');
 
       expect(status.config.installed).toBe(true);
@@ -382,14 +420,14 @@ describe('Codex safe permissions profile config', () => {
   it('treats trailing EOF blank lines as installed without rewriting config', () => {
     const paths = setup();
     try {
-      installCodexSafePermissions(paths, fallbackSyntaxOptions);
+      installCodexSafePermissions(paths, docsSyntaxOptions);
       const configPath = resolveCodexConfigPath(paths.codexHomePath);
       const before = readFileSync(configPath, 'utf-8');
       writeFileSync(configPath, `${before}\n`, 'utf-8');
       const withExtraBlankLine = readFileSync(configPath, 'utf-8');
 
-      const status = inspectCodexSafePermissions(paths, fallbackSyntaxOptions);
-      const reinstall = installCodexSafePermissions(paths, fallbackSyntaxOptions);
+      const status = inspectCodexSafePermissions(paths, docsSyntaxOptions);
+      const reinstall = installCodexSafePermissions(paths, docsSyntaxOptions);
       const after = readFileSync(configPath, 'utf-8');
 
       expect(status.config.installed).toBe(true);
@@ -403,13 +441,13 @@ describe('Codex safe permissions profile config', () => {
   it('reports not installed when the managed profile content differs', () => {
     const paths = setup();
     try {
-      installCodexSafePermissions(paths, fallbackSyntaxOptions);
+      installCodexSafePermissions(paths, docsSyntaxOptions);
       const configPath = resolveCodexConfigPath(paths.codexHomePath);
       const config = readFileSync(configPath, 'utf-8');
       expect(config).toContain('".git" = "read"');
       writeFileSync(configPath, config.replace('".git" = "read"', '".git" = "write"'), 'utf-8');
 
-      const status = inspectCodexSafePermissions(paths, fallbackSyntaxOptions);
+      const status = inspectCodexSafePermissions(paths, docsSyntaxOptions);
 
       expect(status.config.installed).toBe(false);
       expect(status.config.conflict).toBe(null);
