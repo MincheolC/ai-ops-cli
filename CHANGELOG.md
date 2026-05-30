@@ -5,6 +5,28 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-05-31
+
+### Breaking
+
+- `refactor(context-promotion)`: `context-promotion` integration, `ai-ops context-promotion ...` commands, low-level `ai-ops codex-hook ... context-promotion` commands, packaged context-promotion receipt config, and `context-promotion-review` skill are removed. Existing user-local artifacts should be uninstalled or cleaned before upgrading.
+- `refactor(skill)`: `doc-impact-reviewer` is removed from the bundled skill catalog. Use `ai-ops-project-owned-docs` for project-owned operating-document updates.
+
+### Added
+
+- `feat(skill)`: `ai-ops-project-owned-docs` task skill now serves as the single explicit project-owned docs workflow for user notes, diff impact review, and conversation/troubleshooting learnings.
+- `feat(cli)`: `ai-ops integration list`, `skill list`, `subagent list`, and `pack list` now show install-state icons (`✓ installed`, `○ not installed`) so installed and missing assets are easier to scan.
+
+### Changed
+
+- `refactor(pc)`: shared Codex `PostToolUse` hook infrastructure remains, but `pc` is now the only supported integration hook workflow. Successful `git commit` parsing moved into a shared Codex hook parser used by `pc` and the integration dispatcher.
+- `docs`: README, CLI README, implementation playbook, and plan docs now describe the current product surface: `code-review-gate`, `pc`, and `ai-ops-project-owned-docs`.
+
+### Fixed
+
+- `fix(integration)`: stale `context-promotion` entries in existing user integration manifests no longer block `integration list` or `integration install pc`; they are ignored and cleaned on the next integration manifest write.
+- `fix(codex-permissions)`: `safe-local` no longer grants write access to the removed context-promotion receipt store.
+
 ## [1.6.2] - 2026-05-30
 
 ## [1.6.1] - 2026-05-30
