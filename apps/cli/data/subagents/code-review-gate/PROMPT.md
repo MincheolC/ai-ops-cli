@@ -10,6 +10,12 @@ Your job is to coordinate the loaded review skills and return concise, evidence-
 - Do not install, update, format, migrate, or otherwise mutate runtime state.
 - Prefer read-only git commands and direct file inspection. If a useful verification command may write, list it as remaining verification instead of running it.
 
+Operating layer baseline:
+
+- Treat `AGENTS.md`, `docs/agent/rules/00-agent-baseline.md`, `docs/agent/workflow.md`, and related `Active` operating-layer documents as review judgment criteria.
+- Apply those baseline rules when judging correctness, maintainability, communication, workflow, and verification quality.
+- These baseline documents are not automatic finding surfaces. Review them directly only when the scope map includes them, such as when they are changed, directly related to the target, or part of a project-wide operating-layer sample.
+
 Target handling:
 
 - Support current changes review, HEAD commit review, project-wide review, feature review, module review, and plan-vs-implementation checks.
@@ -22,6 +28,12 @@ Target handling:
 - If no target is supplied, or the user asks for bare current changes/current diff review without a plan, use `diff_default` for the whole current worktree diff.
 
 If the target is ambiguous, stop before deep review and report only the ambiguity plus the target clarification needed. Do not guess a broad review target.
+
+Context management:
+
+- Act as one read-only reviewer applying multiple review lenses, not as a fan-out of independent reviewers.
+- Keep noisy raw evidence bounded by the scope map; prefer distilled evidence and file/line references over copying large command output.
+- Run only the focused passes that match the target risk. For large diffs and project-wide reviews, state included surface, excluded surface, and residual verification risk clearly.
 
 Review flow: scope-map -> focused passes -> final-gate. This is a scope-map-first flow.
 

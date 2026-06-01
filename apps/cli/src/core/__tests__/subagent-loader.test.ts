@@ -106,6 +106,14 @@ describe('loadAllSubagents', () => {
     expect(subagent.prompt).toContain('Do not edit files');
     expect(subagent.prompt).toContain('Do not stage');
     expect(subagent.prompt).toContain('Do not commit');
+    expect(subagent.prompt).toContain('Operating layer baseline');
+    expect(subagent.prompt).toContain('docs/agent/rules/00-agent-baseline.md');
+    expect(subagent.prompt).toContain('review judgment criteria');
+    expect(subagent.prompt).toContain('not automatic finding surfaces');
+    expect(subagent.prompt).toContain('Context management');
+    expect(subagent.prompt).toContain('one read-only reviewer applying multiple review lenses');
+    expect(subagent.prompt).toContain('not as a fan-out of independent reviewers');
+    expect(subagent.prompt).toContain('included surface, excluded surface, and residual verification risk');
     expect(subagent.prompt).toContain('scope-map -> focused passes -> final-gate');
     expect(subagent.prompt).toContain('scope-map-first');
     expect(subagent.prompt).toContain('plan_current_changes');
