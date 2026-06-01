@@ -5,6 +5,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.7.3] - 2026-06-01
+
+## [1.7.2] - 2026-06-01
+
 ### Fixed
 
 - `fix(code-review-gate)`: `code-review-gate` now applies `AGENTS.md`, `docs/agent/rules/00-agent-baseline.md`, `docs/agent/workflow.md`, and related `Active` operating-layer documents as review judgment criteria while keeping those documents out of findings unless they are in scope. Maintainer docs now describe the single read-only reviewer model, target selection, context management, and review lenses in English and Korean.

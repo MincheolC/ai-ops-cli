@@ -1,6 +1,6 @@
 {
   "name": "ai-ops-studio-darwin-arm64",
-  "version": "1.7.1",
+  "version": "1.7.3",
   "description": "macOS arm64 desktop binary for ai-ops Studio",
   "license": "MIT",
   "repository": {
