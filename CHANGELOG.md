@@ -5,6 +5,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- `feat(pc)`: add `ai-ops pc next` and `$pc:next` skill guidance so Codex can record an active workstream's next-priority snapshot without creating a `$pc:done` handoff.
+
 ## [1.7.3] - 2026-06-01
 
 ## [1.7.2] - 2026-06-01

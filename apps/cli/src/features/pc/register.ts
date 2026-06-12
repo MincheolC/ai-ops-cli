@@ -1,10 +1,14 @@
 import type { Command } from 'commander';
-import { pcDoneApplyCommand, pcDoneDraftCommand, pcDoneFillCommand, pcStatusCommand } from './commands.js';
+import { pcDoneApplyCommand, pcDoneDraftCommand, pcDoneFillCommand, pcNextCommand, pcStatusCommand } from './commands.js';
 
 const PC_HELP_TEXT = `
 
 Workflow:
   $pc:todo is the read-only context reload skill path.
+  $pc:next records the next priority snapshot for the active workstream:
+
+    ai-ops pc next --cwd <product-repo> --item "첫 번째 행동" --item "다음 행동" --basis "다음 세션 기준"
+
   $pc:done uses this CLI protocol for handoff writes:
 
     1. ai-ops pc done draft --cwd <product-repo>
@@ -48,6 +52,14 @@ export const registerPcCommands = (program: Command): void => {
     .description('show current cwd pc workspace/workstream/current-entry readiness')
     .option('--cwd <path>', 'product repo/path to inspect')
     .action((opts: { cwd?: string }) => pcStatusCommand(opts));
+
+  command
+    .command('next')
+    .description('record $pc:next priority items for the active workstream')
+    .option('--cwd <path>', 'product repo/path for matching pc workspace')
+    .requiredOption('--item <text>', 'next priority item (repeatable)', collectOptionValue)
+    .requiredOption('--basis <text>', 'evidence or 기준 for why these priorities should be next')
+    .action((opts: { cwd?: string; item?: string[]; basis?: string }) => pcNextCommand(opts));
 
   const doneCommand = command
     .command('done')

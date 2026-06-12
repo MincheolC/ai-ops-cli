@@ -256,12 +256,13 @@ ai-ops integration uninstall pc
 
 ```bash
 ai-ops pc status
+ai-ops pc next --cwd /path/to/product-repo --item "..." --item "..." --basis "..."
 ai-ops pc done draft --cwd /path/to/product-repo
 ai-ops pc done fill --draft /path/to/draft.json --completed "..." --verification "..." --remaining "..." --next-action "..." --next-action-evidence "..." --apply
 ai-ops pc done apply --draft /path/to/draft.json
 ```
 
-CLI는 LLM을 호출하지 않는다. Codex가 AI 작성 필드를 `fill` 명령 인자로 제공하고, `apply`가 schema/path/status/HEAD를 검증한 뒤 `~/.personal-project-contexts/`의 허용 context 파일만 갱신하고 context repo에서만 commit한다.
+CLI는 LLM을 호출하지 않는다. `$pc:next`는 active workstream의 다음 우선순위 snapshot만 기록하고, `$pc:done`에서는 Codex가 AI 작성 필드를 `fill` 명령 인자로 제공하고, `apply`가 schema/path/status/HEAD를 검증한 뒤 `~/.personal-project-contexts/`의 허용 context 파일만 갱신하고 context repo에서만 commit한다.
 
 ## Deprecated old model
 

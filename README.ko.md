@@ -126,6 +126,7 @@ ai-ops integration update code-review-gate
 ai-ops integration status pc
 ai-ops integration uninstall pc
 ai-ops pc status
+ai-ops pc next --cwd /path/to/product-repo --item "..." --item "..." --basis "..."
 ai-ops pc done draft --cwd /path/to/product-repo
 ai-ops pc done fill --draft /path/to/draft.json --completed "..." --verification "..." --remaining "..." --next-action "..." --next-action-evidence "..." --apply
 ai-ops pc done apply --draft /path/to/draft.json
@@ -133,7 +134,7 @@ ai-ops pc done apply --draft /path/to/draft.json
 
 `code-review-gate`는 Codex-only, explicit-only review subagent와 focused review task skill들을 설치합니다. Codex hook이나 receipt config를 설치하지 않기 때문에 install/status/diff/update/uninstall 경로에서 `CODEX_HOME`을 요구하지 않습니다.
 
-`pc`는 `pc` Codex skill과 shared Codex `PostToolUse` hook runner를 설치합니다. 성공적인 `git commit` 이후 `~/.personal-project-contexts/`에 matching workspace, active workstream, current repo scope가 준비된 경우에만 Codex가 `$pc:done`으로 이어가게 합니다. 준비되지 않은 repository에는 pc context를 새로 만들지 않습니다. Handoff 반영은 `ai-ops pc done draft` -> `ai-ops pc done fill --apply` 순서로 진행해, draft 갱신, context 파일 갱신, context repo commit은 CLI가 맡고 Codex가 draft JSON을 직접 patch-edit하지 않아도 됩니다. Codex non-managed hook은 실행 전 `/hooks`에서 review/trust가 필요합니다.
+`pc`는 `pc` Codex skill과 shared Codex `PostToolUse` hook runner를 설치합니다. `ai-ops pc next`는 handoff를 만들지 않고 active workstream의 다음 우선순위 snapshot만 기록합니다. 성공적인 `git commit` 이후 `~/.personal-project-contexts/`에 matching workspace, active workstream, current repo scope가 준비된 경우에만 Codex가 `$pc:done`으로 이어가게 합니다. 준비되지 않은 repository에는 pc context를 새로 만들지 않습니다. Handoff 반영은 `ai-ops pc done draft` -> `ai-ops pc done fill --apply` 순서로 진행해, draft 갱신, context 파일 갱신, context repo commit은 CLI가 맡고 Codex가 draft JSON을 직접 patch-edit하지 않아도 됩니다. Codex non-managed hook은 실행 전 `/hooks`에서 review/trust가 필요합니다.
 
 Codex safe permissions는 `pc`가 쓰는 좁은 user-local 작업에서 반복 approval prompt를 줄입니다.
 

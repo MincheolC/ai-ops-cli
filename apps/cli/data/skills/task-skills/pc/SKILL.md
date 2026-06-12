@@ -1,6 +1,6 @@
 ---
 name: pc
-description: Use only when the user explicitly invokes $pc, $pc:help, $pc:init, $pc:add, $pc:todo, $pc:do, or $pc:done for personal workspace/repo/service context loading, task intake, active workstream selection, and handoff.
+description: Use only when the user explicitly invokes $pc, $pc:help, $pc:init, $pc:add, $pc:todo, $pc:next, $pc:do, or $pc:done for personal workspace/repo/service context loading, task intake, active workstream selection, next-priority recording, and handoff.
 disable-model-invocation: true
 ---
 
@@ -10,7 +10,7 @@ disable-model-invocation: true
 
 ## Invocation
 
-- 이 skill은 사용자가 `$pc`, `$pc:help`, `$pc:init`, `$pc:add`, `$pc:todo`, `$pc:do`, `$pc:done`을 명시했을 때만 사용한다.
+- 이 skill은 사용자가 `$pc`, `$pc:help`, `$pc:init`, `$pc:add`, `$pc:todo`, `$pc:next`, `$pc:do`, `$pc:done`을 명시했을 때만 사용한다.
 - `$pc`는 `$pc:todo`와 동일하게 처리한다.
 - 알 수 없는 subcommand는 파일을 수정하지 말고 `$pc:help` 형식으로 사용법을 안내한다.
 - 모든 사용자-facing 응답은 한국어로 작성한다. 파일 경로, command, code identifier는 원문을 유지한다.
@@ -114,6 +114,7 @@ workstream이 이 skill의 핵심 작업 단위다.
 
 - `$pc:add <항목>`은 새 workstream을 등록한다.
 - `$pc:todo`는 read-only로 진행중/미완료 workstream들을 보여준다.
+- `$pc:next`는 진행중 workstream의 다음 우선순위 snapshot과 다음 첫 행동만 갱신한다.
 - `$pc:do <항목>`은 등록된 workstream을 진행중으로 전환하거나 오늘 진행 대상으로 갱신한다.
 - `$pc:done`은 진행중 workstream의 오늘 진행 상황, 완료 여부, 남은 일, 다음 첫 행동을 기록한다.
 - workstream 상태는 `Planned`, `Active`, `Paused`, `Done` 중 하나를 기본으로 쓴다.
@@ -153,7 +154,8 @@ workstream이 이 skill의 핵심 작업 단위다.
 
 - 작업 workspace/repo/service 안에는 이 skill의 context 파일을 만들거나 수정하지 않는다.
 - `$pc:help`와 `$pc:todo`는 read-only다. 어떤 파일도 수정하지 않는다.
-- `$pc:init`, `$pc:add`, `$pc:do`, `$pc:done`은 `~/.personal-project-contexts/`만 수정한다.
+- `$pc:init`, `$pc:add`, `$pc:next`, `$pc:do`, `$pc:done`은 `~/.personal-project-contexts/`만 수정한다.
+- `$pc:next`는 product repo, 마지막 확인 commit, handoff 기록을 갱신하지 않는다.
 - `$pc:done` handoff 반영을 위해 임시 JS 파일, inline `node --input-type=module -e ...`, ad-hoc markdown replace script를 만들지 않는다.
 - `$pc:done`은 `ai-ops pc done draft`로 JSON draft를 만들고, AI 작성 필드는 `ai-ops pc done fill --draft <draft-path> ... --apply`로 채운다.
 - Codex가 draft JSON을 직접 편집하면 앱이 patch 적용 여부를 물을 수 있으므로, `fill` 명령으로 표현할 수 있는 handoff는 draft JSON 파일을 직접 수정하지 않는다.
@@ -170,6 +172,7 @@ workstream이 이 skill의 핵심 작업 단위다.
 - `$pc` / `$pc:todo`: 현재 workspace 맥락과 다음 행동 확인
 - `$pc:init [--reset] [path...]`: 현재 또는 명시 path를 workspace entry로 등록하거나 재생성
 - `$pc:add <항목>`: 새 workstream을 등록하고 큰 계획 문서는 초기 본문으로 압축
+- `$pc:next`: 진행중 workstream에 다음 우선순위 목록과 다음 첫 행동 저장
 - `$pc:do <항목>`: 등록된 workstream을 진행중으로 설정하거나 오늘 작업 대상으로 갱신
 - `$pc:done`: 진행중 workstream의 진행/완료/handoff를 저장
 
@@ -224,6 +227,30 @@ read-only로 현재 작업 맥락을 출력한다.
    - 첫 번째 행동의 근거 또는 보정 이유
 
 context가 없으면 파일을 만들지 말고 `$pc:init .` 또는 `$pc:init ./admin ./api` 같은 예시를 제안한다.
+
+### `$pc:next`
+
+진행중 workstream의 다음 우선순위만 가볍게 저장한다. 새 workstream을 만들거나 handoff를 기록하지 않는다.
+
+사용자 입력 예시:
+
+```text
+$pc:next
+1. ai-ops pc todo 전용 저장 흐름 설계
+2. pc skill invocation 문서 정리
+3. focused test 추가
+
+기준: 다음 세션에서 바로 이어서 할 우선순위
+```
+
+1. 현재 경로와 매칭되는 workspace와 active workstream을 찾는다. 없으면 쓰지 않고 `$pc:do <항목>` 또는 `$pc:add <항목>`이 먼저 필요하다고 안내한다.
+2. 우선순위 항목을 순서대로 정리한다. 빈 항목은 버리고, 남은 항목이 0개면 쓰지 않는다.
+3. `기준` 문장을 다음 행동 근거로 정리한다. 기준이 없으면 왜 다음 우선순위인지 물어보고 쓰지 않는다.
+4. 첫 번째 항목을 `다음 첫 행동`으로 사용하고, 전체 항목을 현재 우선순위 snapshot으로 저장한다.
+5. `ai-ops pc next --cwd <현재 제품 repo 또는 경로> --item "<항목1>" --item "<항목2>" --basis "<기준>"`를 실행한다.
+6. 직접 context markdown 파일을 편집하지 않는다. `$pc:next`는 `ai-ops pc next`가 active workstream과 `backlog.md`만 갱신하고 context repo에서만 commit하게 한다.
+
+응답에는 context commit 요약, 저장된 첫 행동, 우선순위 개수, 기준을 포함한다.
 
 ### `$pc:do <항목>`
 

@@ -134,6 +134,7 @@ ai-ops integration update code-review-gate
 ai-ops integration status pc
 ai-ops integration uninstall pc
 ai-ops pc status
+ai-ops pc next --cwd /path/to/product-repo --item "..." --item "..." --basis "..."
 ai-ops pc done draft --cwd /path/to/product-repo
 ai-ops pc done fill --draft /path/to/draft.json --completed "..." --verification "..." --remaining "..." --next-action "..." --next-action-evidence "..." --apply
 ai-ops pc done apply --draft /path/to/draft.json
@@ -141,7 +142,7 @@ ai-ops pc done apply --draft /path/to/draft.json
 
 `code-review-gate` bundles a Codex-only explicit review subagent and focused review task skills. It is hookless and does not create receipt config.
 
-`pc` bundles the `pc` Codex skill and a shared Codex `PostToolUse` hook runner. It prompts Codex to run `$pc:done` after a successful `git commit` only when `~/.personal-project-contexts/` already has a matching workspace, active workstream, and current repo scope. Handoff writes use `ai-ops pc done draft` -> `ai-ops pc done fill --apply`, so the CLI owns draft updates, context file updates, and the context repo commit without requiring Codex to patch-edit the draft JSON directly.
+`pc` bundles the `pc` Codex skill and a shared Codex `PostToolUse` hook runner. `ai-ops pc next` records the active workstream's next priority snapshot without creating a handoff. It prompts Codex to run `$pc:done` after a successful `git commit` only when `~/.personal-project-contexts/` already has a matching workspace, active workstream, and current repo scope. Handoff writes use `ai-ops pc done draft` -> `ai-ops pc done fill --apply`, so the CLI owns draft updates, context file updates, and the context repo commit without requiring Codex to patch-edit the draft JSON directly.
 
 Integration ownership is tracked in `.ai-ops/integrations-manifest.json` under the user/global runtime home. Uninstall removes only owned components and preserves pre-existing manual installs.
 

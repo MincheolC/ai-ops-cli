@@ -949,6 +949,54 @@ describe.skipIf(!distExists)('pc subprocess', () => {
     );
   };
 
+  it('runs pc next through the built CLI', () => {
+    const product = setupGitRepo();
+    const userHome = mkdtempSync(join(tmpdir(), 'pc-home-'));
+    const contextRoot = join(userHome, '.personal-project-contexts');
+    const env = { ...process.env, HOME: userHome, AI_OPS_HOME: userHome };
+    try {
+      mkdirSync(contextRoot, { recursive: true });
+      execFileSync('git', ['init'], { cwd: contextRoot, stdio: 'ignore' });
+      execFileSync('git', ['config', 'user.email', 'test@example.com'], { cwd: contextRoot });
+      execFileSync('git', ['config', 'user.name', 'Test User'], { cwd: contextRoot });
+      writePcContext({ contextRoot, workspaceRoot: product.dir });
+      execFileSync('git', ['add', '.'], { cwd: contextRoot });
+      execFileSync('git', ['commit', '-m', 'init context'], { cwd: contextRoot, stdio: 'ignore' });
+
+      const nextResult = spawnSync(
+        process.execPath,
+        [
+          BIN_PATH,
+          'pc',
+          'next',
+          '--cwd',
+          product.dir,
+          '--item',
+          'ai-ops pc todo 전용 저장 흐름 설계',
+          '--item',
+          'focused test 추가',
+          '--basis',
+          '다음 세션에서 바로 이어서 할 우선순위',
+        ],
+        {
+          cwd: product.dir,
+          encoding: 'utf-8',
+          env,
+        },
+      );
+      expect(nextResult.status).toBe(0);
+      expect(nextResult.stdout).toContain('context commit created');
+      const workstream = readFileSync(join(contextRoot, 'workspaces/demo-workspace/workstreams/demo-work.md'), 'utf-8');
+      expect(workstream).toContain('<!-- ai-ops:pc-next:start -->');
+      expect(workstream).toContain('1. ai-ops pc todo 전용 저장 흐름 설계');
+      expect(workstream).toContain('- 근거: 다음 세션에서 바로 이어서 할 우선순위');
+      expect(execFileSync('git', ['status', '--short'], { cwd: product.dir, encoding: 'utf-8' }).trim()).toBe('');
+    } finally {
+      rmSync(userHome, { recursive: true, force: true });
+      product.cleanup();
+    }
+  });
+
   it('runs pc done draft -> fill --apply through the built CLI', () => {
     const product = setupGitRepo();
     const userHome = mkdtempSync(join(tmpdir(), 'pc-home-'));

@@ -2,6 +2,7 @@ import * as p from '@clack/prompts';
 import { resolveBasePath, resolvePersonalContextRoot } from '@/shared/command-paths.js';
 import { applyPcDoneDraft, createPcDoneDraft, fillPcDoneDraft } from './done.js';
 import type { FillPcDoneDraftInput } from './done.js';
+import { recordPcNextPriorities } from './next.js';
 import { getPcHandoffStatus, readGitHead, resolveGitRoot } from './status.js';
 
 export type PcStatusOptions = {
@@ -28,6 +29,12 @@ export type PcDoneFillOptions = {
   durableContextDelta?: string;
   clearDurableContextDelta?: boolean;
   apply?: boolean;
+};
+
+export type PcNextOptions = {
+  cwd?: string;
+  item?: string[];
+  basis?: string;
 };
 
 const reportPcError = (error: unknown): void => {
@@ -99,6 +106,35 @@ export const pcStatusCommand = async (opts: PcStatusOptions = {}): Promise<void>
     reportPcError(error);
   }
   p.outro('ai-ops pc status 완료');
+};
+
+export const pcNextCommand = async (opts: PcNextOptions = {}): Promise<void> => {
+  p.intro('ai-ops pc next');
+  try {
+    if (!opts.basis) {
+      throw new Error('--basis <text> is required');
+    }
+    const result = recordPcNextPriorities({
+      cwd: resolveCommandCwd(opts.cwd),
+      contextRoot: resolvePersonalContextRoot(),
+      items: opts.item ?? [],
+      basis: opts.basis,
+    });
+    if (result.committed) {
+      p.log.success(`context commit created: ${result.commitHash ?? 'unknown'}`);
+    } else {
+      p.log.info('변경 없음: 같은 다음 우선순위가 이미 반영되어 있습니다.');
+    }
+    p.log.info(
+      [
+        `context root: ${result.contextRoot}`,
+        `changed files: ${result.changedFiles.length > 0 ? result.changedFiles.join(', ') : 'none'}`,
+      ].join('\n'),
+    );
+  } catch (error) {
+    reportPcError(error);
+  }
+  p.outro('ai-ops pc next 완료');
 };
 
 export const pcDoneDraftCommand = async (opts: PcDoneDraftOptions = {}): Promise<void> => {
