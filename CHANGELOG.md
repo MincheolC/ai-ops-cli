@@ -5,6 +5,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.9.0] - 2026-06-16
+
 ### Removed
 
 - `refactor(codex-permissions)`: remove the `ai-ops codex-permissions ...` command group and the `safe-local` permission profile installer. Existing user-level `ai-ops-safe-local` entries in `~/.codex/config.toml` should be removed manually if still present.
