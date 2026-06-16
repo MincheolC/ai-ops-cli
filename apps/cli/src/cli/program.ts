@@ -1,5 +1,4 @@
 import { Command } from 'commander';
-import { registerCodexPermissionsCommands } from '@/features/codex-permissions/register.js';
 import { registerIntegrationCommands } from '@/features/integrations/register.js';
 import { registerPcCommands } from '@/features/pc/register.js';
 import { registerProjectLayerCommands } from '@/features/project-layer/register.js';
@@ -18,7 +17,6 @@ export const createProgram = (): Command => {
   registerSkillCommands(program);
   registerSubagentCommands(program);
   registerPcCommands(program);
-  registerCodexPermissionsCommands(program);
   registerIntegrationCommands(program);
 
   return program;

@@ -112,7 +112,6 @@ Integration component 명령은 `AI_OPS_HOME` 또는 `HOME`이 있어야 실행�
 - task skills
 - subagents
 - Codex hooks
-- Codex safe permissions
 - user-local integration config
 
 Integration lifecycle 명령:
@@ -135,40 +134,6 @@ ai-ops pc done apply --draft /path/to/draft.json
 `code-review-gate`는 Codex-only, explicit-only review subagent와 focused review task skill들을 설치합니다. Codex hook이나 receipt config를 설치하지 않기 때문에 install/status/diff/update/uninstall 경로에서 `CODEX_HOME`을 요구하지 않습니다.
 
 `pc`는 `pc` Codex skill과 shared Codex `PostToolUse` hook runner를 설치합니다. `ai-ops pc next`는 handoff를 만들지 않고 active workstream의 다음 우선순위 snapshot만 기록합니다. 성공적인 `git commit` 이후 `~/.personal-project-contexts/`에 matching workspace, active workstream, current repo scope가 준비된 경우에만 Codex가 `$pc:done`으로 이어가게 합니다. 준비되지 않은 repository에는 pc context를 새로 만들지 않습니다. Handoff 반영은 `ai-ops pc done draft` -> `ai-ops pc done fill --apply` 순서로 진행해, draft 갱신, context 파일 갱신, context repo commit은 CLI가 맡고 Codex가 draft JSON을 직접 patch-edit하지 않아도 됩니다. Codex non-managed hook은 실행 전 `/hooks`에서 review/trust가 필요합니다.
-
-Codex safe permissions는 `pc`가 쓰는 좁은 user-local 작업에서 반복 approval prompt를 줄입니다.
-
-```bash
-ai-ops codex-permissions install safe-local
-ai-ops codex-permissions status safe-local
-ai-ops codex-permissions uninstall safe-local
-```
-
-`safe-local`은 `~/.codex/config.toml`에 `ai-ops-safe-local` user-level Codex permission profile을 upsert합니다. `~/.personal-project-contexts`와 active workspace root 아래 `.codex/plans`에는 write를 허용하고 `.git`은 read-only로 둡니다. 현재 Codex permission syntax인 `:workspace_roots`와 `deny` env-file carveout을 사용하고, generated profile을 installed Codex runtime으로 검증하며, validation이 profile을 reject하면 `config.toml`을 쓰지 않고 fail closed합니다. Codex validation을 실행할 수 없으면 warning과 함께 documented syntax를 씁니다. `PermissionRequest` hook이나 command allow rule은 설치하지 않습니다.
-
-ai-coding worker에서는 Codex subprocess를 run-scoped로 실행하고, commit/push/PR 생성은 orchestrator가 담당하게 합니다.
-
-```bash
-codex exec --ignore-user-config --ignore-rules --cd "$WORKTREE" \
-  -c 'approval_policy="never"' \
-  -c 'default_permissions=":read-only"'
-
-codex exec --ignore-user-config --ignore-rules --cd "$WORKTREE" \
-  -c 'approval_policy="never"' \
-  -c 'default_permissions="ai-worker-impl"' \
-  -c 'permissions.ai-worker-impl.filesystem.glob_scan_max_depth=3' \
-  -c 'permissions.ai-worker-impl.filesystem.":minimal"="read"' \
-  -c 'permissions.ai-worker-impl.filesystem.":workspace_roots"."."="write"' \
-  -c 'permissions.ai-worker-impl.filesystem.":workspace_roots".".git"="read"' \
-  -c 'permissions.ai-worker-impl.filesystem.":workspace_roots".".codex"="read"' \
-  -c 'permissions.ai-worker-impl.filesystem.":workspace_roots".".codex/plans"="write"' \
-  -c 'permissions.ai-worker-impl.filesystem.":workspace_roots"."**/*.env"="deny"' \
-  -c 'permissions.ai-worker-impl.network.enabled=false'
-```
-
-Run-scoped worker profile에 env-file carveout을 추가할 때도 exact TOML syntax를 installed Codex runtime으로 검증해야 합니다. `safe-local`은 managed profile에 대해 이 검증을 자동으로 수행합니다.
-
-각 Codex 실행 후 orchestrator가 HEAD, branch ref, changed-file scope를 검증해야 합니다. Validation command 실행, commit 생성, branch push, `gh pr create --draft` 호출은 Codex가 아니라 orchestrator가 수행합니다.
 
 Integration 소유권은 user/global runtime home 아래 `.ai-ops/integrations-manifest.json`에 기록됩니다. Uninstall은 integration install이 소유한 component만 제거하고, 기존에 수동 설치되어 있던 skill이나 hook은 보존합니다.
 
