@@ -161,41 +161,7 @@ ai-ops skill uninstall skill-load-check
 
 Low-level component commands remain available for direct skill and subagent management.
 
-Codex permissions commands:
-
-```bash
-ai-ops codex-permissions install safe-local
-ai-ops codex-permissions status safe-local
-ai-ops codex-permissions uninstall safe-local
-```
-
 The installed `pc` hook command is the shared dispatcher form `ai-ops integration hook post-tool-use --workflows pc`. Review and trust the configured non-managed hook with Codex `/hooks` before expecting it to run.
-
-`safe-local` manages a user-level Codex permission profile named `ai-ops-safe-local` in `~/.codex/config.toml`. It grants write access to `~/.personal-project-contexts` and `.codex/plans` under active workspace roots while keeping `.git` read-only. It uses the current Codex permission syntax (`:workspace_roots` plus `deny` env-file carveouts), validates the generated profile against the installed Codex runtime, and fails closed without writing `config.toml` when validation rejects the profile. If Codex validation is unavailable, it writes the documented syntax with a warning. It does not install `PermissionRequest` hooks or command allow rules.
-
-For an ai-coding worker, keep Codex subprocesses run-scoped and let the orchestrator own commits, pushes, and PR creation:
-
-```bash
-codex exec --ignore-user-config --ignore-rules --cd "$WORKTREE" \
-  -c 'approval_policy="never"' \
-  -c 'default_permissions=":read-only"'
-
-codex exec --ignore-user-config --ignore-rules --cd "$WORKTREE" \
-  -c 'approval_policy="never"' \
-  -c 'default_permissions="ai-worker-impl"' \
-  -c 'permissions.ai-worker-impl.filesystem.glob_scan_max_depth=3' \
-  -c 'permissions.ai-worker-impl.filesystem.":minimal"="read"' \
-  -c 'permissions.ai-worker-impl.filesystem.":workspace_roots"."."="write"' \
-  -c 'permissions.ai-worker-impl.filesystem.":workspace_roots".".git"="read"' \
-  -c 'permissions.ai-worker-impl.filesystem.":workspace_roots".".codex"="read"' \
-  -c 'permissions.ai-worker-impl.filesystem.":workspace_roots".".codex/plans"="write"' \
-  -c 'permissions.ai-worker-impl.filesystem.":workspace_roots"."**/*.env"="deny"' \
-  -c 'permissions.ai-worker-impl.network.enabled=false'
-```
-
-When adding env-file carveouts to run-scoped worker profiles, validate the exact TOML syntax against the installed Codex runtime; `safe-local` performs that validation automatically for its managed profile.
-
-After each Codex run, the orchestrator should verify HEAD, branch refs, and changed-file scope. The orchestrator, not Codex, should run validation commands, create commits, push branches, and call `gh pr create --draft`.
 
 Subagent lifecycle commands:
 

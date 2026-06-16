@@ -112,7 +112,6 @@ Maintained runtime surfaces:
 - task skills
 - subagents
 - Codex hooks
-- Codex safe permissions
 - user-local integration config
 
 Integration lifecycle commands:
@@ -135,40 +134,6 @@ ai-ops pc done apply --draft /path/to/draft.json
 `code-review-gate` installs a Codex-only, explicit-only review subagent plus focused review task skills. It does not install Codex hooks or receipt config, so install/status/diff/update/uninstall do not require `CODEX_HOME`.
 
 `pc` installs the `pc` Codex skill and a shared Codex `PostToolUse` hook runner. `ai-ops pc next` records the active workstream's next priority snapshot without creating a handoff. After a successful `git commit`, the hook asks Codex to continue into `$pc:done` only when `~/.personal-project-contexts/` already has a matching workspace, active workstream, and current repo scope. It does not create pc context for unprepared repositories. Handoff writes use `ai-ops pc done draft` -> `ai-ops pc done fill --apply`, so `ai-ops` owns draft updates, context file updates, and the context repo commit without requiring Codex to patch-edit the draft JSON directly. Codex still requires non-managed hooks to be reviewed and trusted through `/hooks` before they run.
-
-Codex safe permissions can reduce repeated approval prompts for the narrow user-local work used by `pc`:
-
-```bash
-ai-ops codex-permissions install safe-local
-ai-ops codex-permissions status safe-local
-ai-ops codex-permissions uninstall safe-local
-```
-
-`safe-local` upserts a user-level Codex permission profile named `ai-ops-safe-local` in `~/.codex/config.toml`. It grants write access to `~/.personal-project-contexts` and `.codex/plans` under active workspace roots while keeping `.git` read-only. It uses the current Codex permission syntax (`:workspace_roots` plus `deny` env-file carveouts), validates the generated profile against the installed Codex runtime, and fails closed without writing `config.toml` when validation rejects the profile. If Codex validation is unavailable, it writes the documented syntax with a warning. It does not install `PermissionRequest` hooks or command allow rules.
-
-For an ai-coding worker, keep Codex subprocesses run-scoped and let the orchestrator own commits, pushes, and PR creation:
-
-```bash
-codex exec --ignore-user-config --ignore-rules --cd "$WORKTREE" \
-  -c 'approval_policy="never"' \
-  -c 'default_permissions=":read-only"'
-
-codex exec --ignore-user-config --ignore-rules --cd "$WORKTREE" \
-  -c 'approval_policy="never"' \
-  -c 'default_permissions="ai-worker-impl"' \
-  -c 'permissions.ai-worker-impl.filesystem.glob_scan_max_depth=3' \
-  -c 'permissions.ai-worker-impl.filesystem.":minimal"="read"' \
-  -c 'permissions.ai-worker-impl.filesystem.":workspace_roots"."."="write"' \
-  -c 'permissions.ai-worker-impl.filesystem.":workspace_roots".".git"="read"' \
-  -c 'permissions.ai-worker-impl.filesystem.":workspace_roots".".codex"="read"' \
-  -c 'permissions.ai-worker-impl.filesystem.":workspace_roots".".codex/plans"="write"' \
-  -c 'permissions.ai-worker-impl.filesystem.":workspace_roots"."**/*.env"="deny"' \
-  -c 'permissions.ai-worker-impl.network.enabled=false'
-```
-
-When adding env-file carveouts to run-scoped worker profiles, validate the exact TOML syntax against the installed Codex runtime; `safe-local` performs that validation automatically for its managed profile.
-
-After each Codex run, the orchestrator should verify HEAD, branch refs, and changed-file scope. The orchestrator, not Codex, should run validation commands, create commits, push branches, and call `gh pr create --draft`.
 
 Integration ownership is recorded in `.ai-ops/integrations-manifest.json` under the user/global runtime home. Uninstall removes only components that the integration install owned; pre-existing manual skill or hook installs are preserved.
 

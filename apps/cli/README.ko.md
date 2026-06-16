@@ -161,41 +161,7 @@ ai-ops skill uninstall skill-load-check
 
 Low-level component 명령도 직접 skill과 subagent를 관리할 때 계속 사용할 수 있습니다.
 
-Codex permissions 명령:
-
-```bash
-ai-ops codex-permissions install safe-local
-ai-ops codex-permissions status safe-local
-ai-ops codex-permissions uninstall safe-local
-```
-
 설치된 `pc` hook command는 shared dispatcher 형태인 `ai-ops integration hook post-tool-use --workflows pc`입니다. Codex non-managed hook은 실행 전 `/hooks`에서 review/trust가 필요합니다.
-
-`safe-local`은 `~/.codex/config.toml`에 `ai-ops-safe-local` user-level Codex permission profile을 관리합니다. `~/.personal-project-contexts`와 active workspace root 아래 `.codex/plans`에는 write를 허용하고 `.git`은 read-only로 둡니다. 현재 Codex permission syntax인 `:workspace_roots`와 `deny` env-file carveout을 사용하고, generated profile을 installed Codex runtime으로 검증하며, validation이 profile을 reject하면 `config.toml`을 쓰지 않고 fail closed합니다. Codex validation을 실행할 수 없으면 warning과 함께 documented syntax를 씁니다. `PermissionRequest` hook이나 command allow rule은 설치하지 않습니다.
-
-ai-coding worker에서는 Codex subprocess를 run-scoped로 실행하고, commit/push/PR 생성은 orchestrator가 담당하게 합니다.
-
-```bash
-codex exec --ignore-user-config --ignore-rules --cd "$WORKTREE" \
-  -c 'approval_policy="never"' \
-  -c 'default_permissions=":read-only"'
-
-codex exec --ignore-user-config --ignore-rules --cd "$WORKTREE" \
-  -c 'approval_policy="never"' \
-  -c 'default_permissions="ai-worker-impl"' \
-  -c 'permissions.ai-worker-impl.filesystem.glob_scan_max_depth=3' \
-  -c 'permissions.ai-worker-impl.filesystem.":minimal"="read"' \
-  -c 'permissions.ai-worker-impl.filesystem.":workspace_roots"."."="write"' \
-  -c 'permissions.ai-worker-impl.filesystem.":workspace_roots".".git"="read"' \
-  -c 'permissions.ai-worker-impl.filesystem.":workspace_roots".".codex"="read"' \
-  -c 'permissions.ai-worker-impl.filesystem.":workspace_roots".".codex/plans"="write"' \
-  -c 'permissions.ai-worker-impl.filesystem.":workspace_roots"."**/*.env"="deny"' \
-  -c 'permissions.ai-worker-impl.network.enabled=false'
-```
-
-Run-scoped worker profile에 env-file carveout을 추가할 때도 exact TOML syntax를 installed Codex runtime으로 검증해야 합니다. `safe-local`은 managed profile에 대해 이 검증을 자동으로 수행합니다.
-
-각 Codex 실행 후 orchestrator가 HEAD, branch ref, changed-file scope를 검증해야 합니다. Validation command 실행, commit 생성, branch push, `gh pr create --draft` 호출은 Codex가 아니라 orchestrator가 수행합니다.
 
 Subagent lifecycle 명령:
 

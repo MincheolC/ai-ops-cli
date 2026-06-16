@@ -13,5 +13,4 @@ export * from '../features/studio/snapshot.js';
 export * from '../features/pc/core.js';
 export * from '../features/codex-hooks/core.js';
 export * from '../features/codex-hooks/git-commit-hook.js';
-export * from '../features/codex-permissions/core.js';
 export * from '../features/integrations/manifest-io.js';
